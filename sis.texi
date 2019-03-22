@@ -1,0 +1,410 @@
+\input texinfo   @c -*-texinfo-*-
+@setfilename sis.info
+@comment $Id@w{$}
+@comment %**start of header
+@include version.texi
+@settitle SIS - Simple Instruction Simulator @value{VERSION}
+@syncodeindex pg cp
+@comment %**end of header
+@copying
+This manual is for SIS (version @value{VERSION}, @value{UPDATED}).
+
+Copyright @copyright{} 2019 Free Software Foundation, Inc.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+@end quotation
+@end copying
+
+@dircategory Texinfo documentation system
+@direntry
+* sis: (sis)Invoking sis.
+@end direntry
+
+@titlepage
+@title SIS - Simple Instruction Simulator
+@subtitle for version @value{VERSION}, @value{UPDATED}
+@author Jiri Gaisler (@email{jiri@@gaisler.se})
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top SIS
+
+This manual is for SIS (version @value{VERSION}, @value{UPDATED}).
+@end ifnottex
+
+@menu
+* Introduction::
+* Invoking sis::
+* Commands ::
+* Emulated Systems ::
+* GNU Free Documentation License::
+* Index::
+@end menu
+
+@node Introduction
+@chapter Introduction
+@cindex Introduction
+
+SIS is a SPARC V7/V8 and RISC-V RV32IMACF architecture simulator.
+It consist of two parts,
+the simulator core and a user defined memory module. The simulator
+core executes the instructions while the memory module emulates memory
+and peripherals.
+
+@node Invoking sis
+@chapter Invoking sis
+
+@pindex sis
+@cindex invoking @command{sis}
+
+The simulator is started as follows:
+@smallexample
+sis [options] [file] 
+@end smallexample
+
+The following options are recognized:
+
+@table @code
+@item -c @var{file}
+Read sis commands from @var{file} at startup.
+
+@item -cov
+Enable code coverage and write a coverage file at exit.
+
+@item -d @var{clocks}
+Set the the number of @var{clocks} in each time-slice for multi-processor
+simulation. Default is 50, set lower for higher accuracy.
+
+@item -erc32
+Emulate the SPARC V7 ERC32 processor
+
+@item -freq @var{freq}
+Set frequency of emulated cpu. This is used by the 'perf'
+command to calculated the MIPS figure for a particular configuration.
+The frequency must be an integer indicating the frequency in MHz.
+
+@item -gdb
+Start a gdb server, listening on port 1234. An alternative port can
+be specified with @var{-port nn}.
+
+@item -leon2
+Emulate the SPARC V8 LEON2 processor
+
+@item -leon3
+Emulate the SPARC V8 LEON3 processor
+
+@item -m @var{cores}
+Enable the number of @var{cores} (2 - 4) in a leon3 or RISC-V multi-processor system.
+
+@item -nfp
+Disable the simulated FPU, so each FPU instruction will
+generate a FPU disabled trap.
+
+@item -port @var{port}
+Use @var{port} for the gdb server. Default is port 1234.
+
+@item -r
+Start execution immediately without an interactive shell. This is useful
+for automated testing.
+
+@item -riscv
+Emulate a RISC-V RV32IMACF processor
+
+@item -tlim @var{delay}
+Used together with @var{-r} to limit the amount of simulated time that
+the simulator runs for before exiting. The following units are recognized:
+@var{us}, @var{ms} and @var{s}. To limit simulated time to 100 seconds,
+use: @var{-tlim 100 s}.
+
+@item -uart1 @var{device}
+Connect UART1 (console) of the simulator to @var{device}. stdin/stout is default.
+@item -v
+Increase the debug level with 1, to provide more diagnostic messages. Can be added multiple times.
+
+
+@item file
+The executable file to be loaded must be an SPARC or RISCV ELF file.
+On start-up, the file is loaded into the simulated memory.
+
+@end table
+
+@node Commands
+@chapter Commands
+@cindex Commands
+
+Below is the description of commands that are recognized by the simulator.
+The command-line is parsed using GNU readline. A command
+history of 64 commands is maintained. Use the up/down arrows to recall
+previous commands. For more details, see the readline documentation.
+
+@table @code
+@item batch @var{file}
+
+Execute a batch file of SIS commands.
+
+@item +bp @var{address}
+@itemx break @var{address}
+
+Set a breakpoint at @var{address}.
+
+@item bp
+Print all breakpoints.
+
+@item delete @var{num}
+Delete breakpoint @var{num}. Use @code{bp} or @code{break} to see which
+number is assigned to the breakpoints.
+
+@item csr
+Show RISC-V CSR registers
+
+@item cont [@var{count}]
+Continue execution at present position, optionally for @var{count} 
+instructions.
+
+@item dis [@var{addr}] [@var{count}]
+Disassemble [@var{count}] instructions at address [@var{addr}]. Default
+values for @var{count} is 16 and @var{addr} is the present program counter.
+
+@item echo @var{string}
+Print @var{string} to the simulator window.
+
+@item float
+Print the FPU registers
+
+@item gdb [@var{port}]
+Start the gdb server interface. Default port is 1234, but can be overriden using
+the @var{port} argument. @code{gdb} should be started with @code{target extended-remote localhost:1234}.
+
+@item go @var{address} [@var{count}]
+Set pc to @var{address} and resume execution. If @var{count} is given,
+@code{sis} will stop after @var{count} instructions have been executed.
+
+@item help
+Print a small help menu for the SIS commands.
+
+@item hist [@var{trace_length}]
+
+Enable the instruction trace buffer. The @var{trace_length} last executed 
+instructions will be placed in the trace buffer. A @code{hist} command without 
+a @var{trace_length} will display the trace buffer. Specifying a zero trace 
+length will disable the trace buffer.
+
+@item load  @var{file_name}
+
+Load an ELF file into simulator memory. 
+
+@item mem [@var{addr}] [@var{count}]
+
+Display memory at [@var{addr}] for [@var{count}] bytes. Same default values as for the @code{dis} command.
+
+@item quit
+Exits the simulator.
+
+@item perf [reset]
+The @code{perf} command will display various execution statistics.
+A @code{perf reset} 
+command will reset the statistics. This can be used if statistics shall 
+be calculated only over a part of the program. The @code{run} and @code{reset} 
+command also resets the statistic information.
+
+@item reg [@var{reg_name}] [@var{value}]
+Print or set the CPU registers. @code{reg} without parameters prints the CPU
+registers. @code{reg} @var{reg_name value} sets the corresponding register to
+@var{value}. Valid register names for SPARC are psr, tbr, wim, y, g1-g7, o0-o7
+and l0-l7. Valid register names for RISCV-V are mtvec, mstatus, pc, 
+ra, sp, gp, tp, t0-t6, s0-s11 and a0-a7. 
+
+@item reset
+Perform a power-on reset. This command is equal to @code{run 0}.
+
+@item run [@var{count}]
+
+Reset the simulator and start execution from the entry point of the loaded
+ELF file. If an instruction count is given (@var{count}), the simulator will
+stop after the specified number of instructions. The event queue is emptied
+but any set breakpoints remain.
+
+@item step
+
+Execute one instruction and print it to the simulator console.
+Equal to command @code{trace 1}
+
+@item sym
+
+List symbols and corresponding addresses in the loaded program.
+
+@item trace [@var{count}]
+
+Resume the simulator at the present position and print each execute
+instruction executes. If an instruction count is given (@var{count}),
+the simulator will stop after the specified number of instructions.
+
+@item wmem @var{addr data}
+Write @var{data} to memory at @var{addr}. Data is written as a 32-bit word.
+
+@item wp
+Print all watchpoints
+
+@item +wpr @var{address}
+Adds an read watchpoint at address <address>.
+
+@item -wpr @var{num}
+Delete read watchpoint @var{num}. Use @var{wp} to see which number is
+assigned to the watchpoints.
+
+@item +wpw @var{address}
+@itemx watch @var{address}
+Adds an write watchpoint at @var{address}.
+
+@item -wpw @var{num}
+
+Delete write watchpoint @var{num}. Use @code{wp} to see which number
+is assigned to the watchpoints.
+
+@end table
+
+Typing a 'Ctrl-C' will interrupt a running simulator.
+
+Short forms of the commands are allowed, e.g 'c' 'co' or 'con' are all
+interpreted as 'cont'.
+
+@node Emulated Systems
+@chapter Emulated Systems
+@cindex Emulated Systems
+
+@code{sis} is capable of emulating four different processor systems:
+
+@table @code
+@item ERC32
+ERC32 SPARC V7 processor
+
+@item LEON2
+LEON2 SPARC V8 processor
+
+@item LEON3
+LEON3 SPARC V8 processor
+
+@item RISC-V
+RISC-V (RV32IMACFD) processor
+
+@end table
+
+The following sections outline the emulation characteristics of the four supported systems.
+
+@section ERC32 SPARC V7 processor
+
+The radiation-hard ERC32 processor was developed by ESA in the mid-90's for critical space application. It was used in the control computer for the International Space Station (ISS) and also in the ATV re-supply ship for the ISS. The sub-sequent single-chip ERC32SC was used in a multitude of satellites, launchers and interplanetary probes, and is still being manufactured by Atmel. See the ESA ERC32 page (http://http://microelectronics.esa.int/erc32/index.html) for more technical documetation.
+
+Sis emulates the original three-chip version of the ERC32 processor, consisting of the integer unit (IU), floating-point unit (FPU) and the memort controller (MEC). The IU is based on the Cypress CY601 SPARC V7 processor, while the FPU is based on the Meiko FPU. The MEC implements various peripheral functions and a memory controller. The single-chip verion of ERC32 (ERC32SC/TSC695F) is functionally identical to the original chip-set, but can operate at a higher frequency (25 MHz)
+
+@noindent
+The following functions of the ERC32 are emulated by sis:
+
+@itemize @bullet
+@item
+IU & FPU with accurate timing
+@item
+UART A & B
+@item
+Real-time clock
+@item
+General purpose timer
+@item
+Interrupt controller
+@item
+Breakpoint register
+@item
+Watchpoint register
+@item
+16 Mbyte ROM
+@item
+16 Mbyte RAM
+@end itemize
+
+@subsection IU and FPU instruction timing.
+
+The simulator provides cycle true simulation for ERC32. The following table
+shows the emulated instruction timing for IU & FPU:
+
+@multitable {other integer ops} {Cycles}
+@headitem Instruction @tab Cycles
+@item jmpl, rett @tab 2
+@item load @tab 2
+@item store @tab 3
+@item load double @tab 3
+@item store double @tab 4
+@item other integer ops @tab 1
+@item fabs @tab 2
+@item fadds @tab 4
+@item faddd @tab 4
+@item fcmps @tab 4
+@item fcmpd @tab 4
+@item fdivs @tab 20
+@item fdivd @tab 35
+@item fmovs @tab 2
+@item fmuls @tab 5
+@item fmuld @tab 9
+@item fnegs @tab 2
+@item fsqrts @tab 37
+@item fsqrtd @tab 65
+@item fsubs @tab 4
+@item fsubd @tab 4
+@item fdtoi @tab 7
+@item fdots @tab 3
+@item fitos @tab 6
+@item fitod @tab 6
+@item fstoi @tab 6
+@item fstod @tab 2
+@end multitable
+
+The parallel operation between the IU and FPU is modelled. This means
+that a FPU instruction will execute in parallel with other instructions as
+long as no data or resource dependency is detected. See the 90C602E data
+sheet for the various types of dependencies. Tracing using the 'trace'
+command will display the current simulator time in the left column. This
+time indicates when the instruction is fetched. If a dependency is detected,
+the following fetch will be delayed until the conflict is resolved.
+
+The load dependency in the IU is also modelled - if the destination
+register of a load instruction is used by the following instruction, an
+idle cycle is inserted.
+
+@subsection UART A and B
+UART A is by default connected to the console, while UART B is disabled. Both UARTs can be connected to any file/device using the -uart1 and -uart2 options at start-up. The following registers are implemented:
+
+@multitable {UART A RX and TX register} {Address}
+@headitem Register @tab Address
+@item UART A RX and TX register	@tab 0x01f800e0
+@item UART B RX and TX register	@tab 0x01f800e4
+@item UART status register	@tab 0x01f800e8
+@end multitable
+
+The UARTs generate interrupt 4 and 5 after each received or transmitted
+character.  The error interrupt is generated if overflow occurs - other
+errors cannot occur.
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@bye
+
