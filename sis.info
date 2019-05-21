@@ -1,6 +1,6 @@
 This is sis.info, produced by makeinfo version 6.5 from sis.texi.
 
-This manual is for SIS (version 2.14, 9 April 2019).
+This manual is for SIS (version 2.14, 21 May 2019).
 
    Copyright (C) 2019 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.14, 9 April 2019).
+This manual is for SIS (version 2.14, 21 May 2019).
 
 * Menu:
 
@@ -29,6 +29,10 @@ This manual is for SIS (version 2.14, 9 April 2019).
 * Invoking sis::
 * Commands ::
 * Emulated Systems ::
+* Multi-processing ::
+* Interfacing to GDB ::
+* Code coverage ::
+* Building SIS ::
 * GNU Free Documentation License::
 * Index::
 
@@ -38,10 +42,27 @@ File: sis.info,  Node: Introduction,  Next: Invoking sis,  Prev: Top,  Up: Top
 1 Introduction
 **************
 
-SIS is a SPARC V7/V8 and RISC-V RV32IMACF architecture simulator.  It
-consist of two parts, the simulator core and a user defined memory
-module.  The simulator core executes the instructions while the memory
-module emulates memory and peripherals.
+SIS is a SPARC V7/V8 and RISC-V RV32IMACFD architecture simulator.  It
+consist of three main parts: an event-based simulator core, a cpu
+(SPARC/RISCV) emulation module and system-specific memory and peripheral
+modules.
+
+   SIS can emulate four specific systems:
+
+'ERC32'
+     ERC32 SPARC V7 processor
+
+'LEON2'
+     LEON2 SPARC V8 processor
+
+'LEON3'
+     LEON3 SPARC V8 processor
+
+'RISC-V'
+     RISC-V (RV32IMACFD) processor
+
+   The LEON3 and RISC-V emulation also supports SMP with up to four
+processor cores.
 
 
 File: sis.info,  Node: Invoking sis,  Next: Commands,  Prev: Introduction,  Up: Top
@@ -98,7 +119,7 @@ The simulator is started as follows:
      useful for automated testing.
 
 '-riscv'
-     Emulate a RISC-V RV32IMACF processor
+     Emulate a RISC-V RV32IMACFD processor
 
 '-tlim DELAY'
      Used together with -R to limit the amount of simulated time that
@@ -259,7 +280,7 @@ previous commands.  For more details, see the readline documentation.
 all interpreted as 'cont'.
 
 
-File: sis.info,  Node: Emulated Systems,  Next: GNU Free Documentation License,  Prev: Commands,  Up: Top
+File: sis.info,  Node: Emulated Systems,  Next: Multi-processing,  Prev: Commands,  Up: Top
 
 4 Emulated Systems
 ******************
@@ -369,18 +390,314 @@ UART A is by default connected to the console, while UART B is disabled.
 Both UARTs can be connected to any file/device using the -uart1 and
 -uart2 options at start-up.  The following registers are implemented:
 
-Register                    Address
---------------------------------------
-UART A RX and TX register   0x01f800e0
-UART B RX and TX register   0x01f800e4
-UART status register        0x01f800e8
+Register                                    Address
+------------------------------------------------------
+UART A RX and TX register                   0x01f800e0
+UART B RX and TX register                   0x01f800e4
+UART status register                        0x01f800e8
 
    The UARTs generate interrupt 4 and 5 after each received or
 transmitted character.  The error interrupt is generated if overflow
 occurs - other errors cannot occur.
 
+4.1.3 Real-time clock and general purpose timer A
+-------------------------------------------------
+
+The following registers are implemented:
+
+Register                                    Address
+------------------------------------------------------
+Real-time clock timer                       0x01f80080
+Real-time clock scaler program register     0x01f80084
+Real-time clock counter program register    0x01f80080
+General purpose timer                       0x01f80088
+Real-time clock scaler program register     0x01f8008c
+General purpose timer counter register      0x01f80088
+Timer control register                      0x01f80098
+
+4.1.4 Interrupt controller
+--------------------------
+
+The interrupt controller is implemented as in the MEC specification with
+the exception of the interrupt shape register.  Since external
+interrupts are not possible, the interrupt shape register is not
+implemented.  The only internal interrupts that are generated are the
+real-time clock, the general purpose timer and UARTs.  However, all 15
+interrupts can be tested via the interrupt force register.
+
+   The following registers are implemented:
+
+Register                                    Address
+------------------------------------------------------
+Interrupt pending register                  0x01f80048
+Interrupt mask register                     0x01f8004c
+Interrupt clear register                    0x01f80050
+Interrupt force register                    0x01f80054
+
+4.1.5 System fault status registers
+-----------------------------------
+
+The system fault status register and fist failing address register are
+implemented and updated accordingly.  Implemented registers are:
+
+Register                                    Address
+------------------------------------------------------
+System fault status register                0x01f800a0
+First failing address register              0x01f800a4
+
+4.1.6 Memory interface
+----------------------
+
+The following memory areas are valid for the ERC32 simulator:
+
+Register                                    Address
+------------------------------------------------------------------
+0x00000000 - 0x01000000                     ROM (16 Mbyte)
+0x02000000 - 0x03000000                     RAM (16 Mbyte)
+0x01f80000 - 0x01f800ff                     MEC registers
+
+   Access to unimplemented MEC registers or non-existing memory will
+result in a memory exception trap.
+
+   The memory configuration register is used to define available memory
+in the system.  The fields RSIZ and PSIZ are used to set RAM and ROM
+size, the remaining fields are not used.  NOTE: after reset, the MEC is
+set to decode 4 Kbyte of ROM and 256 Kbyte of RAM. The memory
+configuration register has to be updated to reflect the available
+memory.
+
+   The waitstate configuration register is used to generate waitstates.
+This register must also be updated with the correct configuration after
+reset.
+
+   The memory protection scheme is implemented - it is enabled through
+bit 3 in the MEC control register.
+
+   The following registers are implemented:
+
+Register                                    Address
+-------------------------------------------------------------
+MEC control register                        0x01f80000
+Memory control register                     0x01f80010
+Waitstate configuration register            0x01f80018
+Memory access register 0                    0x01f80020
+Memory access register 1                    0x01f80024
+
+4.1.7 Watchdog
+--------------
+
+The watchdog is implemented as in the specification.  The input clock is
+always the system clock regardless of WDCS bit in MEC configuration
+register.
+
+   The following registers are implemented:
+
+Register                                    Address
+-------------------------------------------------------------
+Watchdog program/acknowledge register       0x01f80060
+Watchdog trap door set register             0x01f80064
+
+4.1.8 Software reset register
+-----------------------------
+
+Implemented as in the specification (0x01f800004, write-only).
+
+4.1.9 Power-down mode
+---------------------
+
+The power-down register (0x01f800008) is implemented as in the
+specification.  During power-down, the simulator skips time until next
+event in the event queue.  Ctrl-C in the simulator window will exit the
+power-down mode.
+
+4.1.10 MEC control register
+---------------------------
+
+The following bits are implemented in the MEC control register:
+
+Bit     Name   Function
+-----------------------------------------------
+0       PRD    Power-down mode enable
+1       SWR    Soft reset enable
+2       APR    Access protection enable
+
+4.2 LEON2 emulation
+===================
+
+In LEON2 mode, SIS emulates a LEON2 system as defined in the LEON2 IP
+manual.  The emulated system includes the LEON2 standard peripherals, 16
+Mbyte ROM and 16 Mbyte RAM. The SPARC emulation supports an FPU but not
+the LEON2 MMU.
+
+   To start sis in LEON2 mode, use the -leon2 switch.
+
+4.2.1 LEON2 peripherals
+-----------------------
+
+SIS emulates one LEON2 UART, the interrupt controller and the timer
+unit.  The interrupt controller is implemented as described in the LEON2
+IP manual, with the exception of the interrupt level register.
+Secondary interrupts are not supported.  The timer unit is configured
+with two timers and separate interrupts (8 and 9).  The scaler is
+configured to 16 bits, while the counters are 32 bits.  The UART
+generates interrupt 3.
+
+4.2.2 Memory interface
+----------------------
+
+The following memory areas are valid for LEON2:
+
+Address                                     Type
+------------------------------------------------------------------
+0x00000000 - 0x01000000                     ROM (16 Mbyte)
+0x40000000 - 0x41000000                     RAM (16 Mbyte)
+0x80000000 - 0x80000100                     APB bus
+
+   Access to non-existing memory will result in a memory exception trap.
+
+4.2.3 Power-down mode
+---------------------
+
+The LEON2 power-down register (0x80000018) is supported.  When
+power-down is entered, time is skipped forward until the next event in
+the event queue.  A Ctrl-C in the simulator window will exit the
+power-down mode.
+
+4.3 LEON3 emulation
+===================
+
+In LEON3 mode, SIS emulates a LEON3 system as defined in the GRLIP IP
+manual.  The emulated system includes the standard peripherals such as
+APBUART, GPTIMER, IRQMP and SRCTRL. The emulated system includes 16
+Mbyte ROM and 16 Mbyte RAM. The SPARC emulation supports an FPU but not
+the LEON3 MMU.
+
+   To start sis in LEON3 mode, use the -leon3 switch.
+
+4.3.1 LEON3 peripherals
+-----------------------
+
+The following IP cores from GRLIB are emulated in LEON3 mode:
+
+IP Core                     Address        Interrupt
+-------------------------------------------------------
+APBMAST                     0x80000000     -
+APBUART                     0x80000100     3
+IRQMP                       0x80000200     -
+GPTIMER                     0x80000300     8, 9
+
+4.3.2 Memory interface
+----------------------
+
+The following memory areas are valid for LEON3:
+
+Address                                     Type
+------------------------------------------------------------------
+0x00000000 - 0x01000000                     ROM (16 Mbyte)
+0x40000000 - 0x41000000                     RAM (16 Mbyte)
+0x80000000 - 0x81000000                     APB bus
+0xFFFFF000 - 0xFFFFFFFF                     AHB plug&play
+
+   Access to non-existing memory will result in a memory exception trap.
+
+4.3.3 Power-down mode
+---------------------
+
+The LEON3 power-down register (%ars19) is supported.  When power-down is
+entered, time is skipped forward until the next event in the event
+queue.  A Ctrl-C in the simulator window will exit the power-down mode.
+
+4.4 RISC-V emulation
+====================
+
+In RISC-V mode, SIS emulates a RV32IMACFD processor as defined in the
+RISC-V specification 1.9.  The RISC-V procssor is attached to an
+identical GRLIB sub-system as when LEON3 is emulated.
+
+   To start sis in RISC-V mode, use the -riscv switch.
+
+4.4.1 Power-down mode
+---------------------
+
+The RISC-V power-down feature (WFI) is supported.  When power-down is
+entered, time is skipped forward until the next event in the event
+queue.  Ctrl-C in the simulator window will exit the power-down mode.
+
+4.4.2 Code coverage
+-------------------
+
+Code coverage is currently only supported for 32-bit instructions, i.e.
+the C-extension can not be used when code coverage is measured.
+
+4.4.3 RISC-V 64-bit timer
+-------------------------
+
+The standard RISC-V 64-bit timer is provided and can be read through the
+time and timeh CSR. The timer does not generare any interrupt and the
+timecmp register is not implemented.
+
 
-File: sis.info,  Node: GNU Free Documentation License,  Next: Index,  Prev: Emulated Systems,  Up: Top
+File: sis.info,  Node: Multi-processing,  Next: Interfacing to GDB,  Prev: Emulated Systems,  Up: Top
+
+5 Multi-processing
+******************
+
+When emulating a LEON3 or RISC-V processor, SIS can emulate up to four
+cores in the target system (SMP). The cores are simulated in a
+round-robin fashion with a time-slice of 50 clocks.  Shorter or longer
+time-slices can be selected using -d <clocks>.
+
+   To start SIS with SMP, use the switch -m <n> when starting the
+simulator where n can be 2 - 4.
+
+
+File: sis.info,  Node: Interfacing to GDB,  Next: Code coverage,  Prev: Multi-processing,  Up: Top
+
+6 Interfacing to GDB
+********************
+
+SIS can be connected to gdb through a network socket using the gdb
+remote interface.  Either start SIS with -gdb, or issue the 'gdb'
+command inside SIS, and connect gdb with 'target extended-remote
+localhost:1234'.  The port can be changed using the -port option.
+
+
+File: sis.info,  Node: Code coverage,  Next: Building SIS,  Prev: Interfacing to GDB,  Up: Top
+
+7 Code coverage
+***************
+
+Code coverage data will be produce if sis is started with the -cov
+switch.  The coverage data will be stored in a file name same as the
+file used with the load command, appended with .cov.  For instance, if
+sis is run with hello.exe, the coverage data will be stored in
+hello.exe.cov.  The coverage file is created when the simulator is
+exited.
+
+   The coverage file data consists of a starting address, and a number
+of coverage points indicating incremental 32-bit word addresses:
+
+   0x40000000 0 0 0 19 9 1 1 1 1 0 .....
+
+   The coverage points are in hexadecimal format.  Bit 0 (lsb) indicates
+an executed instruction.  Bit 3 indicates taken branch and bit 4
+indicates an untaken branch.  Bits 2 and 3 are currently not used.
+
+   For RISC-V, code coverage is only supported for 32-bit instructions,
+i.e.  the C-extension can not be used when code coverage is measured.
+
+
+File: sis.info,  Node: Building SIS,  Next: GNU Free Documentation License,  Prev: Code coverage,  Up: Top
+
+8 Building SIS
+**************
+
+SIS uses the GNU autoconf system, and can simply be build using
+'./configure' followed by 'make'.  To build a PDF version of the manual,
+do 'make sis.pdf'.
+
+
+File: sis.info,  Node: GNU Free Documentation License,  Next: Index,  Prev: Building SIS,  Up: Top
 
 Appendix A GNU Free Documentation License
 *****************************************
@@ -870,21 +1187,29 @@ Index
  [index ]
 * Menu:
 
+* Building SIS:                          Building SIS.          (line 6)
+* Code coverage:                         Code coverage.         (line 6)
 * Commands:                              Commands.              (line 6)
 * Emulated Systems:                      Emulated Systems.      (line 6)
+* Interfacing to GDB:                    Interfacing to GDB.    (line 6)
 * Introduction:                          Introduction.          (line 6)
 * invoking sis:                          Invoking sis.          (line 6)
+* Multi-processing:                      Multi-processing.      (line 6)
 * sis:                                   Invoking sis.          (line 6)
 
 
 
 Tag Table:
-Node: Top697
-Node: Introduction948
-Node: Invoking sis1310
-Node: Commands3362
-Node: Emulated Systems7466
-Node: GNU Free Documentation License11416
-Node: Index36564
+Node: Top696
+Node: Introduction1029
+Node: Invoking sis1653
+Node: Commands3706
+Node: Emulated Systems7810
+Node: Multi-processing20477
+Node: Interfacing to GDB20973
+Node: Code coverage21383
+Node: Building SIS22388
+Node: GNU Free Documentation License22686
+Node: Index47830
 
 End Tag Table
