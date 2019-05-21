@@ -59,9 +59,6 @@
 #define MEC_IOCR	0x014
 #define MEC_WCR		0x018
 
-#define MEC_MAR0  	0x020
-#define MEC_MAR1  	0x024
-
 #define MEC_SSA1 	0x020
 #define MEC_SEA1 	0x024
 #define MEC_SSA2 	0x028
@@ -83,11 +80,7 @@
 #define MEC_SFSR	0x0A0
 #define MEC_FFAR	0x0A4
 #define MEC_ERSR	0x0B0
-#define MEC_DBG		0x0C0
 #define MEC_TCR		0x0D0
-
-#define MEC_BRK		0x0C4
-#define MEC_WPR		0x0C8
 
 #define MEC_UARTA	0x0E0
 #define MEC_UARTB	0x0E4

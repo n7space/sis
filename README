@@ -1,0 +1,16 @@
+
+SIS - Simple Instruction Simulator README file
+----------------------------------------------
+
+SIS uses the GNU autoconf system, and can simply be build using:
+
+	./configure 
+
+followed by 
+
+	make
+
+To build a PDF version of the manual, do
+
+	make sis.pdf.
+
