@@ -26,6 +26,9 @@
 #define FPU_D_ENABLED
 #define T_JALR	2
 #define T_BMISS 2
+#define T_MUL	8
+#define T_DIV	35
+#define T_AMO	5
 
 #define TRAP_IEXC   1
 #define TRAP_ILLEG  2

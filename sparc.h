@@ -14,6 +14,8 @@
 #define T_LDST	4
 #define T_JMPL	2
 #define T_RETT	2
+#define T_MUL	5
+#define T_DIV	35
 
 #define FSR_QNE 	0x2000
 #define FP_EXE_MODE 0

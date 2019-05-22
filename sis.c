@@ -184,6 +184,9 @@ main(argc, argv)
 	if (!freq) freq = 14;
     }
 
+    if (ncpu > 1)
+        printf(" L1 cache: %dK/%dK, %d bytes/line \n",
+		(1 << (L1IBITS - 10)), (1 << (L1DBITS - 10)), (1 << L1ILINEBITS));
     if (nfp)
 	printf(" FPU disabled\n");
     ebase.freq = freq;

@@ -175,3 +175,29 @@ init_regs(sregs)
     sregs[i].bphit = 0;
   }
 }
+
+void
+l1data_snoop(uint32 address, uint32 cpu)
+{
+	int i;
+	for (i=0; i<ncpu; i++) {
+		if (sregs[i].l1dtags[(address >> L1DLINEBITS) & L1DMASK] == (address >> L1DLINEBITS)) {
+			if (cpu != i) {
+				sregs[i].l1dtags[(address >> L1DLINEBITS) & L1DMASK] = 0;
+//				printf("l1 snoop hit : 0x%08X,  %d  %d\n", address, cpu, i);
+			}
+		}
+	}
+}
+
+void
+l1data_update(uint32 address, uint32 cpu)
+{
+      if (sregs[cpu].l1dtags[address >> L1DLINEBITS & L1DMASK] != (address >> L1DLINEBITS))
+        {
+	  sregs[cpu].l1dtags[(address >> L1DLINEBITS) & L1DMASK] = (address >> L1DLINEBITS);
+	  sregs[cpu].hold += 17;
+	  sregs[cpu].l1dmiss++;
+        }
+}
+
