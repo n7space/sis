@@ -819,36 +819,44 @@ riscv_dispatch_instruction (sregs)
 		  sop2 = op2;
 		  sop2 = op1 * op2;
 		  sregs->g[rd] = sop2;
+		  sregs->icnt = T_MUL;
 		  break;
 		case 1:	/* MULH */
 		  sop64a = (int64) op1 *(int64) op2;
 		  sregs->g[rd] = (sop64a >> 32) & 0xffffffff;
+		  sregs->icnt = T_MUL;
 		  break;
 		case 2:	/* MULHSU */
 		  sop64a = (int64) op1 *(uint64) op2;
 		  sregs->g[rd] = (sop64a >> 32) & 0xffffffff;
+		  sregs->icnt = T_MUL;
 		  break;
 		case 3:	/* MULHU */
 		  op64a = (uint64) op1 *(uint64) op2;
 		  sregs->g[rd] = (op64a >> 32) & 0xffffffff;
+		  sregs->icnt = T_MUL;
 		  break;
 		case 4:	/* DIV */
 		  sop1 = op1;
 		  sop2 = op2;
 		  result = sop1 / sop2;
 		  sregs->g[rd] = result;
+		  sregs->icnt = T_DIV;
 		  break;
 		case 5:	/* DIVU */
 		  sregs->g[rd] = op1 / op2;
+		  sregs->icnt = T_DIV;
 		  break;
 		case 6:	/* REM */
 		  sop1 = op1;
 		  sop2 = op2;
 		  sop1 = sop1 % sop2;
 		  sregs->g[rd] = sop1;
+		  sregs->icnt = T_DIV;
 		  break;
 		case 7:	/* REMU */
 		  sregs->g[rd] = op1 % op2;
+		  sregs->icnt = T_DIV;
 		  break;
 		}
 	      break;
@@ -858,9 +866,7 @@ riscv_dispatch_instruction (sregs)
 	  break;
 	case OP_STORE:		/* store instructions */
 
-#ifdef STAT
 	  sregs->nstore++;
-#endif
 	  offset = EXTRACT_STYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  wdata = &(sregs->g[rs2]);
@@ -918,12 +924,15 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+	  if (ncpu > 1)
+	    {
+	      l1data_update(address, sregs->cpu);
+	      l1data_snoop(address, sregs->cpu);
+	    }
 	  break;
 	case OP_FSW:		/* F store instructions */
 
-#ifdef STAT
 	  sregs->nstore++;
-#endif
 	  offset = EXTRACT_STYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  wdata = &sregs->fsi[rs2 << 1];
@@ -972,11 +981,14 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+	  if (ncpu > 1)
+	    {
+	      l1data_update(address, sregs->cpu);
+	      l1data_snoop(address, sregs->cpu);
+	    }
 	  break;
 	case OP_LOAD:		/* load instructions */
-#ifdef STAT
 	  sregs->nload++;
-#endif
 	  offset = EXTRACT_ITYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  if (ebase.wprnum)
@@ -1080,14 +1092,17 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+	  if (ncpu > 1)
+	    {
+	      l1data_update(address, sregs->cpu);
+	    }
 	  break;
 	case OP_AMO:		/* atomic instructions */
 	  address = op1;
 	  funct5 = (sregs->inst >> 27) & 0x1f;
-#ifdef STAT
 	  sregs->nstore++;
 	  sregs->nload++;
-#endif
+	  sregs->icnt = T_AMO;
 	  switch (funct5)
 	    {
 	    case LRQ:
@@ -1302,9 +1317,7 @@ riscv_dispatch_instruction (sregs)
 	    }
 	  break;
 	case OP_FLOAD:		/* float load instructions */
-#ifdef STAT
 	  sregs->nload++;
-#endif
 	  offset = EXTRACT_ITYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  if (ebase.wprnum)
@@ -1366,6 +1379,10 @@ riscv_dispatch_instruction (sregs)
 	      break;
 	    default:
 	      sregs->trap = TRAP_ILLEG;
+	    }
+	  if (ncpu > 1)
+	    {
+	      l1data_update(address, sregs->cpu);
 	    }
 	  break;
 #ifdef FPU_ENABLED
@@ -1841,6 +1858,7 @@ riscv_dispatch_instruction (sregs)
 	  break;
 #endif
 	case OP_FENCE:
+	  sregs->icnt = TRAP_C;
 	  break;
 	default:
 	  sregs->trap = TRAP_ILLEG;

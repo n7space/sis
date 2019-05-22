@@ -505,6 +505,8 @@ reset_stat(sregs)
     sregs->nload = 0;
     sregs->nbranch = 0;
     ebase.simstart = ebase.simtime;
+    sregs->l1imiss = 0;
+    sregs->l1dmiss = 0;
 
 }
 
@@ -542,7 +544,7 @@ show_stat(sregs)
     printf(" Simulator perf. : %.2f MIPS\n",
 	(double)(ninst / ebase.tottime / 1E6));
     printf(" Wall time       : %.2f s\n\n", ebase.tottime);
-    printf (" Core   MIPS   MFLOPS     CPI     Util\n");
+    printf (" Core   MIPS   MFLOPS     CPI     Util      IHit      DHit\n");
     for (i=0; i<ncpu; i++) {
 #ifdef STAT
         iinst = sregs[i].ninst - sregs[i].finst - sregs[i].nload - sregs[i].nstore -
@@ -550,12 +552,17 @@ show_stat(sregs)
 #endif
 
         stime = sregs[i].simtime - ebase.simstart + 1; /* Core simulated time */
-        printf ("  %d    %5.2f    %5.2f    %5.2f    %5.2f %%\n", i,
+        printf ("  %d    %5.2f    %5.2f    %5.2f    %5.2f%%    %5.2f%%    %5.2f%%\n", i,
 	  ebase.freq * (double) (sregs[i].ninst - sregs[i].finst) /
 	  (double) (stime - sregs[i].pwdtime),
           ebase.freq * (double) sregs[i].finst / (double) (stime - sregs[i].pwdtime),
 	  (double) (stime - sregs[i].pwdtime) / (double) (sregs[i].ninst + 1),
-	 100.0 * (1.0 - ((double) sregs[i].pwdtime / (double) stime)));
+	 100.0 * (1.0 - ((double) sregs[i].pwdtime / (double) stime)),
+	  (double) (sregs[i].ninst - sregs[i].l1imiss + 1) /
+	  (double) (sregs[i].ninst + 1) * 100.0,
+	  (double) (sregs[i].nload + sregs[i].nstore - sregs[i].l1dmiss + 1) /
+	  (double) (sregs[i].nload + sregs[i].nstore + 1) * 100.0
+	  ) ;
     }
 
 #ifdef STAT
@@ -1065,6 +1072,11 @@ run_sim_core(sregs, ntime, deb, dis)
 	    sregs->inst = *((uint32 *) &ramb[sregs->pc & RAM_MASK]);
 	    sregs->hold = 0;
 #endif
+	    if (sregs->l1itags[(sregs->pc >> L1ILINEBITS) & L1IMASK] != (sregs->pc >> L1ILINEBITS)) {
+		sregs->hold = 17;
+	    	sregs->l1itags[(sregs->pc >> L1ILINEBITS) & L1IMASK] = (sregs->pc >> L1ILINEBITS);
+		sregs->l1imiss++;
+	    }
 	    sregs->fhold = 0;
 	    if (!irq) {
 		if (mexc) {
@@ -1143,7 +1155,7 @@ run_sim_mp(icount, dis)
     int             dis;
 {
     uint64          ntime, etime;
-    int             deb, i;
+    int             deb, i, j;
     int             err_mode, bphit, wphit, oldcpu;
 
     err_mode = bphit = wphit = 0;
@@ -1157,6 +1169,7 @@ run_sim_mp(icount, dis)
     while (icount > ebase.simtime) {
       ntime = ebase.simtime + delta;
       if (ntime > icount) ntime = icount;
+      if (ntime > ebase.evtime) ntime = ebase.evtime;
       for(i=0; i<ncpu; i++) {
         deb = dis || ebase.histlen || ebase.bptnum;
         etime = ntime;

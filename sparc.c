@@ -528,6 +528,7 @@ sparc_dispatch_instruction (sregs)
 	    case SMUL:
 	      {
 		mul64 (rs1, operand2, &sregs->y, rdd, 1);
+	        sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case SMULCC:
@@ -547,11 +548,13 @@ sparc_dispatch_instruction (sregs)
 		  sregs->psr &= ~PSR_Z;
 
 		*rdd = result;
+	        sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case UMUL:
 	      {
 		mul64 (rs1, operand2, &sregs->y, rdd, 0);
+	        sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case UMULCC:
@@ -571,6 +574,7 @@ sparc_dispatch_instruction (sregs)
 		  sregs->psr &= ~PSR_Z;
 
 		*rdd = result;
+	        sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case SDIV:
@@ -582,6 +586,7 @@ sparc_dispatch_instruction (sregs)
 		  }
 
 		div64 (sregs->y, rs1, operand2, rdd, 1);
+	        sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case SDIVCC:
@@ -610,6 +615,7 @@ sparc_dispatch_instruction (sregs)
 		sregs->psr &= ~(PSR_C | PSR_V);
 
 		*rdd = result;
+	        sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case UDIV:
@@ -621,6 +627,7 @@ sparc_dispatch_instruction (sregs)
 		  }
 
 		div64 (sregs->y, rs1, operand2, rdd, 0);
+	        sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case UDIVCC:
@@ -649,6 +656,7 @@ sparc_dispatch_instruction (sregs)
 		sregs->psr &= ~(PSR_C | PSR_V);
 
 		*rdd = result;
+	        sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case IXNOR:
@@ -961,9 +969,7 @@ sparc_dispatch_instruction (sregs)
 		  break;
 		}
 	    }
-#ifdef STAT
 	  sregs->nstore++;
-#endif
 	}
       else
 	{
@@ -976,9 +982,7 @@ sparc_dispatch_instruction (sregs)
 		  break;
 		}
 	    }
-#ifdef STAT
 	  sregs->nload++;
-#endif
 	}
 
       /* Decode load/store instructions */
@@ -1015,9 +1019,7 @@ sparc_dispatch_instruction (sregs)
 	    {
 	      rdd[0] = ddata[0];
 	      rdd[1] = ddata[1];
-#ifdef STAT
 	      sregs->nload++;	/* Double load counts twice */
-#endif
 	    }
 	  break;
 
@@ -1076,9 +1078,7 @@ sparc_dispatch_instruction (sregs)
 	    {
 	      sregs->trap = TRAP_DEXC;
 	    }
-#ifdef STAT
 	  sregs->nload++;
-#endif
 	  break;
 	case LDSBA:
 	case LDUBA:
@@ -1192,9 +1192,7 @@ sparc_dispatch_instruction (sregs)
 	      rd ^= 1;
 #endif
 	      sregs->fsi[rd] = ddata[0];
-#ifdef STAT
 	      sregs->nload++;	/* Double load counts twice */
-#endif
 	      rd ^= 1;
 	      sregs->fsi[rd] = ddata[1];
 	      sregs->ltime = sregs->simtime + sregs->icnt + FLSTHOLD +
@@ -1311,9 +1309,7 @@ sparc_dispatch_instruction (sregs)
 	  mexc = ms->memory_write (address, rdd, 3, &ws);
 	  sregs->hold += ws;
 	  sregs->icnt = T_STD;
-#ifdef STAT
 	  sregs->nstore++;	/* Double store counts twice */
-#endif
 	  if (mexc)
 	    {
 	      sregs->trap = TRAP_DEXC;
@@ -1345,9 +1341,7 @@ sparc_dispatch_instruction (sregs)
 	  mexc = ms->memory_write (address, rdd, 3, &ws);
 	  sregs->hold += ws;
 	  sregs->icnt = T_STD;
-#ifdef STAT
 	  sregs->nstore++;	/* Double store counts twice */
-#endif
 	  if (mexc)
 	    {
 	      sregs->trap = TRAP_DEXC;
@@ -1428,9 +1422,7 @@ sparc_dispatch_instruction (sregs)
 	  mexc = ms->memory_write (address, ddata, 3, &ws);
 	  sregs->hold += ws;
 	  sregs->icnt = T_STD;
-#ifdef STAT
 	  sregs->nstore++;	/* Double store counts twice */
-#endif
 	  if (mexc)
 	    {
 	      sregs->trap = TRAP_DEXC;
@@ -1462,9 +1454,7 @@ sparc_dispatch_instruction (sregs)
 	    }
 	  else
 	    *rdd = data;
-#ifdef STAT
 	  sregs->nload++;
-#endif
 	  break;
 	case CASA:
 	  asi = (sregs->inst >> 5) & 0x0ff;
@@ -1497,9 +1487,7 @@ sparc_dispatch_instruction (sregs)
 	    }
 	  else
 	    *rdd = data;
-#ifdef STAT
 	  sregs->nload++;
-#endif
 	  break;
 
 	default:
@@ -1518,6 +1506,14 @@ sparc_dispatch_instruction (sregs)
 				 * last */
 	}
 #endif
+      if (ncpu > 1) 
+	{
+	  l1data_update(address, sregs->cpu);
+          if (op3 & 4)
+            {
+	      l1data_snoop(address, sregs->cpu);
+            }
+        }
       break;
 
     default:
@@ -1899,7 +1895,7 @@ sparc_execute_trap (sregs)
 	  sregs->npc = sregs->pc + 4;
 	}
 
-      /* Increase simulator time */
+      /* Increase simulator time and add some jitter */
       sregs->icnt = TRAP_C;
 
     }

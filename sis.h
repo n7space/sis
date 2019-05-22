@@ -46,6 +46,19 @@
 #define RAM_MASK  (RAM_SIZE - 1)
 #define RAM_END   (RAM_START + RAM_SIZE)
 
+/* cache config */
+
+#define L1IBITS		12
+#define L1ILINEBITS	5
+#define L1ITAGBITS	(L1IBITS - L1ILINEBITS)
+#define L1ITAGS		(1 << (L1ITAGBITS))
+#define L1IMASK		(L1ITAGS -1)
+#define L1DBITS		12
+#define L1DLINEBITS	5
+#define L1DTAGBITS	(L1DBITS - L1DLINEBITS)
+#define L1DTAGS		(1 << (L1DTAGBITS))
+#define L1DMASK		(L1DTAGS -1)
+
 /* type definitions */
 
 typedef short int int16;	/* 16-bit signed int */
@@ -113,8 +126,8 @@ struct pstate {
     uint64          finst;
     uint64          pwdtime;	/* Cycles in power-down mode */
     uint64          pwdstart;	/* Start of power-down mode */
-    uint64          nstore;	/* Number of load instructions */
-    uint64          nload;	/* Number of store instructions */
+    uint64          nstore;	/* Number of store instructions */
+    uint64          nload;	/* Number of load instructions */
     uint64          nannul;	/* Number of annuled instructions */
     uint64          nbranch;	/* Number of branch instructions */
     uint32          ildreg;	/* Destination of last load instruction */
@@ -143,6 +156,10 @@ struct pstate {
     uint32          lrqa;
 
     uint32          bphit;
+    uint32          l1itags[L1ITAGS];
+    uint64          l1imiss;
+    uint32          l1dtags[L1DTAGS];
+    uint64          l1dmiss;
 };
 
 struct evcell {
@@ -291,6 +308,8 @@ extern int	port;
 extern int	sim_run;
 extern void 	int_handler(int sig);
 extern uint32   daddr;
+extern void 	l1data_update(uint32 address, uint32 cpu);
+extern void 	l1data_snoop(uint32 address, uint32 cpu);
 
 /* exec.c */
 extern void	init_regs (struct pstate *sregs);
