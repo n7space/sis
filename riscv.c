@@ -866,7 +866,9 @@ riscv_dispatch_instruction (sregs)
 	  break;
 	case OP_STORE:		/* store instructions */
 
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;
+#endif
 	  offset = EXTRACT_STYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  wdata = &(sregs->g[rs2]);
@@ -924,15 +926,19 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+#ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
 	      l1data_update(address, sregs->cpu);
 	      l1data_snoop(address, sregs->cpu);
 	    }
+#endif
 	  break;
 	case OP_FSW:		/* F store instructions */
 
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;
+#endif
 	  offset = EXTRACT_STYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  wdata = &sregs->fsi[rs2 << 1];
@@ -981,14 +987,18 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+#ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
 	      l1data_update(address, sregs->cpu);
 	      l1data_snoop(address, sregs->cpu);
 	    }
+#endif
 	  break;
 	case OP_LOAD:		/* load instructions */
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nload++;
+#endif
 	  offset = EXTRACT_ITYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  if (ebase.wprnum)
@@ -1092,16 +1102,20 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+#ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
 	      l1data_update(address, sregs->cpu);
 	    }
+#endif
 	  break;
 	case OP_AMO:		/* atomic instructions */
 	  address = op1;
 	  funct5 = (sregs->inst >> 27) & 0x1f;
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;
 	  sregs->nload++;
+#endif
 	  sregs->icnt = T_AMO;
 	  switch (funct5)
 	    {
@@ -1317,7 +1331,9 @@ riscv_dispatch_instruction (sregs)
 	    }
 	  break;
 	case OP_FLOAD:		/* float load instructions */
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nload++;
+#endif
 	  offset = EXTRACT_ITYPE_IMM (sregs->inst);
 	  address = op1 + offset;
 	  if (ebase.wprnum)
@@ -1380,10 +1396,12 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
+#ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
 	      l1data_update(address, sregs->cpu);
 	    }
+#endif
 	  break;
 #ifdef FPU_ENABLED
 	case OP_FPU:
@@ -1951,7 +1969,8 @@ riscv_execute_trap (sregs)
          }
        */
 
-      sregs->icnt = TRAP_C;
+      /* Increase simulator time and add some jitter */
+      sregs->icnt = TRAP_C + (sregs->ninst ^ sregs->simtime) & 0x7;
       sregs->trap = 0;
 
       if (sregs->err_mode)

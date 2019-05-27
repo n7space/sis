@@ -46,7 +46,7 @@ struct evcell   evbuf[EVENT_MAX];
 
 int             ctrl_c = 0;
 int             sis_verbose = 0;
-char           *sis_version = "2.14";
+char           *sis_version = PACKAGE_VERSION;
 int             nfp = 0;
 int             ift = 0;
 int             wrp = 0;
@@ -544,7 +544,12 @@ show_stat(sregs)
     printf(" Simulator perf. : %.2f MIPS\n",
 	(double)(ninst / ebase.tottime / 1E6));
     printf(" Wall time       : %.2f s\n\n", ebase.tottime);
-    printf (" Core   MIPS   MFLOPS     CPI     Util      IHit      DHit\n");
+    printf (" Core   MIPS   MFLOPS     CPI     Util"
+#ifdef ENABLE_L1CACHE
+    		"      IHit      DHit"
+#endif
+		"\n"
+		);
     for (i=0; i<ncpu; i++) {
 #ifdef STAT
         iinst = sregs[i].ninst - sregs[i].finst - sregs[i].nload - sregs[i].nstore -
@@ -552,16 +557,22 @@ show_stat(sregs)
 #endif
 
         stime = sregs[i].simtime - ebase.simstart + 1; /* Core simulated time */
-        printf ("  %d    %5.2f    %5.2f    %5.2f    %5.2f%%    %5.2f%%    %5.2f%%\n", i,
+        printf ("  %d    %5.2f    %5.2f    %5.2f    %5.2f%%"
+#ifdef ENABLE_L1CACHE
+		"    %5.2f%%    %5.2f%%"
+#endif
+		"\n", i,
 	  ebase.freq * (double) (sregs[i].ninst - sregs[i].finst) /
 	  (double) (stime - sregs[i].pwdtime),
           ebase.freq * (double) sregs[i].finst / (double) (stime - sregs[i].pwdtime),
 	  (double) (stime - sregs[i].pwdtime) / (double) (sregs[i].ninst + 1),
-	 100.0 * (1.0 - ((double) sregs[i].pwdtime / (double) stime)),
-	  (double) (sregs[i].ninst - sregs[i].l1imiss + 1) /
+	 100.0 * (1.0 - ((double) sregs[i].pwdtime / (double) stime))
+#ifdef ENABLE_L1CACHE
+	  ,(double) (sregs[i].ninst - sregs[i].l1imiss + 1) /
 	  (double) (sregs[i].ninst + 1) * 100.0,
 	  (double) (sregs[i].nload + sregs[i].nstore - sregs[i].l1dmiss + 1) /
 	  (double) (sregs[i].nload + sregs[i].nstore + 1) * 100.0
+#endif
 	  ) ;
     }
 
@@ -781,14 +792,15 @@ event(cfunc, arg, delta)
 
 /* remove event from event queue */
 void
-remove_event(cfunc)
+remove_event(cfunc, arg)
     void            (*cfunc) ();
+    int32	    arg;
 {
     struct evcell  *ev1, *evdel;
 
     ev1 = &ebase.eq;
     while (ev1->nxt != NULL) {
-        if (ev1->nxt->cfunc == cfunc) {
+        if ((ev1->nxt->cfunc == cfunc) && ((arg == ev1->nxt->arg) || (arg < 0))){
 	    evdel = ev1->nxt;
 	    ev1->nxt = ev1->nxt->nxt;
 	    evdel->nxt = ebase.freeq;
@@ -1072,11 +1084,13 @@ run_sim_core(sregs, ntime, deb, dis)
 	    sregs->inst = *((uint32 *) &ramb[sregs->pc & RAM_MASK]);
 	    sregs->hold = 0;
 #endif
+#ifdef ENABLE_L1CACHE
 	    if (sregs->l1itags[(sregs->pc >> L1ILINEBITS) & L1IMASK] != (sregs->pc >> L1ILINEBITS)) {
-		sregs->hold = 17;
+		sregs->hold = T_L1IMISS;
 	    	sregs->l1itags[(sregs->pc >> L1ILINEBITS) & L1IMASK] = (sregs->pc >> L1ILINEBITS);
 		sregs->l1imiss++;
 	    }
+#endif
 	    sregs->fhold = 0;
 	    if (!irq) {
 		if (mexc) {
@@ -1222,7 +1236,7 @@ run_sim(icount, dis)
 	res = run_sim_un(&sregs[cpu], icount, dis);
     else
 	res = run_sim_mp(icount, dis);
-    remove_event(sim_timeout);
+    remove_event(sim_timeout, -1);
     ebase.tottime += get_time() - ebase.starttime;
     ms->restore_stdio ();
     if ((res == CTRL_C) && (ctrl_c == 2))
