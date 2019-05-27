@@ -969,7 +969,9 @@ sparc_dispatch_instruction (sregs)
 		  break;
 		}
 	    }
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;
+#endif
 	}
       else
 	{
@@ -982,7 +984,9 @@ sparc_dispatch_instruction (sregs)
 		  break;
 		}
 	    }
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nload++;
+#endif
 	}
 
       /* Decode load/store instructions */
@@ -1019,7 +1023,9 @@ sparc_dispatch_instruction (sregs)
 	    {
 	      rdd[0] = ddata[0];
 	      rdd[1] = ddata[1];
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	      sregs->nload++;	/* Double load counts twice */
+#endif
 	    }
 	  break;
 
@@ -1078,7 +1084,9 @@ sparc_dispatch_instruction (sregs)
 	    {
 	      sregs->trap = TRAP_DEXC;
 	    }
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nload++;
+#endif
 	  break;
 	case LDSBA:
 	case LDUBA:
@@ -1192,7 +1200,9 @@ sparc_dispatch_instruction (sregs)
 	      rd ^= 1;
 #endif
 	      sregs->fsi[rd] = ddata[0];
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	      sregs->nload++;	/* Double load counts twice */
+#endif
 	      rd ^= 1;
 	      sregs->fsi[rd] = ddata[1];
 	      sregs->ltime = sregs->simtime + sregs->icnt + FLSTHOLD +
@@ -1309,7 +1319,9 @@ sparc_dispatch_instruction (sregs)
 	  mexc = ms->memory_write (address, rdd, 3, &ws);
 	  sregs->hold += ws;
 	  sregs->icnt = T_STD;
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;	/* Double store counts twice */
+#endif
 	  if (mexc)
 	    {
 	      sregs->trap = TRAP_DEXC;
@@ -1341,7 +1353,9 @@ sparc_dispatch_instruction (sregs)
 	  mexc = ms->memory_write (address, rdd, 3, &ws);
 	  sregs->hold += ws;
 	  sregs->icnt = T_STD;
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;	/* Double store counts twice */
+#endif
 	  if (mexc)
 	    {
 	      sregs->trap = TRAP_DEXC;
@@ -1422,7 +1436,9 @@ sparc_dispatch_instruction (sregs)
 	  mexc = ms->memory_write (address, ddata, 3, &ws);
 	  sregs->hold += ws;
 	  sregs->icnt = T_STD;
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;	/* Double store counts twice */
+#endif
 	  if (mexc)
 	    {
 	      sregs->trap = TRAP_DEXC;
@@ -1454,7 +1470,9 @@ sparc_dispatch_instruction (sregs)
 	    }
 	  else
 	    *rdd = data;
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nload++;
+#endif
 	  break;
 	case CASA:
 	  asi = (sregs->inst >> 5) & 0x0ff;
@@ -1487,7 +1505,9 @@ sparc_dispatch_instruction (sregs)
 	    }
 	  else
 	    *rdd = data;
+#if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nload++;
+#endif
 	  break;
 
 	default:
@@ -1506,6 +1526,7 @@ sparc_dispatch_instruction (sregs)
 				 * last */
 	}
 #endif
+#ifdef ENABLE_L1CACHE
       if (ncpu > 1) 
 	{
 	  l1data_update(address, sregs->cpu);
@@ -1514,6 +1535,7 @@ sparc_dispatch_instruction (sregs)
 	      l1data_snoop(address, sregs->cpu);
             }
         }
+#endif
       break;
 
     default:
@@ -1896,7 +1918,7 @@ sparc_execute_trap (sregs)
 	}
 
       /* Increase simulator time and add some jitter */
-      sregs->icnt = TRAP_C;
+      sregs->icnt = TRAP_C + (sregs->ninst ^ sregs->simtime) & 0x7;
 
     }
 

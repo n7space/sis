@@ -109,9 +109,10 @@ static uint32 irqmp_ifr[NCPU];
 #define GPTIMER_IRQ 8
 
 static uint32 gpt_scaler;
-static uint32 gpt_scaler_start;
+static uint64 gpt_scaler_start;
 static uint32 gpt_counter[NGPTIMERS];
 static uint32 gpt_reload[NGPTIMERS];
+static uint64 gpt_counter_start[NGPTIMERS];
 static uint32 gpt_ctrl[NGPTIMERS];
 
 /* UART support variables.  */
@@ -169,6 +170,7 @@ static void timer_ctrl (uint32 val, int i);
 static unsigned char *get_mem_ptr (uint32 addr, uint32 size);
 static void store_bytes (unsigned char *mem, uint32 waddr,
 			 uint32 * data, int sz, int32 * ws);
+static void gpt_add_intr (int i);
 
 /* One-time init. */
 
@@ -320,6 +322,20 @@ set_irq (int32 level)
   chk_irq ();
 }
 
+static uint32
+gpt_counter_read (int i)
+{
+  if (gpt_ctrl[i] & 1)
+    return gpt_counter[i] - ((now() - gpt_counter_start[i]) / (gpt_scaler + 1));
+  else
+    return gpt_counter[i];
+}
+static uint32
+gpt_scaler_read ()
+{
+  return gpt_scaler - ((now () - gpt_scaler_start) % (gpt_scaler + 1));
+}
+
 static int32
 apb_read (uint32 addr, uint32 * data)
 {
@@ -387,7 +403,7 @@ apb_read (uint32 addr, uint32 * data)
       break;
 
     case GPTIMER_SCALER:	/* 0x300 */
-      *data = gpt_scaler - (now () - gpt_scaler_start);
+      *data = gpt_scaler_read();
       break;
 
     case GPTIMER_SCLOAD:	/* 0x304 */
@@ -399,7 +415,7 @@ apb_read (uint32 addr, uint32 * data)
       break;
 
     case GPTIMER_TIMER1:	/* 0x310 */
-      *data = gpt_counter[0];
+      *data = gpt_counter_read(0);
       break;
 
     case GPTIMER_RELOAD1:	/* 0x314 */
@@ -411,7 +427,7 @@ apb_read (uint32 addr, uint32 * data)
       break;
 
     case GPTIMER_TIMER2:	/* 0x320 */
-      *data = gpt_counter[1];
+      *data = gpt_counter_read(1);
       break;
 
     case GPTIMER_RELOAD2:	/* 0x324 */
@@ -530,7 +546,9 @@ apb_write (uint32 addr, uint32 data)
       break;
 
     case GPTIMER_TIMER1:	/* 0x310 */
-      gpt_counter[0] = data;
+        gpt_counter[0] = data;
+        remove_event (gpt_intr, 0);
+        gpt_add_intr (0);
       break;
 
     case GPTIMER_RELOAD1:	/* 0x314 */
@@ -543,6 +561,8 @@ apb_write (uint32 addr, uint32 data)
 
     case GPTIMER_TIMER2:	/* 0x320 */
       gpt_counter[1] = data;
+        remove_event (gpt_intr, 1);
+        gpt_add_intr (1);
       break;
 
     case GPTIMER_RELOAD2:	/* 0x324 */
@@ -862,26 +882,31 @@ uart_irq_start (void)
 /* GPTIMER.  */
 
 static void
-gpt_intr (int32 arg)
+gpt_add_intr (int i)
 {
-  int i;
-
-  for (i = 0; i < NGPTIMERS; i++)
-    {
       if (gpt_ctrl[i] & 1)
-	{
-	  gpt_counter[i] -= 1;
-	  if (gpt_counter[i] == -1)
-	    {
-	      if (gpt_ctrl[i] & 8)
-		set_irq (GPTIMER_IRQ + i);
-	      if (gpt_ctrl[i] & 2)
-		gpt_counter[i] = gpt_reload[i];
-	    }
+        {
+	  event (gpt_intr, i, (uint64) (gpt_scaler + 1) * (uint64) ((uint64) gpt_counter[i] + (uint64) 1));
+          gpt_counter_start[i] = now();
 	}
+}
+	  
+static void
+gpt_intr (int32 i)
+{
+  gpt_counter[i] = -1;
+  if (gpt_ctrl[i] & 1)
+    {
+      if (gpt_ctrl[i] & 2)
+	{
+	  gpt_counter[i] = gpt_reload[i];
+	}
+      if (gpt_ctrl[i] & 8)
+     	{
+	  set_irq (GPTIMER_IRQ + i);
+	}
+      gpt_add_intr (i);
     }
-  event (gpt_intr, 0, gpt_scaler + 1);
-  gpt_scaler_start = now ();
 }
 
 static void
@@ -897,15 +922,33 @@ gpt_init (void)
 static void
 gpt_reset (void)
 {
-  event (gpt_intr, 0, gpt_scaler + 1);
+//  event (gpt_intr, 0, gpt_scaler + 1);
+  remove_event (gpt_intr, -1);
   gpt_scaler_start = now ();
 }
 
 static void
+gpt_add_intr_all ()
+{
+  int i;
+
+  for (i = 0; i < NGPTIMERS; i++)
+    {
+      gpt_add_intr (i);
+    }
+}
+    
+static void
 gpt_scaler_set (uint32 val)
 {
   /* Mask for 16-bit scaler. */
-  gpt_scaler = val & 0x0ffff;
+  if (gpt_scaler != val & 0x0ffff)
+    {
+      gpt_scaler = val & 0x0ffff;
+      remove_event (gpt_intr, -1);
+      gpt_scaler_start = now ();
+      gpt_add_intr_all();
+    }
 }
 
 static void
@@ -915,6 +958,12 @@ timer_ctrl (uint32 val, int i)
     {
       /* Reload.  */
       gpt_counter[i] = gpt_reload[i];
+    }
+  if (val & 1)
+    {
+      gpt_ctrl[i] = val & 0xb;
+      remove_event (gpt_intr, i);
+      gpt_add_intr (i);
     }
   gpt_ctrl[i] = val & 0xb;
 }

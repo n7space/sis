@@ -58,6 +58,8 @@
 #define L1DTAGBITS	(L1DBITS - L1DLINEBITS)
 #define L1DTAGS		(1 << (L1DTAGBITS))
 #define L1DMASK		(L1DTAGS -1)
+#define T_L1IMISS	17
+#define T_L1DMISS	17
 
 /* type definitions */
 
@@ -295,7 +297,7 @@ extern int	cpu;	/* active debug cpu */
 extern int	ncpu;	/* number of online cpus */
 extern int	delta;	/* time slice for MP simulation */
 extern void	pwd_enter(struct pstate *sregs);
-extern void 	remove_event(void (*cfunc) ());
+extern void 	remove_event(void (*cfunc) (), int32 arg);
 extern int	run_sim (uint64 icount, int dis);
 void 		flush_windows (struct pstate *sregs);
 void 		cov_start(int address);

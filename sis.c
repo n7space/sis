@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include "sis.h"
 #include <inttypes.h>
+#include <libgen.h>
 
 /* Structures and functions from readline library */
 
@@ -184,9 +185,12 @@ main(argc, argv)
 	if (!freq) freq = 14;
     }
 
+#ifdef ENABLE_L1CACHE
     if (ncpu > 1)
         printf(" L1 cache: %dK/%dK, %d bytes/line \n",
 		(1 << (L1IBITS - 10)), (1 << (L1DBITS - 10)), (1 << L1ILINEBITS));
+#endif
+
     if (nfp)
 	printf(" FPU disabled\n");
     ebase.freq = freq;

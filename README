@@ -14,3 +14,6 @@ To build a PDF version of the manual, do
 
 	make sis.pdf.
 
+
+To enable emulation of an L1 cache, run configure with --enable-l1cache. This option
+only improves timing accuracy, it does not affect simulation behaviour.

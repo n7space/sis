@@ -176,6 +176,7 @@ init_regs(sregs)
   }
 }
 
+#ifdef ENABLE_L1CACHE
 void
 l1data_snoop(uint32 address, uint32 cpu)
 {
@@ -196,8 +197,8 @@ l1data_update(uint32 address, uint32 cpu)
       if (sregs[cpu].l1dtags[address >> L1DLINEBITS & L1DMASK] != (address >> L1DLINEBITS))
         {
 	  sregs[cpu].l1dtags[(address >> L1DLINEBITS) & L1DMASK] = (address >> L1DLINEBITS);
-	  sregs[cpu].hold += 17;
+	  sregs[cpu].hold += T_L1DMISS;
 	  sregs[cpu].l1dmiss++;
         }
 }
-
+#endif
