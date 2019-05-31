@@ -688,6 +688,16 @@ SIS uses the GNU autoconf system, and can simply be build using
 @code{./configure} followed by @code{make}. To build a PDF version of the
 manual, do @code{make sis.pdf}.
 
+The following custom configure options are recognized:
+
+@table @code
+@item -enable-l1cache
+Enable the emulation of a L1 cache in multi-processor systems. Each core in an
+MP LEON3/RISC-V system will have a 4Kbyte instruction cache and a 4 Kbyte data
+cache. The cache only affects instruction timing, and has no effect on instruction
+behaviour.
+@end table
+
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
 
