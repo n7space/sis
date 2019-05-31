@@ -57,8 +57,7 @@ create_socket (int port)
     }
 
   // Forcefully attaching socket to the port
-  if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-		  &opt, sizeof (opt)))
+  if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt)))
     {
       perror ("setsockopt");
       return 0;
@@ -404,6 +403,11 @@ gdb_remote (int port)
   sis_gdb_break = 1;
   detach = 0;
   signal (SIGIO, int_handler);
+#ifdef __CYGWIN__
+  printf ("Warning: gdb cannot interrupt a running simulator under CYGWIN\n");
+  printf
+    ("         As a workaround, use Ctrl-C in the simulator window instead\n\n");
+#endif
   printf ("gdb: listening on port %d ", port);
   while (cont)
     {
@@ -454,11 +458,18 @@ gdb_remote (int port)
 	      if (sis_verbose)
 		printf ("tx: +\n");
 	      send (new_socket, &ack, 1, 0);
-	      strcpy (sendbuf, "$");
-	      cont = gdb_remote_exec (&buffer[res]);
-	      if (sis_verbose)
-		printf ("tx: %s\n", sendbuf);
-	      send (new_socket, sendbuf, strlen (sendbuf), 0);
+	      if (detach)
+		{
+		  cont = 0;
+		}
+	      else
+		{
+		  strcpy (sendbuf, "$");
+		  cont = gdb_remote_exec (&buffer[res]);
+		  if (sis_verbose)
+		    printf ("tx: %s\n", sendbuf);
+		  send (new_socket, sendbuf, strlen (sendbuf), 0);
+		}
 	    }
 	  else
 	    {

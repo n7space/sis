@@ -1,6 +1,6 @@
 This is sis.info, produced by makeinfo version 6.5 from sis.texi.
 
-This manual is for SIS (version 2.15, 21 May 2019).
+This manual is for SIS (version 2.15, 31 May 2019).
 
    Copyright (C) 2019 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.15, 21 May 2019).
+This manual is for SIS (version 2.15, 31 May 2019).
 
 * Menu:
 
@@ -696,6 +696,14 @@ SIS uses the GNU autoconf system, and can simply be build using
 './configure' followed by 'make'.  To build a PDF version of the manual,
 do 'make sis.pdf'.
 
+   The following custom configure options are recognized:
+
+'-enable-l1cache'
+     Enable the emulation of a L1 cache in multi-processor systems.
+     Each core in an MP LEON3/RISC-V system will have a 4Kbyte
+     instruction cache and a 4 Kbyte data cache.  The cache only affects
+     instruction timing, and has no effect on instruction behaviour.
+
 
 File: sis.info,  Node: GNU Free Documentation License,  Next: Index,  Prev: Building SIS,  Up: Top
 
@@ -1209,7 +1217,7 @@ Node: Multi-processing20477
 Node: Interfacing to GDB20973
 Node: Code coverage21383
 Node: Building SIS22388
-Node: GNU Free Documentation License22686
-Node: Index47830
+Node: GNU Free Documentation License23037
+Node: Index48181
 
 End Tag Table
