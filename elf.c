@@ -51,7 +51,7 @@ read_elf_header (FILE * fp)
   efile.fp = fp;
 
   if ((ehdr.e_ident[EI_MAG0] != 0x7f) ||
-      strncmp (&ehdr.e_ident[EI_MAG1], "ELF", 3) != 0)
+      strncmp ((char *) &ehdr.e_ident[EI_MAG1], "ELF", 3) != 0)
     {
       return (-1);
     }

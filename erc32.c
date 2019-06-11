@@ -253,9 +253,8 @@ static uint32	gpt_counter_read (void);
 static void	gpt_scaler_set (uint32 val);
 static void	gpt_reload_set (uint32 val);
 static void	timer_ctrl (uint32 val);
-static unsigned char *
-		get_mem_ptr (uint32 addr, uint32 size);
-static void	store_bytes (unsigned char *mem, uint32 waddr,
+static char	*get_mem_ptr (uint32 addr, uint32 size);
+static void	store_bytes (char *mem, uint32 waddr,
 			uint32 *data, int sz, int32 *ws);
 
 /* One-time init */
@@ -1467,7 +1466,7 @@ timer_ctrl(val)
    wait-states.  */
 
 static void
-store_bytes (unsigned char *mem, uint32 waddr, uint32 *data, int32 sz,
+store_bytes (char *mem, uint32 waddr, uint32 *data, int32 sz,
 	     int32 *ws)
 {
     switch (sz) {
@@ -1624,7 +1623,7 @@ memory_write (uint32 addr, uint32 *data, int32 sz, int32 *ws)
     return 1;
 }
 
-static unsigned char  *
+static char  *
 get_mem_ptr(addr, size)
     uint32          addr;
     uint32          size;
@@ -1661,7 +1660,7 @@ sis_memory_read(addr, data, length)
 {
     char           *mem;
     int            ws;
-    int            w4;
+    unsigned int   w4;
 
     if (length == 4) {
 	memory_read (addr, &w4, &ws);

@@ -136,8 +136,8 @@ riscv_dispatch_instruction (sregs)
      struct pstate *sregs;
 {
 
-  uint32 op1, op2, op3, rd, rs1, rs2, npc, btrue, inst;
-  int32 sop1, sop2, *wdata, result, offset;
+  uint32 op1, op2, op3, rd, rs1, rs2, npc, btrue, inst, *wdata;
+  int32 sop1, sop2, result, offset;
   int32 pc, data, address, ws, mexc, fcc;
   unsigned char op, funct3, funct5, rs1p, rs2p, funct2, frs1, frs2, frd;
   int64 sop64a, sop64b;
@@ -179,7 +179,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -188,7 +188,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rs2p] = data;
+		  sregs->g[rs2p] = op1;
 		}
 	      break;
 	    case CSW:		/* sw rs2', offset[6:2](rs1') */
@@ -213,7 +213,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -222,7 +222,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs2p << 1] = data;
+		  sregs->fsi[rs2p << 1] = op1;
 #ifdef FPU_D_ENABLED
 		  sregs->fsi[(rs2p << 1) + 1] = -1;
 #endif
@@ -238,9 +238,9 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
-	      mexc |= ms->memory_read (address + 4, &result, &ws);
+	      mexc |= ms->memory_read (address + 4, &op2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -249,8 +249,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs2p << 1] = data;
-		  sregs->fsi[(rs2p << 1) + 1] = result;
+		  sregs->fsi[rs2p << 1] = op1;
+		  sregs->fsi[(rs2p << 1) + 1] = op2;
 		}
 	      break;
 #endif
@@ -432,7 +432,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -441,7 +441,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rs1] = data;
+		  sregs->g[rs1] = op1;
 		}
 	      break;
 #ifdef FPU_D_ENABLED
@@ -453,10 +453,10 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (!mexc)
-		mexc = ms->memory_read (address + 4, &result, &ws);
+		mexc = ms->memory_read (address + 4, &op2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -465,8 +465,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs1 << 1] = data;
-		  sregs->fsi[(rs1 << 1) + 1] = result;
+		  sregs->fsi[rs1 << 1] = op1;
+		  sregs->fsi[(rs1 << 1) + 1] = op2;
 		}
 	      break;
 #endif
@@ -478,7 +478,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -487,7 +487,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs1 << 1] = data;
+		  sregs->fsi[rs1 << 1] = op1;
 		}
 	      break;
 	    case 4:
@@ -1022,7 +1022,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1031,7 +1031,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rd] = data;
+		  sregs->g[rd] = op1;
 		}
 	      break;
 	    case LB:
@@ -1040,7 +1040,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->trap = TRAP_ILLEG;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, (uint32 *) &data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1052,7 +1052,7 @@ riscv_dispatch_instruction (sregs)
 	      sregs->g[rd] = data;
 	      break;
 	    case LBU:
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1060,7 +1060,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      sregs->g[rd] = data & 0x0ff;
+	      sregs->g[rd] = op1 & 0x0ff;
 	      break;
 	    case LH:
 	      if (address & 0x1)
@@ -1069,7 +1069,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, (uint32 *) &data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1087,7 +1087,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1095,8 +1095,8 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      data &= 0x0ffff;
-	      sregs->g[rd] = data;
+	      op1 &= 0x0ffff;
+	      sregs->g[rd] = op1;
 	      break;
 
 	    default:
@@ -1126,7 +1126,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1135,7 +1135,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rd] = data;
+		  sregs->g[rd] = op1;
 		  sregs->lrqa = address;
 		  sregs->lrq = 1;
 #ifdef DEBUG
@@ -1191,7 +1191,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, (uint32 *) &data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1357,7 +1357,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1366,7 +1366,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rd << 1] = data;
+		  sregs->fsi[rd << 1] = op1;
 		  sregs->fsi[(rd << 1) + 1] = -1;
 		}
 	      break;
@@ -1377,10 +1377,10 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &data, &ws);
+	      mexc = ms->memory_read (address, &op1, &ws);
 	      sregs->hold += ws;
 	      if (!mexc)
-		mexc = ms->memory_read (address + 4, &result, &ws);
+		mexc = ms->memory_read (address + 4, &op2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1389,8 +1389,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rd << 1] = data;
-		  sregs->fsi[(rd << 1) + 1] = result;
+		  sregs->fsi[rd << 1] = op1;
+		  sregs->fsi[(rd << 1) + 1] = op2;
 		}
 	      break;
 	    default:
@@ -3216,7 +3216,7 @@ riscv_print_insn (uint32 addr)
 {
   char tmp[128];
   uint32 insn;
-  uint32 hold;
+  int32 hold;
 
   ms->memory_iread (addr, &insn, &hold);
   riscv_disas (tmp, addr, insn);

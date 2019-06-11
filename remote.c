@@ -147,12 +147,12 @@ check_pkg (unsigned char *buf, int len)
 }
 
 static void
-int2hex (unsigned char *hexbuf, unsigned char *intbuf, int len)
+int2hex (char *hexbuf, char *intbuf, int len)
 {
   int i;
   for (i = 0; i < len; i++)
     {
-      hexbuf[i * 2] = hexchars[intbuf[i] >> 4];
+      hexbuf[i * 2] = hexchars[(intbuf[i] >> 4) & 0x0f];
       hexbuf[i * 2 + 1] = hexchars[intbuf[i] & 0x0f];
     }
   hexbuf[len * 2] = 0;
@@ -182,11 +182,11 @@ sim_stat ()
 int
 gdb_remote_exec (char *buf)
 {
-  unsigned char membuf[1024];
+  char membuf[1024];
   unsigned int i, j, len, addr;
   int cont = 1;
-  unsigned char *cptr, *mptr;
-  unsigned char *txbuf = &sendbuf[1];
+  char *cptr, *mptr;
+  char *txbuf = &sendbuf[1];
 
   switch (buf[0])
     {
@@ -373,8 +373,10 @@ gdb_remote_exec (char *buf)
 	{
 	  cptr = &buf[6];
 	  mptr = membuf;
-	  while (*cptr != '#')
-	    *mptr++ = (hex (*cptr++) << 4) | hex (*cptr++);
+	  while (*cptr != '#') {
+	    *mptr = hex (*cptr++) << 4;
+	    *mptr++ |= hex (*cptr++);
+	  }
 	  *mptr = 0;
 	  exec_cmd (membuf);
 	  strcpy (txbuf, "OK");
@@ -394,7 +396,7 @@ gdb_remote_exec (char *buf)
 void
 gdb_remote (int port)
 {
-  char buffer[2048];
+  unsigned char buffer[2048];
   int cont = 1;
   int res, len = 0;
   char ack = '+';
@@ -411,7 +413,7 @@ gdb_remote (int port)
   printf ("gdb: listening on port %d ", port);
   while (cont)
     {
-      if (cont = create_socket (port))
+      if ((cont = create_socket (port)))
 	{
 	  send (new_socket, &ack, 1, 0);
 	  printf ("connected\n");
@@ -465,7 +467,7 @@ gdb_remote (int port)
 	      else
 		{
 		  strcpy (sendbuf, "$");
-		  cont = gdb_remote_exec (&buffer[res]);
+		  cont = gdb_remote_exec ((char *) &buffer[res]);
 		  if (sis_verbose)
 		    printf ("tx: %s\n", sendbuf);
 		  send (new_socket, sendbuf, strlen (sendbuf), 0);

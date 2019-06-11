@@ -246,8 +246,8 @@ extern const struct cpu_arch riscv;
 extern const struct memsys erc32sys;
 
 /* func.c */
-extern unsigned char romb[];
-extern unsigned char ramb[];
+extern char romb[];
+extern char ramb[];
 extern struct	pstate  sregs[];
 extern struct   estate ebase;
 extern struct   evcell evbuf[];
@@ -341,7 +341,7 @@ struct memsys {
     int	        (*memory_read) (uint32 addr, uint32 *data, int32 *ws);
     int	        (*memory_write) (uint32 addr, uint32 *data, int32 sz, int32 *ws);
     int	        (*sis_memory_write) (uint32 addr,
-				  const unsigned char *data, uint32 length);
+				  const char *data, uint32 length);
     int	        (*sis_memory_read) (uint32 addr, char *data,
 				 uint32 length);
     void	(*boot_init) (void);
@@ -363,8 +363,8 @@ extern int      new_socket;
 
 /* interf.c */
 
-extern int 	sim_read (uint32 mem, unsigned char *buf, int length);
-extern int 	sim_write (uint32 mem, const unsigned char *buf, int length);
+extern int 	sim_read (uint32 mem, char *buf, int length);
+extern int 	sim_write (uint32 mem, const char *buf, int length);
 extern void 	sim_create_inferior();
 extern void 	sim_resume(int step);
 extern int 	sim_insert_swbreakpoint(uint32 addr, int len);

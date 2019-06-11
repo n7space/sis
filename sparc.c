@@ -93,7 +93,7 @@ wpmask (uint32 op3)
       return (0);		/* byte */
     case 2:
       return (1);		/* half-word */
-    case 3:
+    default:
       return (7);		/* double word */
     }
 }
@@ -136,10 +136,10 @@ sparc_dispatch_instruction (sregs)
 {
 
   uint32 cwp, op, op2, op3, asi, rd, cond, rs1, rs2;
-  uint32 ldep, icc;
-  int32 operand1, operand2, *rdd, result, eicc, new_cwp;
-  int32 pc, npc, data, address, ws, mexc, fcc, annul;
-  int32 ddata[2];
+  uint32 ldep, icc, *rdd, data;
+  int32 operand1, operand2, result, eicc, new_cwp;
+  int32 pc, npc, address, ws, mexc, fcc, annul;
+  uint32 ddata[2];
 
   sregs->ninst++;
   cwp = ((sregs->psr & PSR_CWP) << 4);
@@ -856,7 +856,7 @@ sparc_dispatch_instruction (sregs)
 		  break;
 		}
 	      sregs->psr = (sregs->psr & 0xff000000) |
-		(rs1 ^ operand2) & 0x00f03fff;
+		((rs1 ^ operand2) & 0x00f03fff);
 	      break;
 	    case WRWIM:
 	      if (!(sregs->psr & PSR_S))
@@ -963,7 +963,7 @@ sparc_dispatch_instruction (sregs)
 	  sregs->icnt = T_ST;	/* Set store instruction count */
 	  if (ebase.wpwnum)
 	    {
-	      if (ebase.wphit = check_wpw (sregs, address, wpmask (op3)))
+	      if ((ebase.wphit = check_wpw (sregs, address, wpmask (op3))))
 		{
 		  sregs->trap = WPT_TRAP;
 		  break;
@@ -978,7 +978,7 @@ sparc_dispatch_instruction (sregs)
 	  sregs->icnt = T_LD;	/* Set load instruction count */
 	  if (ebase.wprnum)
 	    {
-	      if (ebase.wphit = check_wpr (sregs, address, wpmask (op3)))
+	      if ((ebase.wphit = check_wpr (sregs, address, wpmask (op3))))
 		{
 		  sregs->trap = WPT_TRAP;
 		  break;
@@ -3458,7 +3458,7 @@ sparc_print_insn (uint32 addr)
 {
   char tmp[128];
   uint32 insn;
-  uint32 hold;
+  int32 hold;
 
   ms->memory_iread (addr, &insn, &hold);
   sparc_disas (tmp, addr, insn);
