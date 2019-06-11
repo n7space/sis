@@ -141,6 +141,7 @@ init_regs(sregs)
     sregs[i].err_mode = 0;
     ext_irl[i] = 0;
     sregs[i].g[0] = 0;
+    sregs[i].r[0] = 0;
     sregs[i].fs = (float32 *) sregs[i].fd;
     sregs[i].fsi = (int32 *) sregs[i].fd;
     sregs[i].fsr = 0;
