@@ -43,7 +43,8 @@ add32 (uint32 n1, uint32 n2, int *carry)
 /* Multiply two 32-bit integers.  */
 
 void
-mul64 (uint32 n1, uint32 n2, uint32 *result_hi, uint32 *result_lo, int msigned)
+mul64 (uint32 n1, uint32 n2, uint32 * result_hi, uint32 * result_lo,
+       int msigned)
 {
   uint32 lo, mid1, mid2, hi, reg_lo, reg_hi;
   int carry;
@@ -58,16 +59,16 @@ mul64 (uint32 n1, uint32 n2, uint32 *result_hi, uint32 *result_lo, int msigned)
 	n1 = -n1;
       if (n2 & SIGN_BIT)
 	n2 = -n2;
-      
+
     }
-  
+
   /* We can split the 32x32 into four 16x16 operations. This ensures
      that we do not lose precision on 32bit only hosts: */
-  lo =   ((n1 & 0xFFFF) * (n2 & 0xFFFF));
+  lo = ((n1 & 0xFFFF) * (n2 & 0xFFFF));
   mid1 = ((n1 & 0xFFFF) * ((n2 >> 16) & 0xFFFF));
   mid2 = (((n1 >> 16) & 0xFFFF) * (n2 & 0xFFFF));
-  hi =   (((n1 >> 16) & 0xFFFF) * ((n2 >> 16) & 0xFFFF));
-  
+  hi = (((n1 >> 16) & 0xFFFF) * ((n2 >> 16) & 0xFFFF));
+
   /* We now need to add all of these results together, taking care
      to propogate the carries from the additions: */
   reg_lo = add32 (lo, (mid1 << 16), &carry);
@@ -78,12 +79,12 @@ mul64 (uint32 n1, uint32 n2, uint32 *result_hi, uint32 *result_lo, int msigned)
   /* Negate result if necessary. */
   if (sign)
     {
-      reg_hi = ~ reg_hi;
-      reg_lo = - reg_lo;
+      reg_hi = ~reg_hi;
+      reg_lo = -reg_lo;
       if (reg_lo == 0)
 	reg_hi++;
     }
-  
+
   *result_lo = reg_lo;
   *result_hi = reg_hi;
 }
@@ -93,7 +94,7 @@ mul64 (uint32 n1, uint32 n2, uint32 *result_hi, uint32 *result_lo, int msigned)
    that the host compiler supports long long operations.  */
 
 void
-div64 (uint32 n1_hi, uint32 n1_low, uint32 n2, uint32 *result, int msigned)
+div64 (uint32 n1_hi, uint32 n1_low, uint32 n2, uint32 * result, int msigned)
 {
   uint64 n1;
 
@@ -114,92 +115,100 @@ div64 (uint32 n1_hi, uint32 n1_low, uint32 n2, uint32 *result, int msigned)
 }
 
 void
-init_regs(sregs)
-    struct pstate  *sregs;
+init_regs (sregs)
+     struct pstate *sregs;
 {
   int i;
 
   ebase.wphit = 0;
 
-  for (i=0; i<NCPU; i++) {  
-    sregs[i].pc = 0;
-    sregs[i].npc = 4;
-    sregs[i].trap = 0;
-    sregs[i].psr &= 0x00f03fdf;
-    if (cputype == CPU_LEON3)
-      sregs[i].psr |= 0xF3000080;	/* Set supervisor bit */
-    else
-    if (cputype == CPU_LEON2)
-      sregs[i].psr |= 0x00000080;	/* Set supervisor bit */
-    else
-      sregs[i].psr |= 0x11000080;	/* Set supervisor bit */
-    sregs[i].breakpoint = 0;
-    sregs[i].fpstate = 0;
-    sregs[i].fpqn = 0;
-    sregs[i].ftime = 0;
-    sregs[i].ltime = 0;
-    sregs[i].err_mode = 0;
-    ext_irl[i] = 0;
-    sregs[i].g[0] = 0;
-    sregs[i].r[0] = 0;
-    sregs[i].fs = (float32 *) sregs[i].fd;
-    sregs[i].fsi = (int32 *) sregs[i].fd;
-    sregs[i].fsr = 0;
-    sregs[i].fpu_pres = !nfp;
-    set_fsr(sregs[i].fsr);
-    sregs[i].ildreg = 0;
-    sregs[i].ildtime = 0;
+  for (i = 0; i < NCPU; i++)
+    {
+      sregs[i].pc = 0;
+      sregs[i].npc = 4;
+      sregs[i].trap = 0;
+      sregs[i].psr &= 0x00f03fdf;
+      if (cputype == CPU_LEON3)
+	sregs[i].psr |= 0xF3000080;	/* Set supervisor bit */
+      else if (cputype == CPU_LEON2)
+	sregs[i].psr |= 0x00000080;	/* Set supervisor bit */
+      else
+	sregs[i].psr |= 0x11000080;	/* Set supervisor bit */
+      sregs[i].breakpoint = 0;
+      sregs[i].fpstate = 0;
+      sregs[i].fpqn = 0;
+      sregs[i].ftime = 0;
+      sregs[i].ltime = 0;
+      sregs[i].err_mode = 0;
+      ext_irl[i] = 0;
+      sregs[i].g[0] = 0;
+      sregs[i].r[0] = 0;
+      sregs[i].fs = (float32 *) sregs[i].fd;
+      sregs[i].fsi = (int32 *) sregs[i].fd;
+      sregs[i].fsr = 0;
+      sregs[i].fpu_pres = !nfp;
+      set_fsr (sregs[i].fsr);
+      sregs[i].ildreg = 0;
+      sregs[i].ildtime = 0;
 
-    sregs[i].y = 0;
-    sregs[i].asr17 = 0;
+      sregs[i].y = 0;
+      sregs[i].asr17 = 0;
 
-    sregs[i].rett_err = 0;
-    sregs[i].jmpltime = 0;
-    if (cputype == CPU_LEON3) {
-        sregs[i].asr17 = 0x04000107 | (i << 28);
-        if (!nfp) sregs[i].asr17 |= (3 << 10);  /* Meiko FPU */
+      sregs[i].rett_err = 0;
+      sregs[i].jmpltime = 0;
+      if (cputype == CPU_LEON3)
+	{
+	  sregs[i].asr17 = 0x04000107 | (i << 28);
+	  if (!nfp)
+	    sregs[i].asr17 |= (3 << 10);	/* Meiko FPU */
+	}
+      sregs[i].cpu = i;
+      sregs[i].simtime = 0;
+      sregs[i].pwdtime = 0;
+      sregs[i].pwdstart = 0;
+      if (i == 0)
+	sregs[i].pwd_mode = 0;
+      else
+	sregs[i].pwd_mode = 1;
+      sregs[i].mip = 0;
+      sregs[i].mstatus = 0;
+      sregs[i].mie = 0;
+      sregs[i].mpp = 0;
+      sregs[i].mode = 1;
+      sregs[i].lrq = 0;
+      sregs[i].bphit = 0;
     }
-    sregs[i].cpu = i;
-    sregs[i].simtime = 0;
-    sregs[i].pwdtime = 0;
-    sregs[i].pwdstart = 0;
-    if (i == 0)
-        sregs[i].pwd_mode = 0;
-    else
-        sregs[i].pwd_mode = 1;
-    sregs[i].mip = 0;
-    sregs[i].mstatus = 0;
-    sregs[i].mie = 0;
-    sregs[i].mpp = 0;
-    sregs[i].mode = 1;
-    sregs[i].lrq = 0;
-    sregs[i].bphit = 0;
-  }
 }
 
 #ifdef ENABLE_L1CACHE
 void
-l1data_snoop(uint32 address, uint32 cpu)
+l1data_snoop (uint32 address, uint32 cpu)
 {
-	int i;
-	for (i=0; i<ncpu; i++) {
-		if (sregs[i].l1dtags[(address >> L1DLINEBITS) & L1DMASK] == (address >> L1DLINEBITS)) {
-			if (cpu != i) {
-				sregs[i].l1dtags[(address >> L1DLINEBITS) & L1DMASK] = 0;
-//				printf("l1 snoop hit : 0x%08X,  %d  %d\n", address, cpu, i);
-			}
-		}
+  int i;
+  for (i = 0; i < ncpu; i++)
+    {
+      if (sregs[i].l1dtags[(address >> L1DLINEBITS) & L1DMASK] ==
+	  (address >> L1DLINEBITS))
+	{
+	  if (cpu != i)
+	    {
+	      sregs[i].l1dtags[(address >> L1DLINEBITS) & L1DMASK] = 0;
+//                              printf("l1 snoop hit : 0x%08X,  %d  %d\n", address, cpu, i);
+	    }
 	}
+    }
 }
 
 void
-l1data_update(uint32 address, uint32 cpu)
+l1data_update (uint32 address, uint32 cpu)
 {
-      if (sregs[cpu].l1dtags[address >> L1DLINEBITS & L1DMASK] != (address >> L1DLINEBITS))
-        {
-	  sregs[cpu].l1dtags[(address >> L1DLINEBITS) & L1DMASK] = (address >> L1DLINEBITS);
-	  sregs[cpu].hold += T_L1DMISS;
-	  sregs[cpu].l1dmiss++;
-        }
+  if (sregs[cpu].l1dtags[address >> L1DLINEBITS & L1DMASK] !=
+      (address >> L1DLINEBITS))
+    {
+      sregs[cpu].l1dtags[(address >> L1DLINEBITS) & L1DMASK] =
+	(address >> L1DLINEBITS);
+      sregs[cpu].hold += T_L1DMISS;
+      sregs[cpu].l1dmiss++;
+    }
 }
 #endif

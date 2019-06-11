@@ -248,11 +248,12 @@ leon3_reset (void)
   int i;
 
   irqmp_ipr = 0;
-  for (i=0; i<NCPU; i++) {
-    irqmp_imr[i] = 0;
-    irqmp_ifr[i] = 0;
-    sregs[i].intack = irqmp_intack;
-  }
+  for (i = 0; i < NCPU; i++)
+    {
+      irqmp_imr[i] = 0;
+      irqmp_ifr[i] = 0;
+      sregs[i].intack = irqmp_intack;
+    }
   wnuma = wnumb = 0;
   anum = aind = bnum = bind = 0;
 
@@ -272,8 +273,8 @@ irqmp_intack (int level, int cpu)
   int irq_test;
 
   if ((sis_verbose > 2) && (level != 10))
-          printf ("%8" PRIu64 " cpu %d interrupt %d acknowledged\n", 
-			  ebase.simtime, cpu, level);
+    printf ("%8" PRIu64 " cpu %d interrupt %d acknowledged\n",
+	    ebase.simtime, cpu, level);
   if (irqmp_ifr[cpu] & (1 << level))
     irqmp_ifr[cpu] &= ~(1 << level);
   else
@@ -288,25 +289,26 @@ chk_irq ()
   uint32 itmp;
   int old_irl;
 
-  for (cpu = 0; cpu<ncpu; cpu++) {
-    old_irl = ext_irl[cpu];
-    itmp = ((irqmp_ipr | irqmp_ifr[cpu]) & irqmp_imr[cpu]) & 0x0fffe;
-    ext_irl[cpu] = 0;
-    if (itmp != 0)
+  for (cpu = 0; cpu < ncpu; cpu++)
     {
-      for (i = 15; i > 0; i--)
+      old_irl = ext_irl[cpu];
+      itmp = ((irqmp_ipr | irqmp_ifr[cpu]) & irqmp_imr[cpu]) & 0x0fffe;
+      ext_irl[cpu] = 0;
+      if (itmp != 0)
 	{
-	  if (((itmp >> i) & 1) != 0)
+	  for (i = 15; i > 0; i--)
 	    {
-	      if ((sis_verbose > 2) && (i != old_irl))
-                printf ("%8" PRIu64 " cpu %d irl: %d\n",
-				ebase.simtime, cpu, i);
-	      ext_irl[cpu] = i;
-	      break;
+	      if (((itmp >> i) & 1) != 0)
+		{
+		  if ((sis_verbose > 2) && (i != old_irl))
+		    printf ("%8" PRIu64 " cpu %d irl: %d\n",
+			    ebase.simtime, cpu, i);
+		  ext_irl[cpu] = i;
+		  break;
+		}
 	    }
 	}
     }
-  }
 }
 
 static void
@@ -315,7 +317,7 @@ set_irq (int32 level)
   int i;
 
   if ((irqmp_ibr >> level) & 1)
-    for (i=0; i<ncpu; i++)
+    for (i = 0; i < ncpu; i++)
       irqmp_ifr[i] |= (1 << level);
   else
     irqmp_ipr |= (1 << level);
@@ -326,10 +328,12 @@ static uint32
 gpt_counter_read (int i)
 {
   if (gpt_ctrl[i] & 1)
-    return gpt_counter[i] - ((now() - gpt_counter_start[i]) / (gpt_scaler + 1));
+    return gpt_counter[i] -
+      ((now () - gpt_counter_start[i]) / (gpt_scaler + 1));
   else
     return gpt_counter[i];
 }
+
 static uint32
 gpt_scaler_read ()
 {
@@ -362,8 +366,8 @@ apb_read (uint32 addr, uint32 * data)
 
     case IRQMP_ISR:		/* 0x210 */
       *data = ((ncpu - 1) << 28);
-      for (i=0;i<ncpu;i++)
-	  *data |= (sregs[i].pwd_mode << i);
+      for (i = 0; i < ncpu; i++)
+	*data |= (sregs[i].pwd_mode << i);
       break;
 
     case IRQMP_IBR:		/* 0x214 */
@@ -403,7 +407,7 @@ apb_read (uint32 addr, uint32 * data)
       break;
 
     case GPTIMER_SCALER:	/* 0x300 */
-      *data = gpt_scaler_read();
+      *data = gpt_scaler_read ();
       break;
 
     case GPTIMER_SCLOAD:	/* 0x304 */
@@ -415,7 +419,7 @@ apb_read (uint32 addr, uint32 * data)
       break;
 
     case GPTIMER_TIMER1:	/* 0x310 */
-      *data = gpt_counter_read(0);
+      *data = gpt_counter_read (0);
       break;
 
     case GPTIMER_RELOAD1:	/* 0x314 */
@@ -427,7 +431,7 @@ apb_read (uint32 addr, uint32 * data)
       break;
 
     case GPTIMER_TIMER2:	/* 0x320 */
-      *data = gpt_counter_read(1);
+      *data = gpt_counter_read (1);
       break;
 
     case GPTIMER_RELOAD2:	/* 0x324 */
@@ -441,15 +445,16 @@ apb_read (uint32 addr, uint32 * data)
     default:
       *data = 0;
       if (sis_verbose > 1)
-          printf ("%8" PRIu64 " cpu %d APB read  a: %08x, d: %08x  unimplemented!\n",
-			  ebase.simtime, xcpu, addr, *data);
+	printf ("%8" PRIu64
+		" cpu %d APB read  a: %08x, d: %08x  unimplemented!\n",
+		ebase.simtime, xcpu, addr, *data);
       break;
     }
 
   if (sis_verbose > 1)
-      if ((addr & 0xF00) != 0x100)
-          printf ("%8" PRIu64 " cpu %d APB read  a: %08x, d: %08x\n",
-			  ebase.simtime, xcpu, addr, *data);
+    if ((addr & 0xF00) != 0x100)
+      printf ("%8" PRIu64 " cpu %d APB read  a: %08x, d: %08x\n",
+	      ebase.simtime, xcpu, addr, *data);
 
   return MOK;
 }
@@ -460,9 +465,9 @@ apb_write (uint32 addr, uint32 data)
   int i;
 
   if (sis_verbose > 1)
-      if ((addr & 0xF00) != 0x100)
-          printf ("%8" PRIu64 " cpu %d APB write a: %08x, d: %08x\n",
-			  ebase.simtime, xcpu, addr, data);
+    if ((addr & 0xF00) != 0x100)
+      printf ("%8" PRIu64 " cpu %d APB write a: %08x, d: %08x\n",
+	      ebase.simtime, xcpu, addr, data);
   switch (addr & 0xfff)
     {
 
@@ -484,17 +489,21 @@ apb_write (uint32 addr, uint32 data)
       break;
 
     case IRQMP_ISR:		/* 0x210 */
-      for (i=0;i<ncpu;i++) {
-	  if ((data >> i) & 1) {
-	      if (sregs[i].pwd_mode) {
+      for (i = 0; i < ncpu; i++)
+	{
+	  if ((data >> i) & 1)
+	    {
+	      if (sregs[i].pwd_mode)
+		{
 		  sregs[i].simtime = ebase.simtime;
-  		  if (sis_verbose > 1)
-                      printf ("%8" PRIu64 " cpu %d starting\n", ebase.simtime, i);
-	          sregs[i].pwdtime += ebase.simtime - sregs[i].pwdstart;
-	      }
+		  if (sis_verbose > 1)
+		    printf ("%8" PRIu64 " cpu %d starting\n", ebase.simtime,
+			    i);
+		  sregs[i].pwdtime += ebase.simtime - sregs[i].pwdstart;
+		}
 	      sregs[i].pwd_mode = 0;
-	  }
-      }
+	    }
+	}
       break;
 
     case IRQMP_IBR:		/* 0x214 */
@@ -546,9 +555,9 @@ apb_write (uint32 addr, uint32 data)
       break;
 
     case GPTIMER_TIMER1:	/* 0x310 */
-        gpt_counter[0] = data;
-        remove_event (gpt_intr, 0);
-        gpt_add_intr (0);
+      gpt_counter[0] = data;
+      remove_event (gpt_intr, 0);
+      gpt_add_intr (0);
       break;
 
     case GPTIMER_RELOAD1:	/* 0x314 */
@@ -561,8 +570,8 @@ apb_write (uint32 addr, uint32 data)
 
     case GPTIMER_TIMER2:	/* 0x320 */
       gpt_counter[1] = data;
-        remove_event (gpt_intr, 1);
-        gpt_add_intr (1);
+      remove_event (gpt_intr, 1);
+      gpt_add_intr (1);
       break;
 
     case GPTIMER_RELOAD2:	/* 0x324 */
@@ -575,8 +584,9 @@ apb_write (uint32 addr, uint32 data)
 
     default:
       if (sis_verbose)
-          printf ("%8" PRIu64 " cpu %d APB write a: %08x, d: %08x  unimplemented!\n",
-			  ebase.simtime, xcpu, addr, data);
+	printf ("%8" PRIu64
+		" cpu %d APB write a: %08x, d: %08x  unimplemented!\n",
+		ebase.simtime, xcpu, addr, data);
       break;
     }
   return MOK;
@@ -620,20 +630,21 @@ port_init (void)
 {
   f1in = stdin;
   f1out = stdout;
-  if (uart_dev1[0] != 0) {
-    if ((fd1 = open (uart_dev1, O_RDWR | O_NONBLOCK)) < 0)
-      {
-	printf ("Warning, couldn't open output device %s\n", uart_dev1);
-      }
-    else
-      {
-	if (sis_verbose)
-	  printf ("serial port A on %s\n", uart_dev1);
-	f1in = f1out = fdopen (fd1, "r+");
-	setbuf (f1out, NULL);
-	f1open = 1;
-      }
-  }
+  if (uart_dev1[0] != 0)
+    {
+      if ((fd1 = open (uart_dev1, O_RDWR | O_NONBLOCK)) < 0)
+	{
+	  printf ("Warning, couldn't open output device %s\n", uart_dev1);
+	}
+      else
+	{
+	  if (sis_verbose)
+	    printf ("serial port A on %s\n", uart_dev1);
+	  f1in = f1out = fdopen (fd1, "r+");
+	  setbuf (f1out, NULL);
+	  f1open = 1;
+	}
+    }
   if (f1in)
     ifd1 = fileno (f1in);
   if (ifd1 == 0)
@@ -772,7 +783,7 @@ grlib_write_uart (uint32 addr, uint32 data)
 	    {
 	      while (wnuma)
 		{
-		    wnuma -= fwrite (wbufa, 1, wnuma, f1out);
+		  wnuma -= fwrite (wbufa, 1, wnuma, f1out);
 		}
 	      wbufa[wnuma++] = c;
 	    }
@@ -809,7 +820,7 @@ flush_uart (void)
 {
   while (wnuma && f1open)
     {
-	wnuma -= fwrite (wbufa, 1, wnuma, f1out);
+      wnuma -= fwrite (wbufa, 1, wnuma, f1out);
     }
 }
 
@@ -818,8 +829,8 @@ uarta_tx (void)
 {
   while (f1open)
     {
-	while (fwrite (&uarta_sreg, 1, 1, f1out) != 1)
-	  continue;
+      while (fwrite (&uarta_sreg, 1, 1, f1out) != 1)
+	continue;
     }
   if (uart_stat_reg & UARTA_HRE)
     {
@@ -885,13 +896,15 @@ uart_irq_start (void)
 static void
 gpt_add_intr (int i)
 {
-      if (gpt_ctrl[i] & 1)
-        {
-	  event (gpt_intr, i, (uint64) (gpt_scaler + 1) * (uint64) ((uint64) gpt_counter[i] + (uint64) 1));
-          gpt_counter_start[i] = now();
-	}
+  if (gpt_ctrl[i] & 1)
+    {
+      event (gpt_intr, i,
+	     (uint64) (gpt_scaler + 1) * (uint64) ((uint64) gpt_counter[i] +
+						   (uint64) 1));
+      gpt_counter_start[i] = now ();
+    }
 }
-	  
+
 static void
 gpt_intr (int32 i)
 {
@@ -903,7 +916,7 @@ gpt_intr (int32 i)
 	  gpt_counter[i] = gpt_reload[i];
 	}
       if (gpt_ctrl[i] & 8)
-     	{
+	{
 	  set_irq (GPTIMER_IRQ + i);
 	}
       gpt_add_intr (i);
@@ -938,7 +951,7 @@ gpt_add_intr_all ()
       gpt_add_intr (i);
     }
 }
-    
+
 static void
 gpt_scaler_set (uint32 val)
 {
@@ -948,7 +961,7 @@ gpt_scaler_set (uint32 val)
       gpt_scaler = val & 0x0ffff;
       remove_event (gpt_intr, -1);
       gpt_scaler_start = now ();
-      gpt_add_intr_all();
+      gpt_add_intr_all ();
     }
 }
 
@@ -976,27 +989,26 @@ timer_ctrl (uint32 val, int i)
    2 (one word), or 3 (two words); WS should return the number of wait-states. */
 
 static void
-store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz,
-	     int32 * ws)
+store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
 {
   if (sz == 2)
-      memcpy (&mem[waddr], data, 4);
+    memcpy (&mem[waddr], data, 4);
   else
     switch (sz)
-    {
-    case 0:
-      waddr ^= arch->endian;
-      mem[waddr] = *data & 0x0ff;
-      break;
-    case 1:
-      waddr ^= arch->endian & 2;
-      memcpy (&mem[waddr], data, 2);
-      break;
-    case 3:
-      memcpy (&mem[waddr], data, 8);
-      break;
-    }
-    *ws = 0;
+      {
+      case 0:
+	waddr ^= arch->endian;
+	mem[waddr] = *data & 0x0ff;
+	break;
+      case 1:
+	waddr ^= arch->endian & 2;
+	memcpy (&mem[waddr], data, 2);
+	break;
+      case 3:
+	memcpy (&mem[waddr], data, 8);
+	break;
+      }
+  *ws = 0;
 }
 
 
@@ -1134,10 +1146,12 @@ sis_memory_write (uint32 addr, const char *data, uint32 length)
   char *mem;
   int32 ws;
 
-  if ((mem = get_mem_ptr (addr, length)) != ((char *) -1)) {
-    memcpy (mem, data, length);
-    return length;
-  } else if (length == 4)
+  if ((mem = get_mem_ptr (addr, length)) != ((char *) -1))
+    {
+      memcpy (mem, data, length);
+      return length;
+    }
+  else if (length == 4)
     memory_write (addr, (uint32 *) data, 2, &ws);
   return 0;
 }
@@ -1174,14 +1188,15 @@ boot_init (void)
   apb_write (GPTIMER_RELOAD1, -1);
   apb_write (GPTIMER_CTRL1, 0x7);
 
-  for (i=0;i<NCPU;i++) {
-    sregs[i].wim = 2;
-    sregs[i].psr = 0xF30010e0;
-    sregs[i].r[30] = RAM_END - (i * 0x20000);
-    sregs[i].r[14] = sregs[i].r[30] - 96 * 4;
-    sregs[i].cache_ctrl = 0x81000f;
-    sregs[i].r[2] = sregs[i].r[30];	/* sp on RISCV-V */
-  }
+  for (i = 0; i < NCPU; i++)
+    {
+      sregs[i].wim = 2;
+      sregs[i].psr = 0xF30010e0;
+      sregs[i].r[30] = RAM_END - (i * 0x20000);
+      sregs[i].r[14] = sregs[i].r[30] - 96 * 4;
+      sregs[i].cache_ctrl = 0x81000f;
+      sregs[i].r[2] = sregs[i].r[30];	/* sp on RISCV-V */
+    }
 }
 
 const struct memsys leon3 = {

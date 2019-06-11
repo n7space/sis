@@ -373,10 +373,11 @@ gdb_remote_exec (char *buf)
 	{
 	  cptr = &buf[6];
 	  mptr = membuf;
-	  while (*cptr != '#') {
-	    *mptr = hex (*cptr++) << 4;
-	    *mptr++ |= hex (*cptr++);
-	  }
+	  while (*cptr != '#')
+	    {
+	      *mptr = hex (*cptr++) << 4;
+	      *mptr++ |= hex (*cptr++);
+	    }
 	  *mptr = 0;
 	  exec_cmd (membuf);
 	  strcpy (txbuf, "OK");

@@ -262,7 +262,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, &sregs->fsi[rs2p << 1], 2, &ws);
+		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2p << 1],
+				  2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -281,7 +282,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, &sregs->fsi[rs2p << 1], 3, &ws);
+		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2p << 1],
+				  3, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -564,7 +566,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, &sregs->fsi[rs2 << 1], 3, &ws);
+		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2 << 1],
+				  3, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -582,7 +585,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, &sregs->fsi[rs2 << 1], 2, &ws);
+		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2 << 1],
+				  2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -875,7 +879,7 @@ riscv_dispatch_instruction (sregs)
 
 	  if (ebase.wpwnum)
 	    {
-	      if (ebase.wphit = check_wpw (sregs, address, funct3 & 3))
+	      if ((ebase.wphit = check_wpw (sregs, address, funct3 & 3)))
 		{
 		  sregs->trap = WPT_TRAP;
 		  break;
@@ -929,8 +933,8 @@ riscv_dispatch_instruction (sregs)
 #ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
-	      l1data_update(address, sregs->cpu);
-	      l1data_snoop(address, sregs->cpu);
+	      l1data_update (address, sregs->cpu);
+	      l1data_snoop (address, sregs->cpu);
 	    }
 #endif
 	  break;
@@ -941,11 +945,11 @@ riscv_dispatch_instruction (sregs)
 #endif
 	  offset = EXTRACT_STYPE_IMM (sregs->inst);
 	  address = op1 + offset;
-	  wdata = &sregs->fsi[rs2 << 1];
+	  wdata = (uint32 *) & sregs->fsi[rs2 << 1];
 
 	  if (ebase.wpwnum)
 	    {
-	      if (ebase.wphit = check_wpw (sregs, address, funct3 & 3))
+	      if ((ebase.wphit = check_wpw (sregs, address, funct3 & 3)))
 		{
 		  sregs->trap = WPT_TRAP;
 		  break;
@@ -990,8 +994,8 @@ riscv_dispatch_instruction (sregs)
 #ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
-	      l1data_update(address, sregs->cpu);
-	      l1data_snoop(address, sregs->cpu);
+	      l1data_update (address, sregs->cpu);
+	      l1data_snoop (address, sregs->cpu);
 	    }
 #endif
 	  break;
@@ -1003,7 +1007,7 @@ riscv_dispatch_instruction (sregs)
 	  address = op1 + offset;
 	  if (ebase.wprnum)
 	    {
-	      if (ebase.wphit = check_wpr (sregs, address, funct3 & 3))
+	      if ((ebase.wphit = check_wpr (sregs, address, funct3 & 3)))
 		{
 		  sregs->trap = WPT_TRAP;
 		  break;
@@ -1040,7 +1044,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->trap = TRAP_ILLEG;
 		  break;
 		}
-	      mexc = ms->memory_read (address, (uint32 *) &data, &ws);
+	      mexc = ms->memory_read (address, (uint32 *) & data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1069,7 +1073,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, (uint32 *) &data, &ws);
+	      mexc = ms->memory_read (address, (uint32 *) & data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1105,7 +1109,7 @@ riscv_dispatch_instruction (sregs)
 #ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
-	      l1data_update(address, sregs->cpu);
+	      l1data_update (address, sregs->cpu);
 	    }
 #endif
 	  break;
@@ -1191,7 +1195,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, (uint32 *) &data, &ws);
+	      mexc = ms->memory_read (address, (uint32 *) & data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1338,7 +1342,7 @@ riscv_dispatch_instruction (sregs)
 	  address = op1 + offset;
 	  if (ebase.wprnum)
 	    {
-	      if (ebase.wphit = check_wpr (sregs, address, funct3 & 3))
+	      if ((ebase.wphit = check_wpr (sregs, address, funct3 & 3)))
 		{
 		  sregs->trap = WPT_TRAP;
 		  break;
@@ -1399,7 +1403,7 @@ riscv_dispatch_instruction (sregs)
 #ifdef ENABLE_L1CACHE
 	  if (ncpu > 1)
 	    {
-	      l1data_update(address, sregs->cpu);
+	      l1data_update (address, sregs->cpu);
 	    }
 #endif
 	  break;
@@ -1623,18 +1627,18 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FSGNJ */
 		      sregs->fsi[frd] = sregs->fsi[frs1];
 		      sregs->fsi[frd + 1] =
-			(sregs->
-			 fsi[frs1 + 1] & 0x7fffffff) | (sregs->fsi[frs2 +
+			(sregs->fsi[frs1 + 1] & 0x7fffffff) | (sregs->
+							       fsi[frs2 +
 								   1] &
-							0x80000000);
+							       0x80000000);
 		      break;
 		    case 1:	/* FSGNJN */
 		      sregs->fsi[frd] = sregs->fsi[frs1];
 		      sregs->fsi[frd + 1] =
-			(sregs->
-			 fsi[frs1 + 1] & 0x7fffffff) | (~sregs->fsi[frs2 +
-								    1] &
-							0x80000000);
+			(sregs->fsi[frs1 + 1] & 0x7fffffff) | (~sregs->
+							       fsi[frs2 +
+								   1] &
+							       0x80000000);
 		      break;
 		    case 2:	/* FSGNJX */
 		      sregs->fsi[frd] = sregs->fsi[frs1];
