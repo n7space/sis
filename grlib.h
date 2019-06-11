@@ -58,4 +58,4 @@ extern int grlib_ahbspp_add (uint32 id, uint32 addr1, uint32 addr2,
 extern uint32 grlib_ahbpnp_read (uint32 addr);
 extern uint32 grlib_apbpnp_read (uint32 addr);
 extern void grlib_init ();
-extern uint32 rvtimer_read(int address, int cpu);
+extern uint32 rvtimer_read (int address, int cpu);

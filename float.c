@@ -32,53 +32,54 @@
 
 /* This routine should return the accrued exceptions */
 int
-get_accex()
+get_accex ()
 {
-    int fexc, accx;
+  int fexc, accx;
 
-    fexc = fetestexcept (FE_ALL_EXCEPT);
-    accx = 0;
-    if (fexc & FE_INEXACT)
-        accx |= 1;
-    if (fexc & FE_DIVBYZERO)
-        accx |= 2;
-    if (fexc & FE_UNDERFLOW)
-        accx |= 4;
-    if (fexc & FE_OVERFLOW)
-        accx |= 8;
-    if (fexc & FE_INVALID)
-        accx |= 0x10;
-    return accx;
+  fexc = fetestexcept (FE_ALL_EXCEPT);
+  accx = 0;
+  if (fexc & FE_INEXACT)
+    accx |= 1;
+  if (fexc & FE_DIVBYZERO)
+    accx |= 2;
+  if (fexc & FE_UNDERFLOW)
+    accx |= 4;
+  if (fexc & FE_OVERFLOW)
+    accx |= 8;
+  if (fexc & FE_INVALID)
+    accx |= 0x10;
+  return accx;
 }
 
 /* How to clear the accrued exceptions */
 void
-clear_accex()
+clear_accex ()
 {
-    feclearexcept (FE_ALL_EXCEPT);
+  feclearexcept (FE_ALL_EXCEPT);
 }
 
 /* How to map SPARC FSR onto the host */
 void
-set_fsr(fsr)
-uint32 fsr;
+set_fsr (fsr)
+     uint32 fsr;
 {
-    int fround;
+  int fround;
 
-    fsr >>= 30;
-    switch (fsr) {
-	case 0: 
-	    fround = FE_TONEAREST;
-	    break;
-	case 1:
-	    fround = FE_TOWARDZERO;
-	    break;
-	case 2:
-	    fround = FE_UPWARD;
-	    break;
-	case 3:
-	    fround = FE_DOWNWARD;
-	    break;
-     }
-     fesetround (fround);
+  fsr >>= 30;
+  switch (fsr)
+    {
+    case 0:
+      fround = FE_TONEAREST;
+      break;
+    case 1:
+      fround = FE_TOWARDZERO;
+      break;
+    case 2:
+      fround = FE_UPWARD;
+      break;
+    case 3:
+      fround = FE_DOWNWARD;
+      break;
+    }
+  fesetround (fround);
 }

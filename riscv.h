@@ -211,4 +211,3 @@
 				  ((RV_X(x, 12, 20) << 12) | (RV_IMM_SIGN(x) << 32))
 #define EXTRACT_UJTYPE_IMM(x) \
 				    ((RV_X(x, 21, 10) << 1) | (RV_X(x, 20, 1) << 11) | (RV_X(x, 12, 8) << 12) | (RV_IMM_SIGN(x) << 20))
-

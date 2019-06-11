@@ -425,7 +425,7 @@ apb_write (uint32 addr, uint32 data)
       break;
 
     case POWER_DOWN:		/* 0x328 */
-      pwd_enter(sregs);
+      pwd_enter (sregs);
       break;
 
     case CACHE_CTRL:		/* 0x328 */
@@ -620,7 +620,7 @@ grlib_write_uart (uint32 addr, uint32 data)
 	    {
 	      while (wnuma)
 		{
-		    wnuma -= fwrite (wbufa, 1, wnuma, f1out);
+		  wnuma -= fwrite (wbufa, 1, wnuma, f1out);
 		}
 	      wbufa[wnuma++] = c;
 	    }
@@ -658,7 +658,7 @@ flush_uart (void)
 {
   while (wnuma && f1open)
     {
-	wnuma -= fwrite (wbufa, 1, wnuma, f1out);
+      wnuma -= fwrite (wbufa, 1, wnuma, f1out);
     }
 }
 
@@ -667,8 +667,8 @@ uarta_tx (void)
 {
   while (f1open)
     {
-	while (fwrite (&uarta_sreg, 1, 1, f1out) != 1)
-	  continue;
+      while (fwrite (&uarta_sreg, 1, 1, f1out) != 1)
+	continue;
     }
   if (uart_stat_reg & UARTA_HRE)
     {
@@ -791,8 +791,7 @@ timer_ctrl (uint32 val, int i)
    2 (one word), or 3 (two words); WS should return the number of wait-states. */
 
 static void
-store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz,
-	     int32 * ws)
+store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
 {
   switch (sz)
     {

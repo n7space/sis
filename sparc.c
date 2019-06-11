@@ -528,7 +528,7 @@ sparc_dispatch_instruction (sregs)
 	    case SMUL:
 	      {
 		mul64 (rs1, operand2, &sregs->y, rdd, 1);
-	        sregs->icnt = T_MUL;
+		sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case SMULCC:
@@ -548,13 +548,13 @@ sparc_dispatch_instruction (sregs)
 		  sregs->psr &= ~PSR_Z;
 
 		*rdd = result;
-	        sregs->icnt = T_MUL;
+		sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case UMUL:
 	      {
 		mul64 (rs1, operand2, &sregs->y, rdd, 0);
-	        sregs->icnt = T_MUL;
+		sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case UMULCC:
@@ -574,7 +574,7 @@ sparc_dispatch_instruction (sregs)
 		  sregs->psr &= ~PSR_Z;
 
 		*rdd = result;
-	        sregs->icnt = T_MUL;
+		sregs->icnt = T_MUL;
 	      }
 	      break;
 	    case SDIV:
@@ -586,7 +586,7 @@ sparc_dispatch_instruction (sregs)
 		  }
 
 		div64 (sregs->y, rs1, operand2, rdd, 1);
-	        sregs->icnt = T_DIV;
+		sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case SDIVCC:
@@ -615,7 +615,7 @@ sparc_dispatch_instruction (sregs)
 		sregs->psr &= ~(PSR_C | PSR_V);
 
 		*rdd = result;
-	        sregs->icnt = T_DIV;
+		sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case UDIV:
@@ -627,7 +627,7 @@ sparc_dispatch_instruction (sregs)
 		  }
 
 		div64 (sregs->y, rs1, operand2, rdd, 0);
-	        sregs->icnt = T_DIV;
+		sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case UDIVCC:
@@ -656,7 +656,7 @@ sparc_dispatch_instruction (sregs)
 		sregs->psr &= ~(PSR_C | PSR_V);
 
 		*rdd = result;
-	        sregs->icnt = T_DIV;
+		sregs->icnt = T_DIV;
 	      }
 	      break;
 	    case IXNOR:
@@ -1402,7 +1402,8 @@ sparc_dispatch_instruction (sregs)
 #ifdef HOST_LITTLE_ENDIAN
 	  rd ^= 1;
 #endif
-	  mexc = ms->memory_write (address, &sregs->fsi[rd], 2, &ws);
+	  mexc =
+	    ms->memory_write (address, (uint32 *) & sregs->fsi[rd], 2, &ws);
 	  sregs->hold += ws;
 	  if (mexc)
 	    {
@@ -1527,14 +1528,14 @@ sparc_dispatch_instruction (sregs)
 	}
 #endif
 #ifdef ENABLE_L1CACHE
-      if (ncpu > 1) 
+      if (ncpu > 1)
 	{
-	  l1data_update(address, sregs->cpu);
-          if (op3 & 4)
-            {
-	      l1data_snoop(address, sregs->cpu);
-            }
-        }
+	  l1data_update (address, sregs->cpu);
+	  if (op3 & 4)
+	    {
+	      l1data_snoop (address, sregs->cpu);
+	    }
+	}
 #endif
       break;
 
@@ -1968,11 +1969,11 @@ sparc_disp_regs (struct pstate *sregs, int cwp)
 static void
 sparc_display_registers (struct pstate *sregs)
 {
-  sparc_disp_regs(sregs, sregs->psr);
+  sparc_disp_regs (sregs, sregs->psr);
 }
 
 static void
-sparc_display_ctrl ( struct pstate *sregs)
+sparc_display_ctrl (struct pstate *sregs)
 {
 
   uint32 i;
@@ -2224,9 +2225,9 @@ static void
 sparc_set_register (struct pstate *sregs, char *reg, uint32 rval, uint32 addr)
 {
   if (reg == NULL)
-    sparc_set_regi(sregs, addr, rval);
+    sparc_set_regi (sregs, addr, rval);
   else
-    sparc_set_rega(sregs, reg, rval);
+    sparc_set_rega (sregs, reg, rval);
 }
 
 static void
@@ -2603,11 +2604,13 @@ regres (char *st, struct insn_type insn, int hex)
 
 static char brtbl[16][4] =
   { "n", "e", "le", "l", "lue", "cs", "neg", "vs", "a", "ne", "g", "ge", "gu",
-"cc", "pos", "vc" };
+  "cc", "pos", "vc"
+};
 
 static char fbrtbl[16][4] =
   { "n", "ne", "lg", "ul", "l", "ug", "g", "u", "a", "e", "ue", "ge", "uge",
-"le", "ule", "o" };
+  "le", "ule", "o"
+};
 
 char *
 branchop (int insn)
