@@ -81,7 +81,7 @@ sim_create_inferior()
 }
 
 int
-sim_write (uint32 mem, const unsigned char *buf, int length)
+sim_write (uint32 mem, const char *buf, int length)
 {
     int i, len;
 
@@ -92,7 +92,7 @@ sim_write (uint32 mem, const unsigned char *buf, int length)
 }
 
 int
-sim_read (uint32 mem, unsigned char *buf, int length)
+sim_read (uint32 mem, char *buf, int length)
 {
     int i, len;
 

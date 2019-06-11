@@ -61,8 +61,8 @@ int		port = 1234;
 int		sim_run = 0;
 
 /* RAM and ROM for all systems */
-unsigned char romb[ROM_SIZE];
-unsigned char ramb[RAM_SIZE];
+char romb[ROM_SIZE];
+char ramb[RAM_SIZE];
 const struct memsys *ms = &erc32sys;
 int		cputype = 0;		/* 0 = erc32, 2 = leon2,3 = leon3, 5 = riscv */
 int             sis_gdb_break;
@@ -146,8 +146,8 @@ int
 exec_cmd(const char *cmd)
 {
     char           *cmd1, *cmd2;
-    int32           stat;
-    uint32          len, i, clen, j;
+    int32           stat, i;
+    uint32          len, clen, j;
     char           *cmdsave, *cmdsave2 = NULL;
 
     stat = OK;
@@ -691,7 +691,7 @@ init_signals()
 
 void print_insn_sis(uint32 addr)
 {
-    unsigned char           i[4];
+    char           i[4];
 
     ms->sis_memory_read (addr, i, 4);
     arch->disas(addr );
@@ -705,7 +705,7 @@ disp_mem(addr, len)
 
     uint32          i;
     union {
-	    unsigned char u8[4];
+	    char u8[4];
 	    uint32 u32;
     } data;
     uint32          mem[4], j;
@@ -890,10 +890,7 @@ check_bpt(sregs)
 }
 
 int
-check_wpr(sregs, address, mask)
-    struct pstate  *sregs;
-    int32          address;
-    unsigned char  mask;
+check_wpr( struct pstate *sregs, int32 address, unsigned char mask)
 {
     int32           i, msk;
 
@@ -909,10 +906,7 @@ check_wpr(sregs, address, mask)
 }
 
 int
-check_wpw(sregs, address, mask)
-    struct pstate  *sregs;
-    int32          address;
-    unsigned char  mask;
+check_wpw( struct pstate *sregs, int32 address, unsigned char mask)
 {
     int32           i, msk;
 
@@ -1062,7 +1056,7 @@ sim_timeout(int32 arg)
 
 /* simulate one core time-wise */
 
-static int
+static void
 run_sim_core(sregs, ntime, deb, dis)
     struct pstate  *sregs;
     uint64 ntime;

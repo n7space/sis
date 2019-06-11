@@ -167,8 +167,8 @@ static void gpt_init (void);
 static void gpt_reset (void);
 static void gpt_scaler_set (uint32 val);
 static void timer_ctrl (uint32 val, int i);
-static unsigned char *get_mem_ptr (uint32 addr, uint32 size);
-static void store_bytes (unsigned char *mem, uint32 waddr,
+static char *get_mem_ptr (uint32 addr, uint32 size);
+static void store_bytes (char *mem, uint32 waddr,
 			 uint32 * data, int sz, int32 * ws);
 static void gpt_add_intr (int i);
 
@@ -620,7 +620,7 @@ port_init (void)
 {
   f1in = stdin;
   f1out = stdout;
-  if (uart_dev1[0] != 0)
+  if (uart_dev1[0] != 0) {
     if ((fd1 = open (uart_dev1, O_RDWR | O_NONBLOCK)) < 0)
       {
 	printf ("Warning, couldn't open output device %s\n", uart_dev1);
@@ -633,6 +633,7 @@ port_init (void)
 	setbuf (f1out, NULL);
 	f1open = 1;
       }
+  }
   if (f1in)
     ifd1 = fileno (f1in);
   if (ifd1 == 0)
@@ -942,7 +943,7 @@ static void
 gpt_scaler_set (uint32 val)
 {
   /* Mask for 16-bit scaler. */
-  if (gpt_scaler != val & 0x0ffff)
+  if (gpt_scaler != (val & 0x0ffff))
     {
       gpt_scaler = val & 0x0ffff;
       remove_event (gpt_intr, -1);
@@ -975,7 +976,7 @@ timer_ctrl (uint32 val, int i)
    2 (one word), or 3 (two words); WS should return the number of wait-states. */
 
 static void
-store_bytes (unsigned char *mem, uint32 waddr, uint32 * data, int32 sz,
+store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz,
 	     int32 * ws)
 {
   if (sz == 2)
@@ -1112,7 +1113,7 @@ memory_write (uint32 addr, uint32 * data, int32 sz, int32 * ws)
   return 1;
 }
 
-static unsigned char *
+static char *
 get_mem_ptr (uint32 addr, uint32 size)
 {
   if ((addr + size) < ROM_END)
@@ -1128,7 +1129,7 @@ get_mem_ptr (uint32 addr, uint32 size)
 }
 
 static int
-sis_memory_write (uint32 addr, const unsigned char *data, uint32 length)
+sis_memory_write (uint32 addr, const char *data, uint32 length)
 {
   char *mem;
   int32 ws;
