@@ -159,7 +159,7 @@ riscv_dispatch_instruction (sregs)
 	{
 	case 0:
 	  address =
-	    (int32) sregs->g[rs1p] + (int32) EXTRACT_RVC_LW_IMM (sregs->inst);
+	    (int32) sregs->r[rs1p] + (int32) EXTRACT_RVC_LW_IMM (sregs->inst);
 	  switch (funct3)
 	    {
 	    case CADDI4SPN:	/* addi rd', x2, nzuimm[9:2] */
@@ -168,8 +168,8 @@ riscv_dispatch_instruction (sregs)
 		  sregs->trap = TRAP_ILLEG;
 		  break;
 		}
-	      sregs->g[rs2p] =
-		(int32) sregs->g[2] +
+	      sregs->r[rs2p] =
+		(int32) sregs->r[2] +
 		(int32) EXTRACT_RVC_ADDI4SPN_IMM (sregs->inst);
 	      break;
 	    case CLW:		/* lw rd', offset[6:2](rs1') */
@@ -188,7 +188,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rs2p] = op1;
+		  sregs->r[rs2p] = op1;
 		}
 	      break;
 	    case CSW:		/* sw rs2', offset[6:2](rs1') */
@@ -198,7 +198,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_write (address, &sregs->g[rs2p], 2, &ws);
+	      mexc = ms->memory_write (address, &sregs->r[rs2p], 2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -230,7 +230,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 #ifdef FPU_D_ENABLED
 	    case CFLD:		/* ld frd', offset[7:3](rs1') */
-	      address = (int32) sregs->g[rs1p] +
+	      address = (int32) sregs->r[rs1p] +
 		(int32) EXTRACT_RVC_LD_IMM (sregs->inst);
 	      if (address & LDDM)
 		{
@@ -272,7 +272,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 #ifdef FPU_D_ENABLED
 	    case CFSD:		/* sd frs2', offset[7:3](rs1') */
-	      address = (int32) sregs->g[rs1p] +
+	      address = (int32) sregs->r[rs1p] +
 		(int32) EXTRACT_RVC_LD_IMM (sregs->inst);
 	      if (address & LDDM)
 		{
@@ -298,12 +298,12 @@ riscv_dispatch_instruction (sregs)
 	  switch (funct3)
 	    {
 	    case CADDI:	/* addi rd, rd, nzimm[5:0] */
-	      sop1 = sregs->g[rs1];
+	      sop1 = sregs->r[rs1];
 	      sop2 = EXTRACT_RVC_IMM (sregs->inst);
-	      sregs->g[rs1] = sop1 + sop2;
+	      sregs->r[rs1] = sop1 + sop2;
 	      break;
 	    case CLI:		/* addi rd, x0, imm[5:0] */
-	      sregs->g[rs1] = EXTRACT_RVC_IMM (sregs->inst);
+	      sregs->r[rs1] = EXTRACT_RVC_IMM (sregs->inst);
 	      break;
 	    case CJAL:		/* jal x1, offset[11:1] */
 	    case CJNL:		/* jal x0, offset[11:1] */
@@ -312,7 +312,7 @@ riscv_dispatch_instruction (sregs)
 #endif
 	      offset = EXTRACT_RVC_J_IMM (sregs->inst);
 	      if (funct3 == CJAL)
-		sregs->g[1] = npc;
+		sregs->r[1] = npc;
 	      npc = sregs->pc + offset;
 	      npc &= ~1;
 	      if (!npc)
@@ -323,13 +323,13 @@ riscv_dispatch_instruction (sregs)
 	    case CADDI16SP:	/* addi x2, x2, nzimm[9:4] */
 	      if (rs1 == 2)
 		{
-		  sop1 = sregs->g[rs1];
+		  sop1 = sregs->r[rs1];
 		  sop2 = EXTRACT_RVC_ADDI16SP_IMM (sregs->inst);
-		  sregs->g[rs1] = sop1 + sop2;
+		  sregs->r[rs1] = sop1 + sop2;
 		}
 	      else
 		{		/* CLUI:  lui rd, nzuimm[17:12 */
-		  sregs->g[rs1] = EXTRACT_RVC_LUI_IMM (sregs->inst);
+		  sregs->r[rs1] = EXTRACT_RVC_LUI_IMM (sregs->inst);
 		}
 	      break;
 	    case CARITH:
@@ -337,31 +337,31 @@ riscv_dispatch_instruction (sregs)
 	      switch ((sregs->inst >> 10) & 7)
 		{
 		case 0:	/* srli rd', rd', shamt[5:0] */
-		  op1 = sregs->g[rs1p];
-		  sregs->g[rs1p] = op1 >> sop2;	/* SRL */
+		  op1 = sregs->r[rs1p];
+		  sregs->r[rs1p] = op1 >> sop2;	/* SRL */
 		  break;
 		case 1:	/* srai rd', rd', shamt[5:0] */
-		  sop1 = sregs->g[rs1p];
-		  sregs->g[rs1p] = sop1 >> sop2;	/* SRA */
+		  sop1 = sregs->r[rs1p];
+		  sregs->r[rs1p] = sop1 >> sop2;	/* SRA */
 		  break;
 		case 2:
 		case 6:	/* andi rd', rd', imm[5:0] */
-		  sregs->g[rs1p] &= sop2;	/* ANDI */
+		  sregs->r[rs1p] &= sop2;	/* ANDI */
 		  break;
 		case 3:
 		  switch ((sregs->inst >> 5) & 3)
 		    {
 		    case 0:	/* sub rd', rd', rs2' */
-		      sregs->g[rs1p] -= sregs->g[rs2p];	/* SUB */
+		      sregs->r[rs1p] -= sregs->r[rs2p];	/* SUB */
 		      break;
 		    case 1:	/* xor rd', rd', rs2' */
-		      sregs->g[rs1p] ^= sregs->g[rs2p];	/* XOR */
+		      sregs->r[rs1p] ^= sregs->r[rs2p];	/* XOR */
 		      break;
 		    case 2:	/* or rd', rd', rs2' */
-		      sregs->g[rs1p] |= sregs->g[rs2p];	/* OR */
+		      sregs->r[rs1p] |= sregs->r[rs2p];	/* OR */
 		      break;
 		    case 3:	/* and rd', rd', rs2' */
-		      sregs->g[rs1p] &= sregs->g[rs2p];	/* AND */
+		      sregs->r[rs1p] &= sregs->r[rs2p];	/* AND */
 		      break;
 		    }
 		  break;
@@ -371,7 +371,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 	    case CBEQZ:	/* beq rs1', x0, offset[8:1] */
 	      offset = EXTRACT_RVC_B_IMM (sregs->inst);
-	      if (!sregs->g[rs1p])
+	      if (!sregs->r[rs1p])
 		{
 		  npc = sregs->pc + offset;
 		  if (offset >= 0)
@@ -393,7 +393,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 	    case CBNEZ:	/* bne rs1', x0, offset[8:1] */
 	      offset = EXTRACT_RVC_B_IMM (sregs->inst);
-	      if (sregs->g[rs1p])
+	      if (sregs->r[rs1p])
 		{
 		  npc = sregs->pc + offset;
 		  if (offset >= 0)
@@ -422,10 +422,10 @@ riscv_dispatch_instruction (sregs)
 	    {
 	    case 0:		/* slli rd', rd', shamt[5:0] */
 	      sop2 = EXTRACT_RVC_IMM (sregs->inst);
-	      sregs->g[rs1] <<= sop2;	/* SLL */
+	      sregs->r[rs1] <<= sop2;	/* SLL */
 	      break;
 	    case 2:		/* LWSP: lw rd, offset[7:2](x2) */
-	      address = sregs->g[2] + EXTRACT_RVC_LWSP_IMM (sregs->inst);
+	      address = sregs->r[2] + EXTRACT_RVC_LWSP_IMM (sregs->inst);
 	      if (address & 0x3)
 		{
 		  sregs->trap = TRAP_LMALI;
@@ -441,12 +441,12 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rs1] = op1;
+		  sregs->r[rs1] = op1;
 		}
 	      break;
 #ifdef FPU_D_ENABLED
 	    case 1:		/* FLDSP: ld frd, offset[8:3](x2) */
-	      address = sregs->g[2] + EXTRACT_RVC_LDSP_IMM (sregs->inst);
+	      address = sregs->r[2] + EXTRACT_RVC_LDSP_IMM (sregs->inst);
 	      if (address & LDDM)
 		{
 		  sregs->trap = TRAP_LMALI;
@@ -471,7 +471,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 #endif
 	    case 3:		/* FLWSP: lw frd, offset[7:2](x2) */
-	      address = sregs->g[2] + EXTRACT_RVC_LWSP_IMM (sregs->inst);
+	      address = sregs->r[2] + EXTRACT_RVC_LWSP_IMM (sregs->inst);
 	      if (address & 0x3)
 		{
 		  sregs->trap = TRAP_LMALI;
@@ -497,16 +497,16 @@ riscv_dispatch_instruction (sregs)
 		    {
 		      if (rs2)
 			{	/* add rd, rd, rs2 */
-			  sregs->g[rs1] =
-			    (int32) sregs->g[rs1] + (int32) sregs->g[rs2];
+			  sregs->r[rs1] =
+			    (int32) sregs->r[rs1] + (int32) sregs->r[rs2];
 			}
 		      else
 			{	/* jalr x1, rs1, 0 */
 #ifdef STAT
 			  sregs->nbranch++;
 #endif
-			  sregs->g[1] = npc;
-			  npc = sregs->g[rs1];
+			  sregs->r[1] = npc;
+			  npc = sregs->r[rs1];
 			  npc &= ~1;
 			  if (ebase.coven)
 			    cov_jmp (sregs->pc, npc);
@@ -527,11 +527,11 @@ riscv_dispatch_instruction (sregs)
 		{
 		  if (rs2)
 		    {		/* MV */
-		      sregs->g[rs1] = sregs->g[rs2];
+		      sregs->r[rs1] = sregs->r[rs2];
 		    }
 		  else
 		    {		/* jalr x0, rs1, 0 */
-		      npc = sregs->g[rs1];
+		      npc = sregs->r[rs1];
 		      npc &= ~1;
 		      if (ebase.coven)
 			cov_jmp (sregs->pc, npc);
@@ -539,14 +539,14 @@ riscv_dispatch_instruction (sregs)
 		}
 	      break;
 	    case 6:		/* SWSP: sw rs2, offset[7:2](x2) */
-	      address = sregs->g[2] + EXTRACT_RVC_SWSP_IMM (sregs->inst);
+	      address = sregs->r[2] + EXTRACT_RVC_SWSP_IMM (sregs->inst);
 	      if (address & 0x3)
 		{
 		  sregs->trap = TRAP_SMALI;
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_write (address, &sregs->g[rs2], 2, &ws);
+	      mexc = ms->memory_write (address, &sregs->r[rs2], 2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -556,7 +556,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 #ifdef FPU_D_ENABLED
 	    case 5:		/* FSDSP: sw frs2, offset[8:3](x2) */
-	      address = sregs->g[2] + EXTRACT_RVC_SDSP_IMM (sregs->inst);
+	      address = sregs->r[2] + EXTRACT_RVC_SDSP_IMM (sregs->inst);
 	      if (address & LDDM)
 		{
 		  sregs->trap = TRAP_SMALI;
@@ -574,7 +574,7 @@ riscv_dispatch_instruction (sregs)
 	      break;
 #endif
 	    case 7:		/* FSWSP: sw frs2, offset[7:2](x2) */
-	      address = sregs->g[2] + EXTRACT_RVC_SWSP_IMM (sregs->inst);
+	      address = sregs->r[2] + EXTRACT_RVC_SWSP_IMM (sregs->inst);
 	      if (address & 0x3)
 		{
 		  sregs->trap = TRAP_SMALI;
@@ -611,14 +611,14 @@ riscv_dispatch_instruction (sregs)
       rs2 = (sregs->inst >> 20) & 0x1f;
       npc = sregs->pc + 4;
 
-      op1 = sregs->g[rs1];
-      op2 = sregs->g[rs2];
+      op1 = sregs->r[rs1];
+      op2 = sregs->r[rs2];
 
       switch (op)
 	{
 	case OP_LUI:
 	  sop1 = sregs->inst;
-	  sregs->g[rd] = ((sop1 >> 12) << 12);
+	  sregs->r[rd] = ((sop1 >> 12) << 12);
 	  break;
 	case OP_BRANCH:
 #ifdef STAT
@@ -682,7 +682,7 @@ riscv_dispatch_instruction (sregs)
 	  sregs->nbranch++;
 #endif
 	  offset = EXTRACT_UJTYPE_IMM (sregs->inst);
-	  sregs->g[rd] = npc;
+	  sregs->r[rd] = npc;
 	  npc = sregs->pc + offset;
 	  npc &= ~1;
 	  if (!npc)
@@ -696,7 +696,7 @@ riscv_dispatch_instruction (sregs)
 	  sregs->nbranch++;
 #endif
 	  offset = EXTRACT_ITYPE_IMM (sregs->inst);
-	  sregs->g[rd] = npc;
+	  sregs->r[rd] = npc;
 	  npc = op1 + offset;
 	  npc &= ~1;
 	  if (!npc)
@@ -709,50 +709,50 @@ riscv_dispatch_instruction (sregs)
 	case OP_AUIPC:		/* AUIPC */
 	  sop1 = sregs->inst;
 	  sop1 = ((sop1 >> 12) << 12);
-	  sregs->g[rd] = sregs->pc + sop1;
+	  sregs->r[rd] = sregs->pc + sop1;
 	  break;
 	case OP_IMM:		/* IMM */
 	  sop2 = EXTRACT_ITYPE_IMM (sregs->inst);
 	  switch (funct3)
 	    {
 	    case IXOR:
-	      sregs->g[rd] = op1 ^ sop2;
+	      sregs->r[rd] = op1 ^ sop2;
 	      break;
 	    case IOR:
-	      sregs->g[rd] = op1 | sop2;
+	      sregs->r[rd] = op1 | sop2;
 	      break;
 	    case IAND:
-	      sregs->g[rd] = op1 & sop2;
+	      sregs->r[rd] = op1 & sop2;
 	      break;
 	    case ADD:
 	      sop1 = op1;
-	      sregs->g[rd] = sop1 + sop2;
+	      sregs->r[rd] = sop1 + sop2;
 	      break;
 	    case SLL:
-	      sregs->g[rd] = op1 << (rs2);
+	      sregs->r[rd] = op1 << (rs2);
 	      break;
 	    case SRL:
 	      if ((sregs->inst >> 30) & 1)
 		{
 		  sop1 = op1;
-		  sregs->g[rd] = sop1 >> rs2;	/* SRA */
+		  sregs->r[rd] = sop1 >> rs2;	/* SRA */
 		}
 	      else
-		sregs->g[rd] = op1 >> rs2;	/* SRL */
+		sregs->r[rd] = op1 >> rs2;	/* SRL */
 	      break;
 	    case SLT:
 	      sop1 = op1;
 	      if (sop1 < sop2)
-		sregs->g[rd] = 1;
+		sregs->r[rd] = 1;
 	      else
-		sregs->g[rd] = 0;
+		sregs->r[rd] = 0;
 	      break;
 	    case SLTU:
 	      op2 = sop2;
 	      if (op1 < op2)
-		sregs->g[rd] = 1;
+		sregs->r[rd] = 1;
 	      else
-		sregs->g[rd] = 0;
+		sregs->r[rd] = 0;
 	      break;
 	    default:
 	      sregs->trap = TRAP_ILLEG;
@@ -765,47 +765,47 @@ riscv_dispatch_instruction (sregs)
 	      switch (funct3)
 		{
 		case IXOR:
-		  sregs->g[rd] = op1 ^ op2;
+		  sregs->r[rd] = op1 ^ op2;
 		  break;
 		case IOR:
-		  sregs->g[rd] = op1 | op2;
+		  sregs->r[rd] = op1 | op2;
 		  break;
 		case IAND:
-		  sregs->g[rd] = op1 & op2;
+		  sregs->r[rd] = op1 & op2;
 		  break;
 		case ADD:
 		  sop1 = op1;
 		  sop2 = op2;
 		  if ((sregs->inst >> 30) & 1)
-		    sregs->g[rd] = op1 - op2;
+		    sregs->r[rd] = op1 - op2;
 		  else
-		    sregs->g[rd] = op1 + op2;
+		    sregs->r[rd] = op1 + op2;
 		  break;
 		case SLL:
-		  sregs->g[rd] = op1 << (op2 & 0x1f);
+		  sregs->r[rd] = op1 << (op2 & 0x1f);
 		  break;
 		case SRL:
 		  if ((sregs->inst >> 30) & 1)
 		    {
 		      sop1 = op1;
-		      sregs->g[rd] = sop1 >> (op2 & 0x1f);	/* SRA */
+		      sregs->r[rd] = sop1 >> (op2 & 0x1f);	/* SRA */
 		    }
 		  else
-		    sregs->g[rd] = op1 >> (op2 & 0x1f);	/* SRL */
+		    sregs->r[rd] = op1 >> (op2 & 0x1f);	/* SRL */
 		  break;
 		case SLT:
 		  sop1 = op1;
 		  sop2 = op2;
 		  if (sop1 < sop2)
-		    sregs->g[rd] = 1;
+		    sregs->r[rd] = 1;
 		  else
-		    sregs->g[rd] = 0;
+		    sregs->r[rd] = 0;
 		  break;
 		case SLTU:
 		  if (op1 < op2)
-		    sregs->g[rd] = 1;
+		    sregs->r[rd] = 1;
 		  else
-		    sregs->g[rd] = 0;
+		    sregs->r[rd] = 0;
 		  break;
 		default:
 		  sregs->trap = TRAP_ILLEG;
@@ -818,44 +818,44 @@ riscv_dispatch_instruction (sregs)
 		  sop1 = op1;
 		  sop2 = op2;
 		  sop2 = op1 * op2;
-		  sregs->g[rd] = sop2;
+		  sregs->r[rd] = sop2;
 		  sregs->icnt = T_MUL;
 		  break;
 		case 1:	/* MULH */
 		  sop64a = (int64) op1 *(int64) op2;
-		  sregs->g[rd] = (sop64a >> 32) & 0xffffffff;
+		  sregs->r[rd] = (sop64a >> 32) & 0xffffffff;
 		  sregs->icnt = T_MUL;
 		  break;
 		case 2:	/* MULHSU */
 		  sop64a = (int64) op1 *(uint64) op2;
-		  sregs->g[rd] = (sop64a >> 32) & 0xffffffff;
+		  sregs->r[rd] = (sop64a >> 32) & 0xffffffff;
 		  sregs->icnt = T_MUL;
 		  break;
 		case 3:	/* MULHU */
 		  op64a = (uint64) op1 *(uint64) op2;
-		  sregs->g[rd] = (op64a >> 32) & 0xffffffff;
+		  sregs->r[rd] = (op64a >> 32) & 0xffffffff;
 		  sregs->icnt = T_MUL;
 		  break;
 		case 4:	/* DIV */
 		  sop1 = op1;
 		  sop2 = op2;
 		  result = sop1 / sop2;
-		  sregs->g[rd] = result;
+		  sregs->r[rd] = result;
 		  sregs->icnt = T_DIV;
 		  break;
 		case 5:	/* DIVU */
-		  sregs->g[rd] = op1 / op2;
+		  sregs->r[rd] = op1 / op2;
 		  sregs->icnt = T_DIV;
 		  break;
 		case 6:	/* REM */
 		  sop1 = op1;
 		  sop2 = op2;
 		  sop1 = sop1 % sop2;
-		  sregs->g[rd] = sop1;
+		  sregs->r[rd] = sop1;
 		  sregs->icnt = T_DIV;
 		  break;
 		case 7:	/* REMU */
-		  sregs->g[rd] = op1 % op2;
+		  sregs->r[rd] = op1 % op2;
 		  sregs->icnt = T_DIV;
 		  break;
 		}
@@ -871,7 +871,7 @@ riscv_dispatch_instruction (sregs)
 #endif
 	  offset = EXTRACT_STYPE_IMM (sregs->inst);
 	  address = op1 + offset;
-	  wdata = &(sregs->g[rs2]);
+	  wdata = &(sregs->r[rs2]);
 
 	  if (ebase.wpwnum)
 	    {
@@ -1031,7 +1031,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rd] = op1;
+		  sregs->r[rd] = op1;
 		}
 	      break;
 	    case LB:
@@ -1049,7 +1049,7 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      data = (data << 24) >> 24;
-	      sregs->g[rd] = data;
+	      sregs->r[rd] = data;
 	      break;
 	    case LBU:
 	      mexc = ms->memory_read (address, &op1, &ws);
@@ -1060,7 +1060,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      sregs->g[rd] = op1 & 0x0ff;
+	      sregs->r[rd] = op1 & 0x0ff;
 	      break;
 	    case LH:
 	      if (address & 0x1)
@@ -1078,7 +1078,7 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      data = (data << 16) >> 16;
-	      sregs->g[rd] = data;
+	      sregs->r[rd] = data;
 	      break;
 	    case LHU:
 	      if (address & 0x1)
@@ -1096,7 +1096,7 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      op1 &= 0x0ffff;
-	      sregs->g[rd] = op1;
+	      sregs->r[rd] = op1;
 	      break;
 
 	    default:
@@ -1135,7 +1135,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rd] = op1;
+		  sregs->r[rd] = op1;
 		  sregs->lrqa = address;
 		  sregs->lrq = 1;
 #ifdef DEBUG
@@ -1163,7 +1163,7 @@ riscv_dispatch_instruction (sregs)
 		    }
 		  else
 		    {
-		      sregs->g[rd] = 0;
+		      sregs->r[rd] = 0;
 #ifdef DEBUG
 		      if (sis_verbose)
 			printf (" %8" PRIu64
@@ -1174,7 +1174,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->g[rd] = 1;
+		  sregs->r[rd] = 1;
 #ifdef DEBUG
 		  if (sis_verbose)
 		    printf (" %8" PRIu64
@@ -1244,7 +1244,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      sregs->g[rd] = data;
+	      sregs->r[rd] = data;
 	    }
 	  break;
 	case OP_SYS:
@@ -1286,21 +1286,21 @@ riscv_dispatch_instruction (sregs)
 	      if (set_csr (address, sregs, op1))
 		sregs->trap = TRAP_ILLEG;
 	      else
-		sregs->g[rd] = op2;
+		sregs->r[rd] = op2;
 	      break;
 	    case CSRRS:
 	      op2 = get_csr (address, sregs);
 	      if ((rs1) && set_csr (address, sregs, op1 | op2))
 		sregs->trap = TRAP_ILLEG;
 	      if (!sregs->trap)
-		sregs->g[rd] = op2;
+		sregs->r[rd] = op2;
 	      break;
 	    case CSRRC:
 	      op2 = get_csr (address, sregs);
 	      if ((rs1) && set_csr (address, sregs, ~op1 & op2))
 		sregs->trap = TRAP_ILLEG;
 	      if (!sregs->trap)
-		sregs->g[rd] = op2;
+		sregs->r[rd] = op2;
 	      break;
 	    case CSRRWI:
 	      op2 = get_csr (address, sregs);
@@ -1308,7 +1308,7 @@ riscv_dispatch_instruction (sregs)
 	      if (set_csr (address, sregs, op1))
 		sregs->trap = TRAP_ILLEG;
 	      else
-		sregs->g[rd] = op2;
+		sregs->r[rd] = op2;
 	      break;
 	    case CSRRSI:
 	      op2 = get_csr (address, sregs);
@@ -1316,7 +1316,7 @@ riscv_dispatch_instruction (sregs)
 	      if ((rs1) && set_csr (address, sregs, op1 | op2))
 		sregs->trap = TRAP_ILLEG;
 	      if (!sregs->trap)
-		sregs->g[rd] = op2;
+		sregs->r[rd] = op2;
 	      break;
 	    case CSRRCI:
 	      op2 = get_csr (address, sregs);
@@ -1324,7 +1324,7 @@ riscv_dispatch_instruction (sregs)
 	      if ((rs1) && set_csr (address, sregs, ~op1 & op2))
 		sregs->trap = TRAP_ILLEG;
 	      if (!sregs->trap)
-		sregs->g[rd] = op2;
+		sregs->r[rd] = op2;
 	      break;
 	    default:
 	      sregs->trap = TRAP_ILLEG;
@@ -1492,21 +1492,21 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FLES */
 		      if ((sregs->fs[frs1] == sregs->fs[frs2]) ||
 			  (sregs->fs[frs1] < sregs->fs[frs2]))
-			sregs->g[rd] = 1;
+			sregs->r[rd] = 1;
 		      else
-			sregs->g[rd] = 0;
+			sregs->r[rd] = 0;
 		      break;
 		    case 1:	/* FLTS */
 		      if (sregs->fs[frs1] < sregs->fs[frs2])
-			sregs->g[rd] = 1;
+			sregs->r[rd] = 1;
 		      else
-			sregs->g[rd] = 0;
+			sregs->r[rd] = 0;
 		      break;
 		    case 2:	/* FEQS */
 		      if (sregs->fs[frs1] == sregs->fs[frs2])
-			sregs->g[rd] = 1;
+			sregs->r[rd] = 1;
 		      else
-			sregs->g[rd] = 0;
+			sregs->r[rd] = 0;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1516,10 +1516,10 @@ riscv_dispatch_instruction (sregs)
 		  switch (rs2)
 		    {
 		    case 0:	/* FCVTWS */
-		      sregs->g[rd] = (int32) sregs->fs[frs1];
+		      sregs->r[rd] = (int32) sregs->fs[frs1];
 		      break;
 		    case 1:	/* FCVTWUS */
-		      sregs->g[rd] = (uint32) sregs->fs[frs1];
+		      sregs->r[rd] = (uint32) sregs->fs[frs1];
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1529,12 +1529,12 @@ riscv_dispatch_instruction (sregs)
 		  switch (rs2)
 		    {
 		    case 0:	/* FCVTSW */
-		      sop1 = sregs->g[rs1];
+		      sop1 = sregs->r[rs1];
 		      sregs->fs[frd] = (float32) sop1;
 		      sregs->fsi[frd + 1] = -1;
 		      break;
 		    case 1:	/* FCVTSWU */
-		      op1 = sregs->g[rs1];
+		      op1 = sregs->r[rs1];
 		      sregs->fs[frd] = (float32) op1;
 		      sregs->fsi[frd + 1] = -1;
 		      break;
@@ -1546,7 +1546,7 @@ riscv_dispatch_instruction (sregs)
 		  switch (funct3)
 		    {
 		    case 0:	/* FMVXS */
-		      sregs->g[rd] = sregs->fsi[frs1];
+		      sregs->r[rd] = sregs->fsi[frs1];
 		      break;
 		    case 1:	/* FCLASS */
 		      op1 = fpclassify (sregs->fs[frs1]);
@@ -1580,14 +1580,14 @@ riscv_dispatch_instruction (sregs)
 			    op1 = (1 << 6);
 			  break;
 			}
-		      sregs->g[rd] = op1;
+		      sregs->r[rd] = op1;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
 		    }
 		  break;
 		case 0x1e:	/* FMVSX */
-		  sregs->fsi[frd] = sregs->g[rs1];
+		  sregs->fsi[frd] = sregs->r[rs1];
 		  sregs->fsi[frd + 1] = -1;
 		  break;
 		default:
@@ -1676,21 +1676,21 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FLED */
 		      if ((sregs->fd[rs1] == sregs->fd[rs2]) ||
 			  (sregs->fd[rs1] < sregs->fd[rs2]))
-			sregs->g[rd] = 1;
+			sregs->r[rd] = 1;
 		      else
-			sregs->g[rd] = 0;
+			sregs->r[rd] = 0;
 		      break;
 		    case 1:	/* FLTD */
 		      if (sregs->fd[rs1] < sregs->fd[rs2])
-			sregs->g[rd] = 1;
+			sregs->r[rd] = 1;
 		      else
-			sregs->g[rd] = 0;
+			sregs->r[rd] = 0;
 		      break;
 		    case 2:	/* FEQD */
 		      if (sregs->fd[rs1] == sregs->fd[rs2])
-			sregs->g[rd] = 1;
+			sregs->r[rd] = 1;
 		      else
-			sregs->g[rd] = 0;
+			sregs->r[rd] = 0;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1700,10 +1700,10 @@ riscv_dispatch_instruction (sregs)
 		  switch (rs2)
 		    {
 		    case 0:	/* FCVTWD */
-		      sregs->g[rd] = (int32) sregs->fd[rs1];
+		      sregs->r[rd] = (int32) sregs->fd[rs1];
 		      break;
 		    case 1:	/* FCVTWUD */
-		      sregs->g[rd] = (uint32) sregs->fd[rs1];
+		      sregs->r[rd] = (uint32) sregs->fd[rs1];
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1713,11 +1713,11 @@ riscv_dispatch_instruction (sregs)
 		  switch (rs2)
 		    {
 		    case 0:	/* FCVTDW */
-		      sop1 = sregs->g[rs1];
+		      sop1 = sregs->r[rs1];
 		      sregs->fd[rd] = (float64) sop1;
 		      break;
 		    case 1:	/* FCVTDWU */
-		      op1 = sregs->g[rs1];
+		      op1 = sregs->r[rs1];
 		      sregs->fd[rd] = (float64) op1;
 		      break;
 		    default:
@@ -1759,7 +1759,7 @@ riscv_dispatch_instruction (sregs)
 			    op1 = (1 << 6);
 			  break;
 			}
-		      sregs->g[rd] = op1;
+		      sregs->r[rd] = op1;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1884,7 +1884,7 @@ riscv_dispatch_instruction (sregs)
 	}
     }
 
-  sregs->g[0] = 0;
+  sregs->r[0] = 0;
   if (!sregs->trap)
     {
       sregs->pc = npc;
@@ -2011,7 +2011,7 @@ riscv_set_regi (sregs, reg, rval)
 
   if ((reg >= 0) && (reg < 32))
     {
-      sregs->g[reg] = rval;
+      sregs->r[reg] = rval;
     }
   else if (reg == 32)
     {
@@ -2035,7 +2035,7 @@ riscv_get_regi (struct pstate *sregs, int32 reg, char *buf, int length)
 
   if ((reg >= 0) && (reg < 32))
     {
-      rval = sregs->g[reg];
+      rval = sregs->r[reg];
     }
   else if (reg == 32)
     {
@@ -2095,19 +2095,19 @@ riscv_set_rega (struct pstate *sregs, char *reg, uint32 rval)
   else if (strcmp (reg, "g0") == 0)
     err = 2;
   else if (strcmp (reg, "x1") == 0)
-    sregs->g[1] = rval;
+    sregs->r[1] = rval;
   else if (strcmp (reg, "x2") == 0)
-    sregs->g[2] = rval;
+    sregs->r[2] = rval;
   else if (strcmp (reg, "x3") == 0)
-    sregs->g[3] = rval;
+    sregs->r[3] = rval;
   else if (strcmp (reg, "x4") == 0)
-    sregs->g[4] = rval;
+    sregs->r[4] = rval;
   else if (strcmp (reg, "x5") == 0)
-    sregs->g[5] = rval;
+    sregs->r[5] = rval;
   else if (strcmp (reg, "x6") == 0)
-    sregs->g[6] = rval;
+    sregs->r[6] = rval;
   else if (strcmp (reg, "x7") == 0)
-    sregs->g[7] = rval;
+    sregs->r[7] = rval;
   else
     err = 1;
   switch (err)
@@ -2144,21 +2144,21 @@ riscv_display_registers (struct pstate *sregs)
 
   printf ("\n        0 - 7        8 - 15        16 - 23       24 - 31\n");
   printf (" z0:  %08X  s0: %08X  a6: %08X  s8: %08X\n",
-	  sregs->g[0], sregs->g[8], sregs->g[16], sregs->g[24]);
+	  sregs->r[0], sregs->r[8], sregs->r[16], sregs->r[24]);
   printf (" ra:  %08X  s1: %08X  a7: %08X  s9: %08X\n",
-	  sregs->g[1], sregs->g[9], sregs->g[17], sregs->g[25]);
+	  sregs->r[1], sregs->r[9], sregs->r[17], sregs->r[25]);
   printf (" sp:  %08X  a0: %08X  s2: %08X s10: %08X\n",
-	  sregs->g[2], sregs->g[10], sregs->g[18], sregs->g[26]);
+	  sregs->r[2], sregs->r[10], sregs->r[18], sregs->r[26]);
   printf (" gp:  %08X  a1: %08X  s3: %08X s11: %08X\n",
-	  sregs->g[3], sregs->g[11], sregs->g[19], sregs->g[27]);
+	  sregs->r[3], sregs->r[11], sregs->r[19], sregs->r[27]);
   printf (" tp:  %08X  a2: %08X  s4: %08X  t3: %08X\n",
-	  sregs->g[4], sregs->g[12], sregs->g[20], sregs->g[28]);
+	  sregs->r[4], sregs->r[12], sregs->r[20], sregs->r[28]);
   printf (" t0:  %08X  a3: %08X  s5: %08X  t4: %08X\n",
-	  sregs->g[5], sregs->g[13], sregs->g[21], sregs->g[29]);
+	  sregs->r[5], sregs->r[13], sregs->r[21], sregs->r[29]);
   printf (" t1:  %08X  a4: %08X  s6: %08X  t5: %08X\n",
-	  sregs->g[6], sregs->g[14], sregs->g[22], sregs->g[30]);
+	  sregs->r[6], sregs->r[14], sregs->r[22], sregs->r[30]);
   printf (" t2:  %08X  a5: %08X  s7: %08X  t6: %08X\n",
-	  sregs->g[7], sregs->g[15], sregs->g[23], sregs->g[31]);
+	  sregs->r[7], sregs->r[15], sregs->r[23], sregs->r[31]);
 }
 
 

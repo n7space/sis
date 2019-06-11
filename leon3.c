@@ -1180,7 +1180,7 @@ boot_init (void)
     sregs[i].r[30] = RAM_END - (i * 0x20000);
     sregs[i].r[14] = sregs[i].r[30] - 96 * 4;
     sregs[i].cache_ctrl = 0x81000f;
-    sregs[i].g[2] = sregs[i].r[30];	/* sp on RISCV-V */
+    sregs[i].r[2] = sregs[i].r[30];	/* sp on RISCV-V */
   }
 }
 
