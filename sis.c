@@ -28,10 +28,14 @@
 #include <inttypes.h>
 #include <libgen.h>
 
-/* Structures and functions from readline library */
-
-#include "readline/readline.h"
-#include "readline/history.h"
+#if HAVE_READLINE
+ #include "readline/readline.h"
+ #include "readline/history.h"
+#else
+ /* Linenoise as a readline library replacement
+      https://github.com/antirez/linenoise */
+ #include "linenoise.h"
+#endif
 
 /* Command history buffer length - MUST be binary */
 #define HIST_LEN	256
@@ -251,7 +255,11 @@ main (argc, argv)
 #ifdef F_GETFL
   termsave = fcntl (0, F_GETFL, 0);
 #endif
+#if HAVE_READLINE
   using_history ();
+#else
+  linenoiseHistorySetMaxLen(HIST_LEN);
+#endif
   init_signals ();
   ebase.simtime = 0;
   ebase.simstart = 0;
@@ -287,12 +295,11 @@ main (argc, argv)
 
       if (cmdq[cmdi] != 0)
 	{
-#if 0
-	  remove_history (cmdq[cmdi]);
-#else
-	  remove_history (cmdi);
-#endif
+#if HAVE_READLINE
 	  free (cmdq[cmdi]);
+#else
+	  linenoiseFree (cmdq[cmdi]);
+#endif
 	  cmdq[cmdi] = 0;
 	}
       if (run)
@@ -306,9 +313,17 @@ main (argc, argv)
 	    sprintf (prompt, "cpu%d> ", cpu);
 	  else
 	    sprintf (prompt, "sis> ");
+#if HAVE_READLINE
 	  cmdq[cmdi] = readline (prompt);
+#else
+	  cmdq[cmdi] = linenoise (prompt);
+#endif
 	  if (cmdq[cmdi] && *cmdq[cmdi])
+#if HAVE_READLINE
 	    add_history (cmdq[cmdi]);
+#else
+	    linenoiseHistoryAdd (cmdq[cmdi]);
+#endif
 	  if (cmdq[cmdi])
 	    stat = exec_cmd (cmdq[cmdi]);
 	  else

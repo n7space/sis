@@ -72,10 +72,15 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(infodir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__sis_SOURCES_DIST = erc32.c float.c grlib.c leon3.c exec.c func.c \
+	help.c sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
+	linenoise.c
+@LINENOISE_TRUE@am__objects_1 = linenoise.$(OBJEXT)
 am_sis_OBJECTS = erc32.$(OBJEXT) float.$(OBJEXT) grlib.$(OBJEXT) \
 	leon3.$(OBJEXT) exec.$(OBJEXT) func.$(OBJEXT) help.$(OBJEXT) \
 	sparc.$(OBJEXT) riscv.$(OBJEXT) leon2.$(OBJEXT) sis.$(OBJEXT) \
-	interf.$(OBJEXT) remote.$(OBJEXT) elf.$(OBJEXT)
+	interf.$(OBJEXT) remote.$(OBJEXT) elf.$(OBJEXT) \
+	$(am__objects_1)
 sis_OBJECTS = $(am_sis_OBJECTS)
 sis_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -87,7 +92,7 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(sis_SOURCES)
-DIST_SOURCES = $(sis_SOURCES)
+DIST_SOURCES = $(am__sis_SOURCES_DIST)
 INFO_DEPS = $(srcdir)/sis.info
 TEXINFO_TEX = $(top_srcdir)/build-aux/texinfo.tex
 am__TEXINFO_TEX_DIR = $(top_srcdir)/build-aux
@@ -182,6 +187,7 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
+LINENOISE = @LINENOISE@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -241,11 +247,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+@LINENOISE_FALSE@LN_SRC = 
+@LINENOISE_TRUE@LN_SRC = linenoise.c
 sis_SOURCES = erc32.c float.c grlib.c leon3.c exec.c func.c help.c \
-	      sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c
+	      sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
+	      $(LN_SRC)
 
 AM_CFLAGS = -DFAST_UART
-sis_LDADD = -lm -lreadline
+sis_LDADD = -lm @READLINE@
 info_TEXINFOS = sis.texi
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -361,6 +370,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/leon2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/leon3.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linenoise.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/riscv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sis.Po@am__quote@
@@ -1005,7 +1015,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dvi-am uninstall-html-am \
 
 
 .PHONY: v
-v:	version.texi 
+v:	version.texi
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

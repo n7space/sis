@@ -623,6 +623,9 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+LINENOISE
+LINENOISE_FALSE
+LINENOISE_TRUE
 READLINE
 EGREP
 GREP
@@ -3978,9 +3981,6 @@ fi
 
 done
 
-ac_config_files="$ac_config_files Makefile"
-
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for readline in -lreadline" >&5
 $as_echo_n "checking for readline in -lreadline... " >&6; }
 if ${ac_cv_lib_readline_readline+:} false; then :
@@ -4018,11 +4018,24 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_readline_readline" >&5
 $as_echo "$ac_cv_lib_readline_readline" >&6; }
 if test "x$ac_cv_lib_readline_readline" = xyes; then :
-  READLINE=-lreadline
+
+$as_echo "#define HAVE_READLINE 1" >>confdefs.h
+ READLINE=-lreadline linenoise=false
 else
-  as_fn_error $? "the required \"readline\" library is missing" "$LINENO" 5
+  linenoise=true
 fi
 
+
+ if test x$linenoise = xtrue; then
+  LINENOISE_TRUE=
+  LINENOISE_FALSE='#'
+else
+  LINENOISE_TRUE='#'
+  LINENOISE_FALSE=
+fi
+
+
+ac_config_files="$ac_config_files Makefile"
 
 
 # Check whether --enable-l1cache was given.
@@ -4392,6 +4405,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${LINENOISE_TRUE}" && test -z "${LINENOISE_FALSE}"; then
+  as_fn_error $? "conditional \"LINENOISE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
@@ -5715,5 +5732,4 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
-
 
