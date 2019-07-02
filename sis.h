@@ -292,7 +292,7 @@ extern int check_wpw (struct pstate *sregs, int32 address,
 extern void reset_all (void);
 extern void sys_reset (void);
 extern void sys_halt (void);
-extern int elf_load (char *fname, int readsym);
+extern int elf_load (char *fname, int load);
 extern double get_time (void);
 extern int nouartrx;
 //extern                host_callback *sim_callback;

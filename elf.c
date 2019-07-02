@@ -112,7 +112,7 @@ read_elf_body ()
   FILE *fp = efile.fp;
 
   fseek (fp, ehdr.e_shoff + ((ehdr.e_shstrndx) * ehdr.e_shentsize), SEEK_SET);
-  if (fread (&ssh, sizeof (ssh), 1, fp) != 1)
+  if ((!fp) || (fread (&ssh, sizeof (ssh), 1, fp) != 1))
     {
       return (-1);
     }
@@ -217,26 +217,23 @@ read_elf_body ()
 }
 
 int
-elf_load (char *fname, int readsym)
+elf_load (char *fname, int load)
 {
   FILE *fp;
   int res;
 
-  if (!readsym)
+  if ((fp = fopen (fname, "r")) == NULL)
     {
-      if ((fp = fopen (fname, "r")) == NULL)
-	{
-	  printf ("file not found\n");
-	  return (-1);
-	}
-
-
-      res = read_elf_header (fp);
-      if (res < 0)
-	printf ("File read error\n");
-
+      printf ("file not found\n");
+      return (-1);
     }
-  else
+
+
+  res = read_elf_header (fp);
+  if (res < 0)
+    printf ("File read error\n");
+
+  if (load && (res >= 0))
     {
       res = read_elf_body ();
       if (res < 0)
