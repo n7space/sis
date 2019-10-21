@@ -25,8 +25,11 @@ sis_usage ()
 {
 
   printf ("usage: sis [-uart1 uart_device1] [-uart2 uart_device2]\n");
-  printf ("[-m <n>] [-dumbio] [-v] \n");
-  printf ("[-nfp] [-freq frequency] [-c batch_file] [files]\n");
+  printf ("[-m <n>] [-dumbio] [-gdb] [-port port]\n");
+  printf ("[-cov] [-nfp] [-ift] [-wrp] [-rom8] [-uben]\n");
+  printf ("[-freq frequency] [-c batch_file]\n");
+  printf ("[-erc32] [-leon2] [-leon3] [-ricsv]\n");
+  printf ("[-d] [-v] [files]\n");
 }
 
 void
