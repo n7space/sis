@@ -2258,6 +2258,11 @@ flush_windows (struct pstate *sregs)
   int win;
   int ws;
 
+  /* Skip if window potentially not valid */
+
+  if ((!(sregs->psr & PSR_ET)) || ((sregs->psr & PSR_PIL) == 0x0f00))
+    return;
+
   /* Keep current window handy */
 
   cwp = sregs->psr & PSR_CWP;

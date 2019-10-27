@@ -375,6 +375,8 @@ extern void sim_create_inferior ();
 extern void sim_resume (int step);
 extern int sim_insert_swbreakpoint (uint32 addr, int len);
 extern int sim_remove_swbreakpoint (uint32 addr, int len);
+extern int sim_set_watchpoint (uint32 mem, int length, int type);
+extern int sim_clear_watchpoint (uint32 mem, int length, int type);
 
 /* FPU timing based on Meiko */
 

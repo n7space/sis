@@ -135,6 +135,41 @@ sim_stop (SIM_DESC sd)
 }
 
 static int
+sis_insert_hw_breakpoint (int addr)
+{
+  if (ebase.wprnum < BPT_MAX)
+    {
+      ebase.bpts[ebase.bptnum] = addr;
+      ebase.bptnum++;
+      if (sis_verbose)
+	printf ("inserted hw breakpoint at %x\n", addr);
+      return SIM_RC_OK;
+    }
+  else
+    return SIM_RC_FAIL;
+}
+
+static int
+sis_remove_hw_breakpoint (int addr)
+{
+  int i = 0;
+
+  if (!ebase.bptnum)
+    return 1;
+  while ((i < ebase.bptnum) && (ebase.bpts[i] != addr))
+    i++;
+  if (addr == ebase.bpts[i])
+    {
+      for (; i < ebase.bptnum - 1; i++)
+	ebase.wprs[i] = ebase.bpts[i + 1];
+      ebase.bptnum -= 1;
+      if (sis_verbose)
+	printf ("removed hw breakpoint at %x\n", addr);
+    }
+  return 1;
+}
+
+static int
 sis_insert_watchpoint_read (int addr, unsigned char mask)
 {
   if (ebase.wprnum < WPR_MAX)
@@ -155,6 +190,8 @@ sis_remove_watchpoint_read (int addr)
 {
   int i = 0;
 
+  if (!ebase.wprnum)
+    return 1;
   while ((i < ebase.wprnum) && (ebase.wprs[i] != addr))
     i++;
   if (addr == ebase.wprs[i])
@@ -164,7 +201,6 @@ sis_remove_watchpoint_read (int addr)
       ebase.wprnum -= 1;
       if (sis_verbose)
 	printf ("removed read watchpoint at %x\n", addr);
-      return 0;
     }
   return 1;
 }
@@ -190,6 +226,8 @@ sis_remove_watchpoint_write (int addr)
 {
   int i = 0;
 
+  if (!ebase.wpwnum)
+    return 1;
   while ((i < ebase.wpwnum) && (ebase.wpws[i] != addr))
     i++;
   if (addr == ebase.wpws[i])
@@ -199,9 +237,8 @@ sis_remove_watchpoint_write (int addr)
       ebase.wpwnum -= 1;
       if (sis_verbose)
 	printf ("removed write watchpoint at %x\n", addr);
-      return SIM_RC_OK;
     }
-  return SIM_RC_FAIL;
+  return SIM_RC_OK;
 }
 
 int
@@ -215,68 +252,73 @@ sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
 
 
 int
-sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
+sim_set_watchpoint (uint32 mem, int length, int type)
 {
   int res;
   unsigned char mask;
 
-  switch (length)
-    {
-    case 1:
-      mask = 0;
-      break;
-    case 2:
-      mask = 1;
-      break;
-    case 4:
-      mask = 3;
-      break;
-    default:
-      mask = 7;
-      break;
-    }
+  if (!length)
+    return 1;			/* used by gdb for probing of watchpoints */
+
+  mask = length - 1;
 
   switch (type)
     {
     case 0:
-      res = sis_insert_watchpoint_write (mem, mask);
+      res = sim_insert_swbreakpoint (mem, length);
       break;
     case 1:
-      res = sis_insert_watchpoint_read (mem, mask);
+      res = sis_insert_hw_breakpoint (mem);
       break;
     case 2:
+      res = sis_insert_watchpoint_write (mem, mask);
+      break;
+    case 3:
+      res = sis_insert_watchpoint_read (mem, mask);
+      break;
+    case 4:
       if ((res = sis_insert_watchpoint_write (mem, mask)) == SIM_RC_OK)
 	res = sis_insert_watchpoint_read (mem, mask);
       if (res == SIM_RC_FAIL)
 	sis_remove_watchpoint_read (mem);
       break;
     default:
-      res = -1;
+      res = 0;
     }
   return (res);
 }
 
 
 int
-sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
+sim_clear_watchpoint (uint32 mem, int length, int type)
 {
   int res;
+
+  if (!length)
+    return 1;
+
   switch (type)
     {
     case 0:
-      res = sis_remove_watchpoint_write (mem);
+      res = sim_remove_swbreakpoint (mem, length);
       break;
     case 1:
-      res = sis_remove_watchpoint_read (mem);
+      res = sis_remove_hw_breakpoint (mem);
       break;
     case 2:
+      res = sis_remove_watchpoint_write (mem);
+      break;
+    case 3:
+      res = sis_remove_watchpoint_read (mem);
+      break;
+    case 4:
       if ((res = sis_remove_watchpoint_write (mem)) == SIM_RC_OK)
 	res = sis_remove_watchpoint_read (mem);
       else
 	sis_remove_watchpoint_read (mem);
       break;
     default:
-      res = -1;
+      res = 0;
     }
   return (res);
 }
