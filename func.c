@@ -190,10 +190,9 @@ exec_cmd (const char *cmd)
 	       */
 	      if (len)
 		{
-		  ebase.bpts[ebase.bptnum] = len & ~0x1;
-		  printf ("added breakpoint %d at 0x%08x\n",
-			  ebase.bptnum + 1, ebase.bpts[ebase.bptnum]);
-		  ebase.bptnum += 1;
+		  if (sim_set_watchpoint (len & ~1, 4, 1))
+		    printf ("added breakpoint %d at 0x%08x\n",
+			    ebase.bptnum, ebase.bpts[ebase.bptnum - 1]);
 		}
 	    }
 	  else
@@ -576,15 +575,14 @@ exec_cmd (const char *cmd)
 	      printf ("  %d : 0x%08x (write)\n", i + 1, ebase.wpws[i]);
 	    }
 	}
-      else if (strncmp (cmd1, "+wpr", clen) == 0)
+      else if ((strncmp (cmd1, "+wpr", clen) == 0) ||
+	       (strncmp (cmd1, "rwatch", clen) == 0))
 	{
 	  if ((cmd1 = strtok (NULL, " \t\n\r")) != NULL)
 	    {
-	      ebase.wprs[ebase.wprnum] = VAL (cmd1) & ~0x3;
-	      ebase.wprm[ebase.wprnum] = 3;
-	      printf ("added read watchpoint %d at 0x%08x\n",
-		      ebase.wprnum + 1, ebase.wprs[ebase.wprnum]);
-	      ebase.wprnum += 1;
+	      if (sim_set_watchpoint (VAL (cmd1) & ~0x3, 4, 3))
+		printf ("added read watchpoint %d at 0x%08x\n",
+			ebase.wprnum, ebase.wprs[ebase.wprnum - 1]);
 	    }
 	}
       else if (strncmp (cmd1, "-wpr", clen) == 0)
@@ -609,11 +607,9 @@ exec_cmd (const char *cmd)
 	{
 	  if ((cmd1 = strtok (NULL, " \t\n\r")) != NULL)
 	    {
-	      ebase.wpws[ebase.wpwnum] = VAL (cmd1) & ~0x3;
-	      ebase.wpwm[ebase.wpwnum] = 3;
-	      printf ("added write watchpoint %d at 0x%08x\n",
-		      ebase.wpwnum + 1, ebase.wpws[ebase.wpwnum]);
-	      ebase.wpwnum += 1;
+	      if (sim_set_watchpoint (VAL (cmd1) & ~0x3, 4, 2))
+		printf ("added write watchpoint %d at 0x%08x\n",
+			ebase.wpwnum, ebase.wpws[ebase.wpwnum - 1]);
 	    }
 	  else
 	    {
@@ -730,8 +726,8 @@ show_stat (sregs)
 	      ebase.freq * (double) (sregs[i].ninst - sregs[i].finst) /
 	      (double) (stime - sregs[i].pwdtime),
 	      ebase.freq * (double) sregs[i].finst / (double) (stime -
-							       sregs[i].
-							       pwdtime),
+							       sregs
+							       [i].pwdtime),
 	      (double) (stime - sregs[i].pwdtime) / (double) (sregs[i].ninst +
 							      1),
 	      100.0 * (1.0 - ((double) sregs[i].pwdtime / (double) stime))

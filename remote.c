@@ -164,6 +164,9 @@ sim_stat ()
   int i;
   switch (simstat)
     {
+    case OK:
+      i = 0;
+      break;
     case NULL_HIT:
       i = SIGSEGV;
       break;
@@ -285,6 +288,11 @@ gdb_remote_exec (char *buf)
     case 'c':
       sim_resume (0);
       i = sim_stat ();
+      /* The T watch response does not seem to work with sparc/gdb, disable ...
+         if ((i == SIGTRAP) && ebase.wphit)
+         sprintf (txbuf, "T%02xwatch:%x;", i, ebase.wpaddress);
+         else
+       */
       sprintf (txbuf, "S%02x", i);
       break;
     case 'k':			/* kill */
@@ -331,30 +339,25 @@ gdb_remote_exec (char *buf)
       i = sim_stat ();
       sprintf (txbuf, "S%02x", i);
       break;
-    case 'z':
-    case 'Z':
-      if (buf[1] == '0')
-	{			/* insert sw break */
-	  i = 3;
-	  addr = 0;
-	  while (buf[i] && (buf[i] != ','))
-	    {
-	      addr = (addr << 4) | hex (buf[i]);
-	      i++;
-	    }
+    case 'Z':			/* add break/watch point */
+    case 'z':			/* remove break/watch point */
+      i = 3;
+      addr = 0;
+      while (buf[i] && (buf[i] != ','))
+	{
+	  addr = (addr << 4) | hex (buf[i]);
 	  i++;
-	  len = hex (buf[i]);
-	  if (buf[0] == 'Z')
-	    j = sim_insert_swbreakpoint (addr, len);
-	  else
-	    j = sim_remove_swbreakpoint (addr, len);
-	  if (j)
-	    strcpy (txbuf, "OK");
-	  else
-	    strcpy (txbuf, "E01");
 	}
+      i++;
+      len = hex (buf[i]);
+      if (buf[0] == 'Z')
+	j = sim_set_watchpoint (addr, len, hex (buf[1]));
       else
-	printf ("%s\n", buf);
+	j = sim_clear_watchpoint (addr, len, hex (buf[1]));
+      if (j)
+	strcpy (txbuf, "OK");
+      else
+	strcpy (txbuf, "E01");
       break;
     case 'q':			/* query */
       if (strncmp (&buf[1], "fThreadInfo", 11) == 0)
@@ -425,12 +428,12 @@ gdb_remote (int port)
 	    {
 	      len = read (new_socket, buffer, 2048);
 	      buffer[len] = 0;
-	      if (sis_verbose)
+	      if (sis_verbose > 1)
 		printf ("%s (%d)\n", buffer, len);
 	      if (len == 1)
 		if (buffer[0] == '-')
 		  {
-		    if (sis_verbose)
+		    if (sis_verbose > 1)
 		      printf ("tx: %s\n", sendbuf);
 		    send (new_socket, sendbuf, strlen (sendbuf), 0);
 		  }
@@ -458,7 +461,7 @@ gdb_remote (int port)
 	  res = check_pkg (buffer, len);
 	  if (res > 0)
 	    {
-	      if (sis_verbose)
+	      if (sis_verbose > 1)
 		printf ("tx: +\n");
 	      send (new_socket, &ack, 1, 0);
 	      if (detach)
@@ -469,14 +472,14 @@ gdb_remote (int port)
 		{
 		  strcpy (sendbuf, "$");
 		  cont = gdb_remote_exec ((char *) &buffer[res]);
-		  if (sis_verbose)
+		  if (sis_verbose > 1)
 		    printf ("tx: %s\n", sendbuf);
 		  send (new_socket, sendbuf, strlen (sendbuf), 0);
 		}
 	    }
 	  else
 	    {
-	      if (sis_verbose)
+	      if (sis_verbose > 1)
 		printf ("tx: -\n");
 	      send (new_socket, &nok, 1, 0);
 	    }
