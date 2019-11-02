@@ -142,7 +142,7 @@ static int f1open = 0;
 static char uarta_sreg, uarta_hreg;
 static uint32 uart_stat_reg;
 static uint32 uarta_data;
-static uint xcpu;
+static int xcpu;
 
 /* Forward declarations. */
 
