@@ -870,6 +870,13 @@ riscv_dispatch_instruction (sregs)
 	  break;
 	case OP_STORE:		/* store instructions */
 
+	  /* skip store if we resume after a write watchpoint */
+	  if (sis_gdb_break && ebase.wphit)
+	    {
+	      ebase.wphit = 0;
+	      break;
+	    }
+
 #if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;
 #endif
@@ -882,7 +889,10 @@ riscv_dispatch_instruction (sregs)
 	      if ((ebase.wphit = check_wpw (sregs, address, funct3 & 3)))
 		{
 		  sregs->trap = WPT_TRAP;
-		  break;
+		  /* gdb seems to expect that the write goes trough when the
+		   * watchpoint is hit, but PC stays on the store instruction */
+		  if (!sis_gdb_break)
+		    break;
 		}
 	    }
 
@@ -940,6 +950,11 @@ riscv_dispatch_instruction (sregs)
 	  break;
 	case OP_FSW:		/* F store instructions */
 
+	  if (sis_gdb_break && ebase.wphit)
+	    {
+	      ebase.wphit = 0;
+	      break;
+	    }
 #if defined(STAT) || defined(ENABLE_L1CACHE)
 	  sregs->nstore++;
 #endif
@@ -952,7 +967,8 @@ riscv_dispatch_instruction (sregs)
 	      if ((ebase.wphit = check_wpw (sregs, address, funct3 & 3)))
 		{
 		  sregs->trap = WPT_TRAP;
-		  break;
+		  if (!sis_gdb_break)
+		    break;
 		}
 	    }
 

@@ -961,12 +961,23 @@ sparc_dispatch_instruction (sregs)
       if (op3 & 4)
 	{
 	  sregs->icnt = T_ST;	/* Set store instruction count */
+
+	  /* skip store if we resume after a write watchpoint */
+	  if (sis_gdb_break && ebase.wphit)
+	    {
+	      ebase.wphit = 0;
+	      break;
+	    }
+
 	  if (ebase.wpwnum)
 	    {
 	      if ((ebase.wphit = check_wpw (sregs, address, wpmask (op3))))
 		{
 		  sregs->trap = WPT_TRAP;
-		  break;
+		  /* gdb seems to expect that the write goes trough when the
+		   * watchpoint is hit, but PC stays on the store instruction */
+		  if (!sis_gdb_break)
+		    break;
 		}
 	    }
 #if defined(STAT) || defined(ENABLE_L1CACHE)
