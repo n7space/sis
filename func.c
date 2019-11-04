@@ -1092,6 +1092,7 @@ check_wpr (struct pstate *sregs, int32 address, unsigned char mask)
 	  ebase.wpaddress = address;
 	  if (ebase.wphit)
 	    return (0);
+	  ebase.wptype = 3;
 	  return (WPT_HIT);
 	}
     }
@@ -1111,6 +1112,7 @@ check_wpw (struct pstate *sregs, int32 address, unsigned char mask)
 	  ebase.wpaddress = ebase.wpws[i];
 	  if (ebase.wphit)
 	    return (0);
+	  ebase.wptype = 2;
 	  return (WPT_HIT);
 	}
     }

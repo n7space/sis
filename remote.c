@@ -288,12 +288,14 @@ gdb_remote_exec (char *buf)
     case 'c':
       sim_resume (0);
       i = sim_stat ();
-      /* The T watch response does not seem to work with sparc/gdb, disable ...
-         if ((i == SIGTRAP) && ebase.wphit)
-         sprintf (txbuf, "T%02xwatch:%x;", i, ebase.wpaddress);
-         else
-       */
       sprintf (txbuf, "S%02x", i);
+      if ((i == SIGTRAP) && ebase.wphit)
+	{
+	  if (ebase.wptype == 2)
+	    sprintf (txbuf, "T%02xwatch:%x;", i, ebase.wpaddress);
+	  else if (ebase.wptype == 3)
+	    sprintf (txbuf, "T%02xrwatch:%x;", i, ebase.wpaddress);
+	}
       break;
     case 'k':			/* kill */
     case 'R':			/* restart */

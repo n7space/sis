@@ -207,6 +207,7 @@ struct estate
   uint32 bpsave[BPT_MAX];	/* Saved opcode */
   uint32 wprnum;
   uint32 wphit;
+  uint32 wptype;
   uint32 wprs[WPR_MAX];		/* Read Watchpoints */
   unsigned char wprm[WPR_MAX];	/* Read Watchpoint masks */
   uint32 wpwnum;
