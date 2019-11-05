@@ -23,6 +23,7 @@
 #define	VAL(x)	strtoul(x,(char **)NULL,0)
 
 #define I_ACC_EXC 1
+#define NWIN 8
 
 /* Maximum events in event queue */
 #define EVENT_MAX	256
@@ -164,6 +165,8 @@ struct pstate
   uint64 l1imiss;
   uint32 l1dtags[L1DTAGS];
   uint64 l1dmiss;
+
+  uint32 sp[NWIN];
 };
 
 struct evcell
@@ -307,7 +310,7 @@ extern int delta;		/* time slice for MP simulation */
 extern void pwd_enter (struct pstate *sregs);
 extern void remove_event (void (*cfunc) (), int32 arg);
 extern int run_sim (uint64 icount, int dis);
-void flush_windows (struct pstate *sregs);
+void save_sp (struct pstate *sregs);
 void cov_start (int address);
 void cov_exec (int address);
 void cov_bt (int address1, int address2);
@@ -378,6 +381,9 @@ extern int sim_insert_swbreakpoint (uint32 addr, int len);
 extern int sim_remove_swbreakpoint (uint32 addr, int len);
 extern int sim_set_watchpoint (uint32 mem, int length, int type);
 extern int sim_clear_watchpoint (uint32 mem, int length, int type);
+
+/* sparc.c */
+extern int gdb_sp_read (uint32 mem, char *buf, int length);
 
 /* FPU timing based on Meiko */
 

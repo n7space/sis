@@ -54,7 +54,7 @@
 #define PSR_V  0x0200000
 #define PSR_C  0x0100000
 #define PSR_CC 0x0F00000
-#define PSR_CWP 0x7
+#define PSR_CWP (NWIN - 1)
 #define PSR_PIL 0x0f00
 
 #define ICC_N	(icc >> 3)
@@ -191,8 +191,3 @@
 
 /* # of cycles overhead when a trap is taken */
 #define TRAP_C  3
-
-/* Forward declarations */
-
-static int fpexec (uint32 op3, uint32 rd, uint32 rs1, uint32 rs2,
-		   struct pstate *sregs);
