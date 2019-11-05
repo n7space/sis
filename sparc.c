@@ -1,10 +1,13 @@
-#include "sparc.h"
 #include <inttypes.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "sparc.h"
+
+static int fpexec (uint32 op3, uint32 rd, uint32 rs1, uint32 rs2,
+		   struct pstate *sregs);
 
 static uint32
 sub_cc (psr, operand1, operand2, result)
@@ -2250,65 +2253,46 @@ disp_reg (sregs, reg)
     sparc_disp_regs (sregs, VAL (&reg[1]));
 }
 
-/* Flush all register windows out to the stack.  Starting after the invalid
-   window, flush all windows up to, and including the current window.  This
-   allows GDB to do backtraces and look at local variables for frames that
-   are still in the register windows.  Note that strictly speaking, this
-   behavior is *wrong* for several reasons.  First, it doesn't use the window
-   overflow handlers.  It therefore assumes standard frame layouts and window
-   handling policies.  Second, it changes system state behind the back of the
-   target program.  I expect this to mainly pose problems when debugging trap
-   handlers.
+/* Save stack pointer in each valid register window. Used to detect if gdb
+   wants to read a memory location which is cached in a register.
 */
 
 void
-flush_windows (struct pstate *sregs)
+save_sp (struct pstate *sregs)
 {
-  int invwin;
-  int cwp;
   int win;
-  int ws;
 
-  /* Skip if window potentially not valid */
-
-  if ((!(sregs->psr & PSR_ET)) || ((sregs->psr & PSR_PIL) == 0x0f00))
-    return;
-
-  /* Keep current window handy */
-
-  cwp = sregs->psr & PSR_CWP;
-
-  /* Calculate the invalid window from the wim. */
-
-  for (invwin = 0; invwin <= PSR_CWP; invwin++)
-    if ((sregs->wim >> invwin) & 1)
-      break;
-
-  /* Start saving with the window after the invalid window. */
-
-  invwin = (invwin - 1) & PSR_CWP;
-
-  for (win = invwin;; win = (win - 1) & PSR_CWP)
+  for (win = 0; win < NWIN; win++)
     {
-      uint32 sp;
-      int i;
-
-      sp = sregs->r[(win * 16 + 14) & 0x7f];
-#if 1
-      if (sis_verbose > 2)
-	{
-	  uint32 fp = sregs->r[(win * 16 + 30) & 0x7f];
-	  printf ("flush_window: win %d, sp %x, fp %x\n", win, sp, fp);
-	}
-#endif
-
-      for (i = 0; i < 16; i++)
-	ms->memory_write (sp + 4 * i, &sregs->r[(win * 16 + 16 + i) & 0x7f],
-			  2, &ws);
-
-      if (win == cwp)
-	break;
+      if ((sregs->wim >> win) & 1)
+	sregs->sp[win] = 0;
+      else
+	sregs->sp[win] = sregs->r[win * 16 + 14];
     }
+}
+
+int
+gdb_sp_read (uint32 mem, char *buf, int length)
+{
+  int i, j, len;
+  char *data;
+
+  for (i = 0; i < NWIN; i++)
+    {
+      if ((mem >= sregs[cpu].sp[i]) && (mem < (sregs[cpu].sp[i] + 64)))
+	{
+	  data =
+	    (char *) &sregs[cpu].
+	    r[((i + 1) * 16 + ((mem - sregs->sp[i]) >> 2)) % (NWIN * 16)];
+	  for (j = 0; j < length; j++)
+	    buf[j] = data[j ^ arch->endian];
+	  if (sis_verbose)
+	    printf("gdb_sp_read: 0x%08x\n", mem);
+	  return length;
+	}
+    }
+
+  return 0;
 }
 
 static void

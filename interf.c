@@ -98,6 +98,11 @@ sim_read (uint32 mem, char *buf, int length)
 {
   int i, len;
 
+  if (sis_gdb_break && (cputype <= CPU_LEON3) && (length >= 4))
+    {
+      if (gdb_sp_read (mem, buf, length))
+	return length;
+    }
   for (i = 0; i < length; i++)
     {
       ms->sis_memory_read ((mem + i) ^ arch->endian, &buf[i], 1);
@@ -124,7 +129,7 @@ sim_resume (int step)
     simstat = run_sim_gdb (UINT64_MAX / 2, 0);
 
   if (sis_gdb_break && (cputype != CPU_RISCV))
-    flush_windows (&sregs[cpu]);
+    save_sp (&sregs[cpu]);
 }
 
 int
