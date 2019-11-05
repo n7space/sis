@@ -142,7 +142,6 @@ static int f1open = 0;
 static char uarta_sreg, uarta_hreg;
 static uint32 uart_stat_reg;
 static uint32 uarta_data;
-static int xcpu;
 
 /* Forward declarations. */
 
@@ -447,14 +446,14 @@ apb_read (uint32 addr, uint32 * data)
       if (sis_verbose > 1)
 	printf ("%8" PRIu64
 		" cpu %d APB read  a: %08x, d: %08x  unimplemented!\n",
-		ebase.simtime, xcpu, addr, *data);
+		ebase.simtime, cpu, addr, *data);
       break;
     }
 
   if (sis_verbose > 1)
     if ((addr & 0xF00) != 0x100)
       printf ("%8" PRIu64 " cpu %d APB read  a: %08x, d: %08x\n",
-	      ebase.simtime, xcpu, addr, *data);
+	      ebase.simtime, cpu, addr, *data);
 
   return MOK;
 }
@@ -467,7 +466,7 @@ apb_write (uint32 addr, uint32 data)
   if (sis_verbose > 1)
     if ((addr & 0xF00) != 0x100)
       printf ("%8" PRIu64 " cpu %d APB write a: %08x, d: %08x\n",
-	      ebase.simtime, xcpu, addr, data);
+	      ebase.simtime, cpu, addr, data);
   switch (addr & 0xfff)
     {
 
@@ -586,7 +585,7 @@ apb_write (uint32 addr, uint32 data)
       if (sis_verbose)
 	printf ("%8" PRIu64
 		" cpu %d APB write a: %08x, d: %08x  unimplemented!\n",
-		ebase.simtime, xcpu, addr, data);
+		ebase.simtime, cpu, addr, data);
       break;
     }
   return MOK;
