@@ -1895,7 +1895,7 @@ sparc_execute_trap (sregs)
 	  sregs->trap = 0;
 	  break;
 	case ERROR_TRAP:
-	  return (ERROR);
+	  return (ERROR_MODE);
 	case WPT_TRAP:
 	  return (WPT_HIT);
 	case NULL_TRAP:
@@ -1906,7 +1906,7 @@ sparc_execute_trap (sregs)
     {
 
       if ((sregs->psr & PSR_ET) == 0)
-	return ERROR;
+	return ERROR_MODE;
       if ((sregs->trap > 16) && (sregs->trap < 32))
 	sregs->intack (sregs->trap - 16, sregs->cpu);
 
@@ -2282,12 +2282,13 @@ gdb_sp_read (uint32 mem, char *buf, int length)
       if ((mem >= sregs[cpu].sp[i]) && (mem < (sregs[cpu].sp[i] + 64)))
 	{
 	  data =
-	    (char *) &sregs[cpu].
-	    r[((i + 1) * 16 + ((mem - sregs->sp[i]) >> 2)) % (NWIN * 16)];
+	    (char *)
+	    &sregs[cpu].r[((i + 1) * 16 +
+			   ((mem - sregs->sp[i]) >> 2)) % (NWIN * 16)];
 	  for (j = 0; j < length; j++)
 	    buf[j] = data[j ^ arch->endian];
 	  if (sis_verbose)
-	    printf("gdb_sp_read: 0x%08x\n", mem);
+	    printf ("gdb_sp_read: 0x%08x\n", mem);
 	  return length;
 	}
     }

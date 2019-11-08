@@ -1643,18 +1643,18 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FSGNJ */
 		      sregs->fsi[frd] = sregs->fsi[frs1];
 		      sregs->fsi[frd + 1] =
-			(sregs->fsi[frs1 + 1] & 0x7fffffff) | (sregs->
-							       fsi[frs2 +
+			(sregs->
+			 fsi[frs1 + 1] & 0x7fffffff) | (sregs->fsi[frs2 +
 								   1] &
-							       0x80000000);
+							0x80000000);
 		      break;
 		    case 1:	/* FSGNJN */
 		      sregs->fsi[frd] = sregs->fsi[frs1];
 		      sregs->fsi[frd + 1] =
-			(sregs->fsi[frs1 + 1] & 0x7fffffff) | (~sregs->
-							       fsi[frs2 +
-								   1] &
-							       0x80000000);
+			(sregs->
+			 fsi[frs1 + 1] & 0x7fffffff) | (~sregs->fsi[frs2 +
+								    1] &
+							0x80000000);
 		      break;
 		    case 2:	/* FSGNJX */
 		      sregs->fsi[frd] = sregs->fsi[frs1];
@@ -1928,7 +1928,7 @@ riscv_execute_trap (sregs)
 	  sregs->trap = 0;
 	  break;
 	case ERROR_TRAP:
-	  return (ERROR);
+	  return (ERROR_MODE);
 	case WPT_TRAP:
 	  return (WPT_HIT);
 	case NULL_TRAP:
@@ -1994,7 +1994,7 @@ riscv_execute_trap (sregs)
       sregs->trap = 0;
 
       if (sregs->err_mode)
-	return (ERROR);
+	return (ERROR_MODE);
     }
 
 

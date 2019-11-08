@@ -29,12 +29,12 @@
 #include <libgen.h>
 
 #if HAVE_READLINE
- #include "readline/readline.h"
- #include "readline/history.h"
+#include "readline/readline.h"
+#include "readline/history.h"
 #else
  /* Linenoise as a readline library replacement
-      https://github.com/antirez/linenoise */
- #include "linenoise.h"
+    https://github.com/antirez/linenoise */
+#include "linenoise.h"
 #endif
 
 /* Command history buffer length - MUST be binary */
@@ -258,7 +258,7 @@ main (argc, argv)
 #if HAVE_READLINE
   using_history ();
 #else
-  linenoiseHistorySetMaxLen(HIST_LEN);
+  linenoiseHistorySetMaxLen (HIST_LEN);
 #endif
   init_signals ();
   ebase.simtime = 0;
@@ -346,7 +346,7 @@ main (argc, argv)
 	  printf ("cpu %d breakpoint at 0x%08x reached\n",
 		  ebase.bpcpu, sregs[ebase.bpcpu].pc);
 	  break;
-	case ERROR:
+	case ERROR_MODE:
 	  printf ("cpu %d in error mode (tt = 0x%02x)\n",
 		  ebase.bpcpu, sregs[ebase.bpcpu].trap);
 	  stat = 0;

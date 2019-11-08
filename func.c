@@ -23,11 +23,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#ifdef WIN32
+#include <winsock.h>
+#else
 #include <sys/socket.h>
-#include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
+#endif
+#include <fcntl.h>
 #include "sis.h"
 #include <inttypes.h>
 #include <sys/time.h>
@@ -42,7 +46,7 @@ int tty_setup = 1;
 
 struct pstate sregs[NCPU];
 struct estate ebase;
-struct evcell evbuf[EVENT_MAX];
+struct evcell evbuf[MAX_EVENT];
 
 int ctrl_c = 0;
 int sis_verbose = 0;
@@ -828,12 +832,14 @@ int_handler (int sig)
 
   switch (sig)
     {
+#ifndef WIN32
     case SIGIO:
       if (sim_run)
 	{
 	  check_interrup ();
 	}
       break;
+#endif
     case SIGINT:
       ctrl_c = 1;
       if (!sim_run)
@@ -1011,11 +1017,11 @@ init_event ()
 
   ebase.eq.nxt = NULL;
   ebase.freeq = evbuf;
-  for (i = 0; i < EVENT_MAX; i++)
+  for (i = 0; i < MAX_EVENT; i++)
     {
       evbuf[i].nxt = &evbuf[i + 1];
     }
-  evbuf[EVENT_MAX - 1].nxt = NULL;
+  evbuf[MAX_EVENT - 1].nxt = NULL;
   event (last_event, 0, UINT64_MAX);
 }
 
@@ -1258,7 +1264,7 @@ run_sim_un (sregs, icount, dis)
     }
   advance_time (sregs->simtime);
   if (sregs->err_mode)
-    return ERROR;
+    return ERROR_MODE;
   if (sregs->bphit)
     return (BPT_HIT);
   if (ebase.wphit)
@@ -1452,7 +1458,7 @@ run_sim_mp (icount, dis)
   if (err_mode == NULL_HIT)
     return NULL_HIT;
   if (err_mode)
-    return ERROR;
+    return ERROR_MODE;
   if (bphit)
     return (BPT_HIT);
   if (wphit)

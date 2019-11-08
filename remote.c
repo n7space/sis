@@ -23,18 +23,30 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#ifdef WIN32
+#include <winsock.h>
+#else
 #include <sys/socket.h>
-#include <fcntl.h>
-#include <stdlib.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
+#endif
+#include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include "sis.h"
 
 #define EBREAK 0x00100073
 #define CEBREAK 0x90002
+
+#ifndef SIGTRAP
+#define SIGTRAP 5
+#endif
+#ifndef WIN32
+#define closesocket close
+#endif
+
 int new_socket;
 static char sendbuf[2048] = "$";
 static const char hexchars[] = "0123456789abcdef";
@@ -49,6 +61,14 @@ create_socket (int port)
   int addrlen = sizeof (address);
   struct protoent *proto;
 
+#ifdef WIN32
+  WORD wver;
+  WSADATA wsaData;
+  wver = MAKEWORD (2, 0);
+  if (WSAStartup (wver, &wsaData))
+    return 0;
+#endif
+
   // Creating socket file descriptor 
   if ((server_fd = socket (AF_INET, SOCK_STREAM, 0)) == 0)
     {
@@ -57,7 +77,8 @@ create_socket (int port)
     }
 
   // Forcefully attaching socket to the port
-  if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt)))
+  if (setsockopt
+      (server_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt, sizeof (opt)))
     {
       perror ("setsockopt");
       return 0;
@@ -78,17 +99,21 @@ create_socket (int port)
       return 0;
     }
   if ((new_socket = accept (server_fd, (struct sockaddr *) &address,
-			    (socklen_t *) & addrlen)) < 0)
+			    (int *) &addrlen)) < 0)
     {
       perror ("accept");
       return 0;
     }
-  close (server_fd);
-  setsockopt (new_socket, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
+  closesocket (server_fd);
+  setsockopt (new_socket, SOL_SOCKET, SO_KEEPALIVE, (char *) &opt,
+	      sizeof (opt));
   proto = getprotobyname ("tcp");
-  setsockopt (new_socket, proto->p_proto, TCP_NODELAY, &opt, sizeof (opt));
+  setsockopt (new_socket, proto->p_proto, TCP_NODELAY, (char *) &opt,
+	      sizeof (opt));
+#ifndef WIN32
   fcntl (new_socket, F_SETOWN, getpid ());
   fcntl (new_socket, F_SETFL, FASYNC);
+#endif
 
   return 1;
 }
@@ -170,7 +195,7 @@ sim_stat ()
     case NULL_HIT:
       i = SIGSEGV;
       break;
-    case ERROR:
+    case ERROR_MODE:
       i = SIGTERM;
       break;
     case CTRL_C:
@@ -410,7 +435,9 @@ gdb_remote (int port)
 
   sis_gdb_break = 1;
   detach = 0;
+#ifndef WIN32
   signal (SIGIO, int_handler);
+#endif
 #ifdef __CYGWIN__
   printf ("Warning: gdb cannot interrupt a running simulator under CYGWIN\n");
   printf
@@ -428,7 +455,13 @@ gdb_remote (int port)
 	{
 	  do
 	    {
+#ifdef WIN32
+	      len = recv (new_socket, buffer, 2048, 0);
+	      if (len < 0)
+		len = 0;
+#else
 	      len = read (new_socket, buffer, 2048);
+#endif
 	      buffer[len] = 0;
 	      if (sis_verbose > 1)
 		printf ("%s (%d)\n", buffer, len);
@@ -489,10 +522,12 @@ gdb_remote (int port)
     }
   if (new_socket)
     {
-      close (new_socket);
+      closesocket (new_socket);
     }
   new_socket = 0;
   sis_gdb_break = 0;
+#ifndef WIN32
   signal (SIGIO, SIG_DFL);
+#endif
 
 }

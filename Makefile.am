@@ -10,7 +10,8 @@ sis_SOURCES = erc32.c float.c grlib.c leon3.c exec.c func.c help.c \
 	      $(LN_SRC)
 
 AM_CFLAGS = -DFAST_UART
-sis_LDADD = -lm @READLINE@
+sis_LDADD = -lm @READLINE@ @LIBADD@
+EXTRA_DIST = elf.h grlib.h linenoise.h riscv.h sis.h sparc.h
 
 info_TEXINFOS = sis.texi
 
