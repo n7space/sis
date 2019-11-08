@@ -21,7 +21,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef WIN32
+#include <winsock.h>
+#else
 #include <netinet/in.h>
+#endif
 #include <elf.h>
 #include <ctype.h>
 #include "sis.h"
@@ -222,7 +226,7 @@ elf_load (char *fname, int load)
   FILE *fp;
   int res;
 
-  if ((fp = fopen (fname, "r")) == NULL)
+  if ((fp = fopen (fname, "rb")) == NULL)
     {
       printf ("file not found\n");
       return (-1);

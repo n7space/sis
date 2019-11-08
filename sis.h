@@ -26,7 +26,7 @@
 #define NWIN 8
 
 /* Maximum events in event queue */
-#define EVENT_MAX	256
+#define MAX_EVENT	256
 
 /* Maximum # of floating point queue */
 #define FPUQN	1
@@ -233,7 +233,7 @@ extern const struct cpu_arch riscv;
 #define OK 0
 #define TIME_OUT 1
 #define BPT_HIT 2
-#define ERROR 3
+#define ERROR_MODE 3
 #define CTRL_C 4
 #define WPT_HIT 5
 #define NULL_HIT 6

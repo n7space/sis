@@ -1,8 +1,9 @@
-AC_INIT([sis], [2.18])
+AC_INIT([sis], [2.19])
 AC_CONFIG_SRCDIR([sis.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AC_CANONICAL_HOST
 AC_PROG_CC
 AC_CHECK_HEADERS([fcntl.h stddef.h stdlib.h string.h sys/time.h unistd.h termios.h])
 AC_CHECK_LIB(readline, readline,
@@ -11,6 +12,12 @@ AC_CHECK_LIB(readline, readline,
 AC_SUBST(READLINE)
 AM_CONDITIONAL([LINENOISE], [test x$linenoise = xtrue])
 AC_SUBST(LINENOISE)
+case "${host}" in
+    *mingw*)
+	LIBADD="-lws2_32 -lkernel32"
+    ;;
+esac
+AC_SUBST(LIBADD)
 AC_CONFIG_FILES([Makefile])
 
 AC_ARG_ENABLE([l1cache], [  --enable-l1cache	  enable L1 cache emulation])
