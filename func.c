@@ -786,43 +786,38 @@ init_bpt (sregs)
   ebase.tlimit = 0;
 }
 
-/* taken from gdbserver */
-static void
-check_interrup ()
+
+/* support for catching ctrl-c */
+
+#ifdef WIN32
+
+BOOL WINAPI ConsoleHandler (DWORD);
+
+void
+init_signals ()
 {
-  fd_set readset;
-  struct timeval immediate = { 0, 0 };
-
-  /* Protect against spurious interrupts.  This has been observed to
-     be a problem under NetBSD 1.4 and 1.5.  */
-
-  FD_ZERO (&readset);
-  FD_SET (new_socket, &readset);
-  if (select (new_socket + 1, &readset, 0, 0, &immediate) > 0)
+  if (!SetConsoleCtrlHandler ((PHANDLER_ROUTINE) ConsoleHandler, TRUE))
     {
-      int cc;
-      char c = 0;
-
-      cc = read (new_socket, &c, 1);
-
-      if (cc == 0)
-	{
-	  fprintf (stderr, "client connection closed\n");
-	  return;
-	}
-      else if (cc != 1 || c != '\003')
-	{
-	  fprintf (stderr, "input_interrupt, count = %d c = %d ", cc, c);
-	  if (isprint (c))
-	    fprintf (stderr, "('%c')\n", c);
-	  else
-	    fprintf (stderr, "('\\x%02x')\n", c & 0xff);
-	  return;
-	}
-
-      ctrl_c = 1;
+      fprintf (stderr, "Unable to install ctrl-c handler!\n");
     }
 }
+
+BOOL WINAPI
+ConsoleHandler (DWORD dwType)
+{
+  switch (dwType)
+    {
+    case CTRL_C_EVENT:
+    case CTRL_BREAK_EVENT:
+      ctrl_c = 1;
+      break;
+    default:
+      break;
+    }
+  return TRUE;
+}
+
+#else
 
 void
 int_handler (int sig)
@@ -832,14 +827,6 @@ int_handler (int sig)
 
   switch (sig)
     {
-#ifndef WIN32
-    case SIGIO:
-      if (sim_run)
-	{
-	  check_interrup ();
-	}
-      break;
-#endif
     case SIGINT:
       ctrl_c = 1;
       if (!sim_run)
@@ -864,6 +851,7 @@ init_signals ()
   int_tab[0] = signal (SIGTERM, int_handler);
   int_tab[1] = signal (SIGINT, int_handler);
 }
+#endif
 
 void
 print_insn_sis (uint32 addr)

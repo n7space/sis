@@ -24,12 +24,15 @@
 #include <unistd.h>
 #include <stdio.h>
 #ifdef WIN32
-#include <winsock.h>
+#include <winsock2.h>
 #else
+#define WSAPOLLFD struct pollfd
+#define WSAPoll poll
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
+#include <poll.h>
 #endif
 #include <fcntl.h>
 #include <stdlib.h>
@@ -112,10 +115,24 @@ create_socket (int port)
 	      sizeof (opt));
 #ifndef WIN32
   fcntl (new_socket, F_SETOWN, getpid ());
-  fcntl (new_socket, F_SETFL, FASYNC);
 #endif
 
   return 1;
+}
+
+/* poll socket periodically to detect gdb break */
+void
+socket_poll ()
+{
+  WSAPOLLFD fdarray = { 0 };
+  int ret;
+
+  fdarray.fd = new_socket;
+  fdarray.events = POLLRDNORM;
+  ret = WSAPoll (&fdarray, 1, 0);
+  if (ret)
+    ctrl_c = 1;
+  event (socket_poll, 0, 10000000);
 }
 
 static int
@@ -435,14 +452,7 @@ gdb_remote (int port)
 
   sis_gdb_break = 1;
   detach = 0;
-#ifndef WIN32
-  signal (SIGIO, int_handler);
-#endif
-#ifdef __CYGWIN__
-  printf ("Warning: gdb cannot interrupt a running simulator under CYGWIN\n");
-  printf
-    ("         As a workaround, use Ctrl-C in the simulator window instead\n\n");
-#endif
+
   printf ("gdb: listening on port %d ", port);
   while (cont)
     {
@@ -526,8 +536,4 @@ gdb_remote (int port)
     }
   new_socket = 0;
   sis_gdb_break = 0;
-#ifndef WIN32
-  signal (SIGIO, SIG_DFL);
-#endif
-
 }
