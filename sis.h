@@ -370,6 +370,7 @@ extern const struct memsys leon3;
 extern void gdb_remote (int port);
 extern int simstat;
 extern int new_socket;
+extern void socket_poll ();
 
 /* interf.c */
 

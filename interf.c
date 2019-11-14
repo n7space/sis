@@ -126,7 +126,11 @@ sim_resume (int step)
   if (step)
     simstat = run_sim_gdb (1, 0);
   else
-    simstat = run_sim_gdb (UINT64_MAX / 2, 0);
+    {
+      socket_poll ();
+      simstat = run_sim_gdb (UINT64_MAX / 2, 0);
+      remove_event (socket_poll, -1);
+    }
 
   if (sis_gdb_break && (cputype != CPU_RISCV))
     save_sp (&sregs[cpu]);
