@@ -226,7 +226,7 @@ struct estate
 };
 
 extern const struct cpu_arch *arch;
-extern const struct cpu_arch sparc;
+extern const struct cpu_arch sparc32;
 extern const struct cpu_arch riscv;
 
 /* return values for run_sim */

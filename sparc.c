@@ -3469,7 +3469,7 @@ sparc_print_insn (uint32 addr)
   printf (" %s", tmp);
 }
 
-const struct cpu_arch sparc = {
+const struct cpu_arch sparc32 = {
   3,
   sparc_dispatch_instruction,
   sparc_execute_trap,
