@@ -288,7 +288,10 @@ main (argc, argv)
     }
 
   if (gdb)
-    gdb_remote (port);
+    {
+      sregs->pc = last_load_addr;
+      gdb_remote (port);
+    }
 
   while (cont)
     {
