@@ -73,7 +73,7 @@ int sis_gdb_break;
 int cpu = 0;			/* active cpu */
 int ncpu = 1;			/* number of cpus to emulate */
 int delta = 50;			/* time slice for MP simulation */
-const struct cpu_arch *arch = &sparc;
+const struct cpu_arch *arch = &sparc32;
 uint32 daddr = 0;
 /*
 static bfd *abfd;
