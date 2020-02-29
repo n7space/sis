@@ -1,6 +1,6 @@
 This is sis.info, produced by makeinfo version 6.5 from sis.texi.
 
-This manual is for SIS (version 2.20, 31 May 2019).
+This manual is for SIS (version 2.21, 28 february 2020).
 
    Copyright (C) 2019 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.20, 31 May 2019).
+This manual is for SIS (version 2.21, 28 february 2020).
 
 * Menu:
 
@@ -1208,16 +1208,16 @@ Index
 
 
 Tag Table:
-Node: Top696
-Node: Introduction1029
-Node: Invoking sis1653
-Node: Commands3706
-Node: Emulated Systems7810
-Node: Multi-processing20477
-Node: Interfacing to GDB20973
-Node: Code coverage21383
-Node: Building SIS22388
-Node: GNU Free Documentation License23037
-Node: Index48181
+Node: Top701
+Node: Introduction1039
+Node: Invoking sis1663
+Node: Commands3716
+Node: Emulated Systems7820
+Node: Multi-processing20487
+Node: Interfacing to GDB20983
+Node: Code coverage21393
+Node: Building SIS22398
+Node: GNU Free Documentation License23047
+Node: Index48191
 
 End Tag Table
