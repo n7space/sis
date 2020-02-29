@@ -996,12 +996,12 @@ store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
     switch (sz)
       {
       case 0:
-	waddr ^= arch->endian;
+	waddr ^= arch->bswap;
 	mem[waddr] = *data & 0x0ff;
 	break;
       case 1:
-	waddr ^= arch->endian & 2;
-	memcpy (&mem[waddr], data, 2);
+	waddr ^= arch->bswap & 2;
+	*((uint16 *) & mem[waddr]) = (*data & 0x0ffff);
 	break;
       case 3:
 	memcpy (&mem[waddr], data, 8);

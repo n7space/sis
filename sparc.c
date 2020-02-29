@@ -2286,7 +2286,11 @@ gdb_sp_read (uint32 mem, char *buf, int length)
 	    &sregs[cpu].r[((i + 1) * 16 +
 			   ((mem - sregs->sp[i]) >> 2)) % (NWIN * 16)];
 	  for (j = 0; j < length; j++)
-	    buf[j] = data[j ^ arch->endian];
+#ifdef HOST_LITTLE_ENDIAN
+	    buf[j] = data[j ^ 3];
+#else
+	    buf[j] = data[j];
+#endif
 	  if (sis_verbose)
 	    printf ("gdb_sp_read: 0x%08x\n", mem);
 	  return length;
@@ -3470,7 +3474,11 @@ sparc_print_insn (uint32 addr)
 }
 
 const struct cpu_arch sparc32 = {
+#ifdef HOST_LITTLE_ENDIAN
   3,
+#else
+  0,
+#endif
   sparc_dispatch_instruction,
   sparc_execute_trap,
   sparc_check_interrupts,

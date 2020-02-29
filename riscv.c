@@ -24,6 +24,12 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#ifdef WORDS_BIGENDIAN
+#define BEH 1
+#else
+#define BEH 0
+#endif
+
 static int
 set_csr (address, sregs, value)
      uint32 address;
@@ -222,9 +228,9 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs2p << 1] = op1;
+		  sregs->fsi[(rs2p << 1) + BEH] = op1;
 #ifdef FPU_D_ENABLED
-		  sregs->fsi[(rs2p << 1) + 1] = -1;
+		  sregs->fsi[(rs2p << 1) + 1 - BEH] = -1;
 #endif
 		}
 	      break;
@@ -249,8 +255,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs2p << 1] = op1;
-		  sregs->fsi[(rs2p << 1) + 1] = op2;
+		  sregs->fsi[(rs2p << 1) + BEH] = op1;
+		  sregs->fsi[(rs2p << 1) + 1 - BEH] = op2;
 		}
 	      break;
 #endif
@@ -262,7 +268,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2p << 1],
+		ms->memory_write (address,
+				  (uint32 *) & sregs->fsi[(rs2p << 1) + BEH],
 				  2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
@@ -282,8 +289,14 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2p << 1],
-				  3, &ws);
+		ms->memory_write (address,
+				  (uint32 *) & sregs->fsi[(rs2p << 1) + BEH],
+				  2, &ws);
+	      sregs->hold += ws;
+	      mexc |=
+		ms->memory_write (address + 4,
+				  (uint32 *) & sregs->fsi[(rs2p << 1) + 1 -
+							  BEH], 2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -467,8 +480,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs1 << 1] = op1;
-		  sregs->fsi[(rs1 << 1) + 1] = op2;
+		  sregs->fsi[(rs1 << 1) + BEH] = op1;
+		  sregs->fsi[(rs1 << 1) + 1 - BEH] = op2;
 		}
 	      break;
 #endif
@@ -489,7 +502,7 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rs1 << 1] = op1;
+		  sregs->fsi[(rs1 << 1) + BEH] = op1;
 		}
 	      break;
 	    case 4:
@@ -566,8 +579,14 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2 << 1],
-				  3, &ws);
+		ms->memory_write (address,
+				  (uint32 *) & sregs->fsi[(rs2 << 1) + BEH],
+				  2, &ws);
+	      sregs->hold += ws;
+	      mexc |=
+		ms->memory_write (address + 4,
+				  (uint32 *) & sregs->fsi[(rs2 << 1) + 1 -
+							  BEH], 2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -585,7 +604,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		}
 	      mexc =
-		ms->memory_write (address, (uint32 *) & sregs->fsi[rs2 << 1],
+		ms->memory_write (address,
+				  (uint32 *) & sregs->fsi[(rs2 << 1) + BEH],
 				  2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
@@ -981,7 +1001,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_write (address, wdata, 2, &ws);
+	      mexc = ms->memory_write (address, &wdata[BEH], 2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -996,7 +1016,9 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_write (address, wdata, 3, &ws);
+	      mexc = ms->memory_write (address, &wdata[BEH], 2, &ws);
+	      sregs->hold += ws;
+	      mexc |= ms->memory_write (address + 4, &wdata[1 - BEH], 2, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1060,7 +1082,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->trap = TRAP_ILLEG;
 		  break;
 		}
-	      mexc = ms->memory_read (address, (uint32 *) & data, &ws);
+	      mexc = ms->memory_read (address & ~3, (uint32 *) & data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1068,11 +1090,12 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
+	      data >>= (address & 3) * 8;
 	      data = (data << 24) >> 24;
 	      sregs->r[rd] = data;
 	      break;
 	    case LBU:
-	      mexc = ms->memory_read (address, &op1, &ws);
+	      mexc = ms->memory_read (address & ~3, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1080,6 +1103,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
+	      op1 >>= (address & 3) * 8;
 	      sregs->r[rd] = op1 & 0x0ff;
 	      break;
 	    case LH:
@@ -1089,7 +1113,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, (uint32 *) & data, &ws);
+	      mexc = ms->memory_read (address & ~3, (uint32 *) & data, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1097,6 +1121,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
+	      data >>= (address & 2) * 8;
 	      data = (data << 16) >> 16;
 	      sregs->r[rd] = data;
 	      break;
@@ -1107,7 +1132,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
-	      mexc = ms->memory_read (address, &op1, &ws);
+	      mexc = ms->memory_read (address & ~3, &op1, &ws);
 	      sregs->hold += ws;
 	      if (mexc)
 		{
@@ -1115,6 +1140,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->wpaddress = address;
 		  break;
 		}
+	      op1 >>= (address & 2) * 8;
 	      op1 &= 0x0ffff;
 	      sregs->r[rd] = op1;
 	      break;
@@ -1386,8 +1412,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rd << 1] = op1;
-		  sregs->fsi[(rd << 1) + 1] = -1;
+		  sregs->fsi[(rd << 1) + BEH] = op1;
+		  sregs->fsi[(rd << 1) + 1 - BEH] = -1;
 		}
 	      break;
 	    case LD:
@@ -1409,8 +1435,8 @@ riscv_dispatch_instruction (sregs)
 		}
 	      else
 		{
-		  sregs->fsi[rd << 1] = op1;
-		  sregs->fsi[(rd << 1) + 1] = op2;
+		  sregs->fsi[(rd << 1) + BEH] = op1;
+		  sregs->fsi[(rd << 1) + 1 - BEH] = op2;
 		}
 	      break;
 	    default:
@@ -1432,29 +1458,29 @@ riscv_dispatch_instruction (sregs)
 	  switch (funct2)
 	    {
 	    case 0:		/* single-precision ops */
-	      frs1 = rs1 << 1;
-	      frs2 = rs2 << 1;
-	      frd = rd << 1;
+	      frs1 = (rs1 << 1) + BEH;
+	      frs2 = (rs2 << 1) + BEH;
+	      frd = (rd << 1) + BEH;
 	      switch (funct5)
 		{
 		case 0:	/* FADDS */
 		  sregs->fs[frd] = sregs->fs[frs1] + sregs->fs[frs2];
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  sregs->fhold += T_FADDs;
 		  break;
 		case 1:	/* FSUBS */
 		  sregs->fs[frd] = sregs->fs[frs1] - sregs->fs[frs2];
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  sregs->fhold += T_FSUBs;
 		  break;
 		case 2:	/* FMULS */
 		  sregs->fs[frd] = sregs->fs[frs1] * sregs->fs[frs2];
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  sregs->fhold += T_FMULs;
 		  break;
 		case 3:	/* FDIVS */
 		  sregs->fs[frd] = sregs->fs[frs1] / sregs->fs[frs2];
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  sregs->fhold += T_FDIVs;
 		  break;
 		case 4:	/* FSGX */
@@ -1463,17 +1489,17 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FSGNJ */
 		      sregs->fsi[frd] = (sregs->fsi[frs1] & 0x7fffffff) |
 			(sregs->fsi[frs2] & 0x80000000);
-		      sregs->fsi[frd + 1] = -1;
+		      sregs->fsi[frd ^ 1] = -1;
 		      break;
 		    case 1:	/* FSGNJN */
 		      sregs->fsi[frd] = (sregs->fsi[frs1] & 0x7fffffff) |
 			(~sregs->fsi[frs2] & 0x80000000);
-		      sregs->fsi[frd + 1] = -1;
+		      sregs->fsi[frd ^ 1] = -1;
 		      break;
 		    case 2:	/* FSGNJX */
 		      sregs->fsi[frd] =
 			sregs->fsi[frs1] ^ (sregs->fsi[frs2] & 0x80000000);
-		      sregs->fsi[frd + 1] = -1;
+		      sregs->fsi[frd ^ 1] = -1;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1485,7 +1511,7 @@ riscv_dispatch_instruction (sregs)
 		    sregs->fs[frd] = sregs->fs[frs1];
 		  else
 		    sregs->fs[frd] = sregs->fs[frs2];
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  sregs->fhold += T_FSUBs;
 		  break;
 #ifdef FPU_D_ENABLED
@@ -1494,7 +1520,7 @@ riscv_dispatch_instruction (sregs)
 		    {
 		    case 0:	/* FCVTSD */
 		      sregs->fs[frd] = (float32) sregs->fd[rs1];
-		      sregs->fsi[frd + 1] = -1;
+		      sregs->fsi[frd ^ 1] = -1;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1503,7 +1529,7 @@ riscv_dispatch_instruction (sregs)
 #endif
 		case 0x0b:	/* FSQRTS */
 		  sregs->fs[frd] = sqrtf (sregs->fs[frs1]);
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  sregs->fhold += T_FSQRTs;
 		  break;
 		case 0x14:	/* FCMPS */
@@ -1551,12 +1577,12 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FCVTSW */
 		      sop1 = sregs->r[rs1];
 		      sregs->fs[frd] = (float32) sop1;
-		      sregs->fsi[frd + 1] = -1;
+		      sregs->fsi[frd ^ 1] = -1;
 		      break;
 		    case 1:	/* FCVTSWU */
 		      op1 = sregs->r[rs1];
 		      sregs->fs[frd] = (float32) op1;
-		      sregs->fsi[frd + 1] = -1;
+		      sregs->fsi[frd ^ 1] = -1;
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1608,7 +1634,7 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		case 0x1e:	/* FMVSX */
 		  sregs->fsi[frd] = sregs->r[rs1];
-		  sregs->fsi[frd + 1] = -1;
+		  sregs->fsi[frd ^ 1] = -1;
 		  break;
 		default:
 		  sregs->trap = TRAP_ILLEG;
@@ -1637,30 +1663,35 @@ riscv_dispatch_instruction (sregs)
 		case 4:	/* FSGX */
 		  frd = (rd << 1);
 		  frs1 = (rs1 << 1);
-		  frs2 = (rs2 <<= 1);
+		  frs2 = (rs2 << 1);
 		  switch (funct3)
 		    {
 		    case 0:	/* FSGNJ */
-		      sregs->fsi[frd] = sregs->fsi[frs1];
-		      sregs->fsi[frd + 1] =
-			(sregs->
-			 fsi[frs1 + 1] & 0x7fffffff) | (sregs->fsi[frs2 +
-								   1] &
-							0x80000000);
+		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
+		      sregs->fsi[frd + 1 - BEH] =
+			(sregs->fsi[frs1 + 1 - BEH] & 0x7fffffff) | (sregs->
+								     fsi[frs2
+									 + 1 -
+									 BEH]
+								     &
+								     0x80000000);
 		      break;
 		    case 1:	/* FSGNJN */
-		      sregs->fsi[frd] = sregs->fsi[frs1];
-		      sregs->fsi[frd + 1] =
-			(sregs->
-			 fsi[frs1 + 1] & 0x7fffffff) | (~sregs->fsi[frs2 +
-								    1] &
-							0x80000000);
+		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
+		      sregs->fsi[frd + 1 - BEH] =
+			(sregs->fsi[frs1 + 1 - BEH] & 0x7fffffff) | (~sregs->
+								     fsi[frs2
+									 + 1 -
+									 BEH]
+								     &
+								     0x80000000);
 		      break;
 		    case 2:	/* FSGNJX */
-		      sregs->fsi[frd] = sregs->fsi[frs1];
-		      sregs->fsi[frd + 1] =
+		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
+		      sregs->fsi[frd + 1 - BEH] =
 			sregs->fsi[frs1 +
-				   1] ^ (sregs->fsi[frs2 + 1] & 0x80000000);
+				   1 - BEH] ^ (sregs->fsi[frs2 + 1 -
+							  BEH] & 0x80000000);
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1679,7 +1710,7 @@ riscv_dispatch_instruction (sregs)
 		  switch (funct2)
 		    {
 		    case 1:	/* FCVTDS */
-		      sregs->fd[rd] = (float64) sregs->fs[(rs1 << 1)];
+		      sregs->fd[rd] = (float64) sregs->fs[(rs1 << 1) + BEH];
 		      break;
 		    default:
 		      sregs->trap = TRAP_ILLEG;
@@ -1755,25 +1786,25 @@ riscv_dispatch_instruction (sregs)
 			  op1 = (1 << 8);	// FIX ME, add quiet NaN
 			  break;
 			case FP_INFINITE:
-			  if (sregs->fsi[(rs1 << 1) + 1] & 0x80000000)
+			  if (sregs->fsi[(rs1 << 1) + 1 - BEH] & 0x80000000)
 			    op1 = (1 << 0);
 			  else
 			    op1 = (1 << 7);
 			  break;
 			case FP_ZERO:
-			  if (sregs->fsi[(rs1 << 1) + 1] & 0x80000000)
+			  if (sregs->fsi[(rs1 << 1) + 1 - BEH] & 0x80000000)
 			    op1 = (1 << 3);
 			  else
 			    op1 = (1 << 4);
 			  break;
 			case FP_SUBNORMAL:
-			  if (sregs->fsi[(rs1 << 1) + 1] & 0x80000000)
+			  if (sregs->fsi[(rs1 << 1) + 1 - BEH] & 0x80000000)
 			    op1 = (1 << 2);
 			  else
 			    op1 = (1 << 5);
 			  break;
 			case FP_NORMAL:
-			  if (sregs->fsi[(rs1 << 1) + 1] & 0x80000000)
+			  if (sregs->fsi[(rs1 << 1) + 1 - BEH] & 0x80000000)
 			    op1 = (1 << 1);
 			  else
 			    op1 = (1 << 6);
@@ -1802,9 +1833,10 @@ riscv_dispatch_instruction (sregs)
 	  switch ((sregs->inst >> 25) & 3)
 	    {
 	    case 0:		/* OP_FMADDS */
-	      sregs->fs[rd << 1] = (sregs->fs[rs1 << 1] * sregs->fs[rs2 << 1])
-		+ sregs->fs[(sregs->inst >> 27) << 1];
-	      sregs->fsi[(rd << 1) + 1] = -1;
+	      sregs->fs[(rd << 1) + BEH] =
+		(sregs->fs[(rs1 << 1) + BEH] * sregs->fs[(rs2 << 1) + BEH]) +
+		sregs->fs[((sregs->inst >> 27) << 1) + BEH];
+	      sregs->fsi[(rd << 1) + 1 - BEH] = -1;
 	      sregs->fhold += T_FADDs + T_FMULs;
 	      break;
 #ifdef FPU_D_ENABLED
@@ -1826,9 +1858,10 @@ riscv_dispatch_instruction (sregs)
 	  switch ((sregs->inst >> 25) & 3)
 	    {
 	    case 0:		/* OP_FMSUBS */
-	      sregs->fs[rd << 1] = (sregs->fs[rs1 << 1] * sregs->fs[rs2 << 1])
-		- sregs->fs[(sregs->inst >> 27) << 1];
-	      sregs->fsi[(rd << 1) + 1] = -1;
+	      sregs->fs[(rd << 1) + BEH] =
+		(sregs->fs[(rs1 << 1) + BEH] * sregs->fs[(rs2 << 1) + BEH]) -
+		sregs->fs[((sregs->inst >> 27) << 1) + BEH];
+	      sregs->fsi[(rd << 1) + 1 - BEH] = -1;
 	      sregs->fhold += T_FMULs + T_FSUBs;
 	      break;
 #ifdef FPU_D_ENABLED
@@ -1850,10 +1883,10 @@ riscv_dispatch_instruction (sregs)
 	  switch ((sregs->inst >> 25) & 3)
 	    {
 	    case 0:		/* OP_FNMSUBS */
-	      sregs->fs[rd << 1] =
-		(-sregs->fs[rs1 << 1] * sregs->fs[rs2 << 1]) +
-		sregs->fs[(sregs->inst >> 27) << 1];
-	      sregs->fsi[(rd << 1) + 1] = -1;
+	      sregs->fs[(rd << 1) + BEH] =
+		(-sregs->fs[(rs1 << 1) + BEH] * sregs->fs[(rs2 << 1) + BEH]) +
+		sregs->fs[((sregs->inst >> 27) << 1) + BEH];
+	      sregs->fsi[(rd << 1) + 1 - BEH] = -1;
 	      sregs->fhold += T_FADDs + T_FSUBs;
 	      break;
 #ifdef FPU_D_ENABLED
@@ -1875,10 +1908,10 @@ riscv_dispatch_instruction (sregs)
 	  switch ((sregs->inst >> 25) & 3)
 	    {
 	    case 0:		/* OP_FNMADDS */
-	      sregs->fs[rd << 1] =
-		(-sregs->fs[rs1 << 1] * sregs->fs[rs2 << 1]) -
-		sregs->fs[(sregs->inst >> 27) << 1];
-	      sregs->fsi[(rd << 1) + 1] = -1;
+	      sregs->fs[(rd << 1) + BEH] =
+		(-sregs->fs[(rs1 << 1) + BEH] * sregs->fs[(rs2 << 1) + BEH]) -
+		sregs->fs[((sregs->inst >> 27) << 1) + BEH];
+	      sregs->fsi[(rd << 1) + 1 - BEH] = -1;
 	      sregs->fhold += T_FADDs + T_FMULs;
 	      break;
 #ifdef FPU_D_ENABLED
@@ -2065,13 +2098,13 @@ riscv_get_regi (struct pstate *sregs, int32 reg, char *buf, int length)
     {
       if (length == 8)
 	{
-	  rval = sregs->fsi[((reg - 33) << 1) + 1];
+	  rval = sregs->fsi[((reg - 33) << 1) + 1 - BEH];
 	  buf[7] = (rval >> 24) & 0x0ff;
 	  buf[6] = (rval >> 16) & 0x0ff;
 	  buf[5] = (rval >> 8) & 0x0ff;
 	  buf[4] = rval & 0x0ff;
 	}
-      rval = sregs->fsi[(reg - 33) << 1];
+      rval = sregs->fsi[((reg - 33) << 1) + BEH];
     }
   else if ((reg >= 65) && (reg < 4161))
     {
@@ -2188,11 +2221,11 @@ riscv_display_ctrl (struct pstate *sregs)
 {
   uint32 i;
 
-  printf ("\n  mtvec: %08X  mcause: %08X  mepc: %08X  mtval: %08X  \
+  printf ("\n mtvec: %08X  mcause: %08X  mepc: %08X  mtval: %08X  \
 mstatus: %08X\n", get_csr (CSR_MTVEC, sregs), get_csr (CSR_MCAUSE, sregs), get_csr (CSR_MEPC, sregs), sregs->mtval, get_csr (CSR_MSTATUS, sregs));
   ms->sis_memory_read (sregs->pc, (char *) &i, 4);
-  printf ("\n  pc: %08X = %08X    ", sregs->pc, i);
-//  print_insn_sis (sregs->pc, &dinfo);
+  printf ("\n pc: %08X = %08X    ", sregs->pc, i);
+  print_insn_sis (sregs->pc);
   if (sregs->err_mode)
     printf ("\n CPU in error mode");
   else if (sregs->pwd_mode)
@@ -2246,8 +2279,9 @@ riscv_display_fpu (struct pstate *sregs)
       else
 	printf ("ft%d ", i - 20);
 
-      printf (" f%02d  %08x%08x  %.15e  %.15e\n", i, sregs->fsi[(i << 1) + 1],
-	      sregs->fsi[i << 1], sregs->fs[i << 1], sregs->fd[i]);
+      printf (" f%02d  %08x%08x  %.15e  %.15e\n", i,
+	      sregs->fsi[(i << 1) + 1 - BEH], sregs->fsi[(i << 1) + BEH],
+	      sregs->fs[(i << 1) + BEH], sregs->fd[i]);
     }
   printf ("\n");
 }
@@ -3244,7 +3278,11 @@ riscv_print_insn (uint32 addr)
 }
 
 const struct cpu_arch riscv = {
+#ifdef HOST_LITTLE_ENDIAN
   0,
+#else
+  3,
+#endif
   riscv_dispatch_instruction,
   riscv_execute_trap,
   riscv_check_interrupts,

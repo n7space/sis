@@ -890,8 +890,8 @@ disp_mem (addr, len)
       p = (char *) mem;
       for (j = 0; j < 16; j++)
 	{
-	  if (isprint (p[j ^ arch->endian]))
-	    putchar (p[j ^ arch->endian]);
+	  if (isprint (p[j ^ arch->bswap]))
+	    putchar (p[j ^ arch->bswap]);
 	  else
 	    putchar ('.');
 	}
@@ -1566,7 +1566,7 @@ mygetline (char **lineptr, size_t * n, FILE * stream)
 #define COV_BT		8
 #define COV_BNT		16
 
-unsigned char covram[0x01000000 / 4];
+unsigned char covram[RAM_SIZE / 4];
 
 void
 cov_start (int address)
