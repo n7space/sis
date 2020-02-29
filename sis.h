@@ -21,6 +21,8 @@
 #endif
 
 #define	VAL(x)	strtoul(x,(char **)NULL,0)
+#define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 
 #define I_ACC_EXC 1
 #define NWIN 8
@@ -179,7 +181,7 @@ struct evcell
 
 struct cpu_arch
 {
-  int endian;
+  int bswap;
   int (*dispatch_instruction) (struct pstate * sregs);
   int (*execute_trap) (struct pstate * sregs);
   int (*check_interrupts) (struct pstate * sregs);

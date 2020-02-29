@@ -37,7 +37,7 @@ struct elf_file
   char *strtab;
   int arch;
   int cpu;
-  int be;
+  int bswap;
 };
 
 static struct elf_file efile;
@@ -59,19 +59,25 @@ read_elf_header (FILE * fp)
     {
       return (-1);
     }
-
+#ifdef HOST_LITTLE_ENDIAN
   if (ehdr.e_ident[EI_DATA] == ELFDATA2MSB)
+#else
+  if (ehdr.e_ident[EI_DATA] == ELFDATA2LSB)
+#endif
     {
-      efile.be = 1;
-      ehdr.e_entry = ntohl (ehdr.e_entry);
-      ehdr.e_shoff = ntohl (ehdr.e_shoff);
-      ehdr.e_phoff = ntohl (ehdr.e_phoff);
-      ehdr.e_phnum = ntohs (ehdr.e_phnum);
-      ehdr.e_shnum = ntohs (ehdr.e_shnum);
-      ehdr.e_phentsize = ntohs (ehdr.e_phentsize);
-      ehdr.e_shentsize = ntohs (ehdr.e_shentsize);
-      ehdr.e_shstrndx = ntohs (ehdr.e_shstrndx);
-      ehdr.e_machine = ntohs (ehdr.e_machine);
+      efile.bswap = 1;
+    }
+  if (efile.bswap)
+    {
+      ehdr.e_entry = SWAP_UINT32 (ehdr.e_entry);
+      ehdr.e_shoff = SWAP_UINT32 (ehdr.e_shoff);
+      ehdr.e_phoff = SWAP_UINT32 (ehdr.e_phoff);
+      ehdr.e_phnum = SWAP_UINT16 (ehdr.e_phnum);
+      ehdr.e_shnum = SWAP_UINT16 (ehdr.e_shnum);
+      ehdr.e_phentsize = SWAP_UINT16 (ehdr.e_phentsize);
+      ehdr.e_shentsize = SWAP_UINT16 (ehdr.e_shentsize);
+      ehdr.e_shstrndx = SWAP_UINT16 (ehdr.e_shstrndx);
+      ehdr.e_machine = SWAP_UINT16 (ehdr.e_machine);
     }
 
   switch (ehdr.e_machine)
@@ -112,7 +118,7 @@ read_elf_body ()
   char *strtab;
   char *mem;
   uint32 *memw, i, j, k, vaddr;
-  int be = efile.be;
+  int bswap = efile.bswap;
   FILE *fp = efile.fp;
 
   fseek (fp, ehdr.e_shoff + ((ehdr.e_shstrndx) * ehdr.e_shentsize), SEEK_SET);
@@ -122,12 +128,12 @@ read_elf_body ()
     }
 
   /* endian swap if big-endian target */
-  if (be)
+  if (bswap)
     {
-      ssh.sh_name = ntohl (ssh.sh_name);
-      ssh.sh_type = ntohl (ssh.sh_type);
-      ssh.sh_offset = ntohl (ssh.sh_offset);
-      ssh.sh_size = ntohl (ssh.sh_size);
+      ssh.sh_name = SWAP_UINT32 (ssh.sh_name);
+      ssh.sh_type = SWAP_UINT32 (ssh.sh_type);
+      ssh.sh_offset = SWAP_UINT32 (ssh.sh_offset);
+      ssh.sh_size = SWAP_UINT32 (ssh.sh_size);
     }
   strtab = (char *) malloc (ssh.sh_size);
   fseek (fp, ssh.sh_offset, SEEK_SET);
@@ -143,14 +149,14 @@ read_elf_body ()
 	{
 	  return (-1);
 	}
-      if (be)
+      if (bswap)
 	{
-	  ph[i].p_type = ntohl (ph[i].p_type);
-	  ph[i].p_offset = ntohl (ph[i].p_offset);
-	  ph[i].p_vaddr = ntohl (ph[i].p_vaddr);
-	  ph[i].p_paddr = ntohl (ph[i].p_paddr);
-	  ph[i].p_filesz = ntohl (ph[i].p_filesz);
-	  ph[i].p_memsz = ntohl (ph[i].p_memsz);
+	  ph[i].p_type = SWAP_UINT32 (ph[i].p_type);
+	  ph[i].p_offset = SWAP_UINT32 (ph[i].p_offset);
+	  ph[i].p_vaddr = SWAP_UINT32 (ph[i].p_vaddr);
+	  ph[i].p_paddr = SWAP_UINT32 (ph[i].p_paddr);
+	  ph[i].p_filesz = SWAP_UINT32 (ph[i].p_filesz);
+	  ph[i].p_memsz = SWAP_UINT32 (ph[i].p_memsz);
 	}
     }
 
@@ -161,14 +167,14 @@ read_elf_body ()
 	{
 	  return (-1);
 	}
-      if (be)
+      if (bswap)
 	{
-	  sh.sh_name = ntohl (sh.sh_name);
-	  sh.sh_addr = ntohl (sh.sh_addr);
-	  sh.sh_size = ntohl (sh.sh_size);
-	  sh.sh_type = ntohl (sh.sh_type);
-	  sh.sh_offset = ntohl (sh.sh_offset);
-	  sh.sh_flags = ntohl (sh.sh_flags);
+	  sh.sh_name = SWAP_UINT32 (sh.sh_name);
+	  sh.sh_addr = SWAP_UINT32 (sh.sh_addr);
+	  sh.sh_size = SWAP_UINT32 (sh.sh_size);
+	  sh.sh_type = SWAP_UINT32 (sh.sh_type);
+	  sh.sh_offset = SWAP_UINT32 (sh.sh_offset);
+	  sh.sh_flags = SWAP_UINT32 (sh.sh_flags);
 	}
 
       if ((sh.sh_type != SHT_NOBITS) && (sh.sh_size)
@@ -201,9 +207,9 @@ read_elf_body ()
 		      return (-1);
 		    }
 		  memw = (unsigned int *) mem;
-		  if (be)
+		  if (bswap)
 		    for (j = 0; j < (sh.sh_size) / 4 + 1; j++)
-		      memw[j] = ntohl (memw[j]);
+		      memw[j] = SWAP_UINT32 (memw[j]);
 		  ms->sis_memory_write (sh.sh_addr, mem,
 					(sh.sh_size / 4 + 1) * 4);
 		}

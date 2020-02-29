@@ -88,7 +88,7 @@ sim_write (uint32 mem, const char *buf, int length)
 
   for (i = 0; i < length; i++)
     {
-      ms->sis_memory_write ((mem + i) ^ arch->endian, &buf[i], 1);
+      ms->sis_memory_write ((mem + i) ^ arch->bswap, &buf[i], 1);
     }
   return length;
 }
@@ -105,7 +105,7 @@ sim_read (uint32 mem, char *buf, int length)
     }
   for (i = 0; i < length; i++)
     {
-      ms->sis_memory_read ((mem + i) ^ arch->endian, &buf[i], 1);
+      ms->sis_memory_read ((mem + i) ^ arch->bswap, &buf[i], 1);
     }
   return length;
 }

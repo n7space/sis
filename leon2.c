@@ -19,12 +19,6 @@
  * Leon2 emulation, based on leon3.c and erc32.c/
  */
 
-#ifdef WORDS_BIGENDIAN
-#define EBT 0
-#else
-#define EBT 3
-#endif
-
 #define ROM_START	0x00000000
 #define RAM_START	0x40000000
 
@@ -796,7 +790,9 @@ store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
   switch (sz)
     {
     case 0:
-      waddr ^= EBT;
+#ifdef HOST_LITTLE_ENDIAN
+      waddr ^= 3;
+#endif
       mem[waddr] = *data & 0x0ff;
       *ws = 0;
       break;
@@ -804,7 +800,7 @@ store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
 #ifdef HOST_LITTLE_ENDIAN
       waddr ^= 2;
 #endif
-      memcpy (&mem[waddr], data, 2);
+      *((uint16 *) & mem[waddr]) = *data & 0x0ffff;
       *ws = 0;
       break;
     case 2:

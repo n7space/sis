@@ -16,12 +16,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifdef WORDS_BIGENDIAN
-#define EBT 0
-#else
-#define EBT 3
-#endif
-
 #define ROM_START 	0
 #define RAM_START 	0x02000000
 
@@ -1620,7 +1614,9 @@ store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
   switch (sz)
     {
     case 0:
-      waddr ^= EBT;
+#ifdef HOST_LITTLE_ENDIAN
+      waddr ^= 3;
+#endif
       mem[waddr] = *data & 0x0ff;
       *ws = mem_ramw_ws + 3;
       break;
@@ -1628,7 +1624,7 @@ store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz, int32 * ws)
 #ifdef HOST_LITTLE_ENDIAN
       waddr ^= 2;
 #endif
-      memcpy (&mem[waddr], data, 2);
+      *((uint16 *) & mem[waddr]) = *data & 0x0ffff;
       *ws = mem_ramw_ws + 3;
       break;
     case 2:
