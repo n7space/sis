@@ -77,15 +77,14 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(infodir)"
 PROGRAMS = $(bin_PROGRAMS)
-am__sis_SOURCES_DIST = erc32.c float.c grlib.c leon3.c exec.c func.c \
-	help.c sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
+am__sis_SOURCES_DIST = erc32.c grlib.c leon3.c exec.c func.c help.c \
+	sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
 	linenoise.c
 @LINENOISE_TRUE@am__objects_1 = linenoise.$(OBJEXT)
-am_sis_OBJECTS = erc32.$(OBJEXT) float.$(OBJEXT) grlib.$(OBJEXT) \
-	leon3.$(OBJEXT) exec.$(OBJEXT) func.$(OBJEXT) help.$(OBJEXT) \
-	sparc.$(OBJEXT) riscv.$(OBJEXT) leon2.$(OBJEXT) sis.$(OBJEXT) \
-	interf.$(OBJEXT) remote.$(OBJEXT) elf.$(OBJEXT) \
-	$(am__objects_1)
+am_sis_OBJECTS = erc32.$(OBJEXT) grlib.$(OBJEXT) leon3.$(OBJEXT) \
+	exec.$(OBJEXT) func.$(OBJEXT) help.$(OBJEXT) sparc.$(OBJEXT) \
+	riscv.$(OBJEXT) leon2.$(OBJEXT) sis.$(OBJEXT) interf.$(OBJEXT) \
+	remote.$(OBJEXT) elf.$(OBJEXT) $(am__objects_1)
 sis_OBJECTS = $(am_sis_OBJECTS)
 sis_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -264,7 +263,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @LINENOISE_FALSE@LN_SRC = 
 @LINENOISE_TRUE@LN_SRC = linenoise.c
-sis_SOURCES = erc32.c float.c grlib.c leon3.c exec.c func.c help.c \
+sis_SOURCES = erc32.c grlib.c leon3.c exec.c func.c help.c \
 	      sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
 	      $(LN_SRC)
 
@@ -379,7 +378,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/erc32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exec.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/float.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/func.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grlib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/help.Po@am__quote@

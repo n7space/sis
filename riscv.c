@@ -23,12 +23,61 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <fenv.h>
 
 #ifdef WORDS_BIGENDIAN
 #define BEH 1
 #else
 #define BEH 0
 #endif
+
+/* This routine should return the accrued FPU exceptions */
+static int
+riscv_get_accex ()
+{
+  int fexc, accx;
+
+  fexc = fetestexcept (FE_ALL_EXCEPT);
+  accx = 0;
+  if (fexc & FE_INEXACT)
+    accx |= 1;
+  if (fexc & FE_UNDERFLOW)
+    accx |= 2;
+  if (fexc & FE_OVERFLOW)
+    accx |= 4;
+  if (fexc & FE_DIVBYZERO)
+    accx |= 8;
+  if (fexc & FE_INVALID)
+    accx |= 0x10;
+  return accx;
+}
+
+/* How to map RISCV FSR onto the host */
+static void
+riscv_set_fsr (fsr)
+     uint32 fsr;
+{
+  int fround;
+
+  fsr >>= 5;
+  fsr &= 0x3;
+  switch (fsr)
+    {
+    case 0:
+      fround = FE_TONEAREST;
+      break;
+    case 1:
+      fround = FE_TOWARDZERO;
+      break;
+    case 2:
+      fround = FE_DOWNWARD;
+      break;
+    case 3:
+      fround = FE_UPWARD;
+      break;
+    }
+  fesetround (fround);
+}
 
 static int
 set_csr (address, sregs, value)
@@ -61,12 +110,15 @@ set_csr (address, sregs, value)
       break;
     case CSR_FFLAGS:
       sregs->fsr = (sregs->fsr & ~0x1f) | value;
+      riscv_set_fsr (sregs->fsr);
       break;
     case CSR_FRM:
-      sregs->fsr = (sregs->fsr & ~0xc0) | (value << 5);
+      sregs->fsr = (sregs->fsr & ~0xe0) | (value << 5);
+      riscv_set_fsr (sregs->fsr);
       break;
     case CSR_FCSR:
       sregs->fsr = value;
+      riscv_set_fsr (sregs->fsr);
       break;
     default:
       return 1;
@@ -1824,7 +1876,7 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
-	  sregs->fsr |= get_accex ();
+	  sregs->fsr |= riscv_get_accex ();
 	  clear_accex ();
 	  break;
 	case OP_FMADD:
@@ -1849,7 +1901,7 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
-	  sregs->fsr |= get_accex ();
+	  sregs->fsr |= riscv_get_accex ();
 	  clear_accex ();
 	  break;
 	case OP_FMSUB:
@@ -1874,7 +1926,7 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
-	  sregs->fsr |= get_accex ();
+	  sregs->fsr |= riscv_get_accex ();
 	  clear_accex ();
 	  break;
 	case OP_FNMSUB:
@@ -1899,7 +1951,7 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
-	  sregs->fsr |= get_accex ();
+	  sregs->fsr |= riscv_get_accex ();
 	  clear_accex ();
 	  break;
 	case OP_FNMADD:
@@ -1924,7 +1976,7 @@ riscv_dispatch_instruction (sregs)
 	    default:
 	      sregs->trap = TRAP_ILLEG;
 	    }
-	  sregs->fsr |= get_accex ();
+	  sregs->fsr |= riscv_get_accex ();
 	  clear_accex ();
 	  break;
 #endif
@@ -2143,7 +2195,7 @@ riscv_set_rega (struct pstate *sregs, char *reg, uint32 rval)
   else if (strcmp (reg, "fsr") == 0)
     {
       sregs->fsr = rval;
-      set_fsr (rval);
+      riscv_set_fsr (rval);
     }
   else if (strcmp (reg, "g0") == 0)
     err = 2;

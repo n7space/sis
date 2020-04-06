@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <fenv.h>
 
 int ext_irl[NCPU];
 
@@ -114,6 +115,13 @@ div64 (uint32 n1_hi, uint32 n1_low, uint32 n2, uint32 * result, int msigned)
   *result = (uint32) (n1 & 0xffffffff);
 }
 
+/* How to clear the accrued FPU exceptions */
+void
+clear_accex ()
+{
+  feclearexcept (FE_ALL_EXCEPT);
+}
+
 void
 init_regs (sregs)
      struct pstate *sregs;
@@ -147,7 +155,6 @@ init_regs (sregs)
       sregs[i].fsi = (int32 *) sregs[i].fd;
       sregs[i].fsr = 0;
       sregs[i].fpu_pres = !nfp;
-      set_fsr (sregs[i].fsr);
       sregs[i].ildreg = 0;
       sregs[i].ildtime = 0;
 
