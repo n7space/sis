@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <fenv.h>
 #include "sparc.h"
 
 static int fpexec (uint32 op3, uint32 rd, uint32 rs1, uint32 rs2,
@@ -132,6 +133,31 @@ extract_byte (uint32 data, uint32 address)
   return ((data >> ((3 - (address & 3)) * 8)) & 0xff);
 }
 
+/* How to map SPARC FSR onto the host */
+static void
+sparc_set_fsr (fsr)
+     uint32 fsr;
+{
+  int fround;
+
+  fsr >>= 30;
+  switch (fsr)
+    {
+    case 0:
+      fround = FE_TONEAREST;
+      break;
+    case 1:
+      fround = FE_TOWARDZERO;
+      break;
+    case 2:
+      fround = FE_UPWARD;
+      break;
+    case 3:
+      fround = FE_DOWNWARD;
+      break;
+    }
+  fesetround (fround);
+}
 
 static int
 sparc_dispatch_instruction (sregs)
@@ -1249,7 +1275,7 @@ sparc_dispatch_instruction (sregs)
 	  else
 	    {
 	      sregs->fsr = (sregs->fsr & 0x7FF000) | (data & ~0x7FF000);
-	      set_fsr (sregs->fsr);
+	      sparc_set_fsr (sregs->fsr);
 	    }
 	  break;
 	case STFSR:
@@ -1598,6 +1624,26 @@ sparc_dispatch_instruction (sregs)
 #define FsTOi	0xD1
 #define FsTOd	0xC9
 
+/* This routine should return the accrued exceptions */
+static int
+sparc_get_accex ()
+{
+  int fexc, accx;
+
+  fexc = fetestexcept (FE_ALL_EXCEPT);
+  accx = 0;
+  if (fexc & FE_INEXACT)
+    accx |= 1;
+  if (fexc & FE_DIVBYZERO)
+    accx |= 2;
+  if (fexc & FE_UNDERFLOW)
+    accx |= 4;
+  if (fexc & FE_OVERFLOW)
+    accx |= 8;
+  if (fexc & FE_INVALID)
+    accx |= 0x10;
+  return accx;
+}
 
 static int
 fpexec (op3, rd, rs1, rs2, sregs)
@@ -1844,7 +1890,7 @@ fpexec (op3, rd, rs1, rs2, sregs)
     }
 #endif
 
-  accex = get_accex ();
+  accex = sparc_get_accex ();
 
   if (sregs->fpstate == FP_EXC_PE)
     {
@@ -2063,7 +2109,7 @@ sparc_set_regi (sregs, reg, rval)
 	  break;
 	case 70:
 	  sregs->fsr = rval;
-	  set_fsr (rval);
+	  sparc_set_fsr (rval);
 	  break;
 	default:
 	  break;
@@ -2150,7 +2196,7 @@ sparc_set_rega (struct pstate *sregs, char *reg, uint32 rval)
   else if (strcmp (reg, "fsr") == 0)
     {
       sregs->fsr = rval;
-      set_fsr (rval);
+      sparc_set_fsr (rval);
     }
   else if (strcmp (reg, "g0") == 0)
     err = 2;
