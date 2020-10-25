@@ -325,6 +325,8 @@ extern void int_handler (int sig);
 extern uint32 daddr;
 extern void l1data_update (uint32 address, uint32 cpu);
 extern void l1data_snoop (uint32 address, uint32 cpu);
+extern int sync_rt;
+extern void rt_sync();
 
 /* exec.c */
 extern void init_regs (struct pstate *sregs);

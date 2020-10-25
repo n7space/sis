@@ -916,6 +916,8 @@ sparc_dispatch_instruction (sregs)
 		  else if (19 == rd)
 		    {
 		      pwd_enter (sregs);
+		      if (sync_rt)
+		        rt_sync();
 		    }
 		}
 	      break;

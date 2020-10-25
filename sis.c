@@ -147,6 +147,10 @@ main (argc, argv)
 	    {
 	      run = 1;
 	    }
+	  else if (strcmp (argv[stat], "-rt") == 0)
+	    {
+	      sync_rt = 1;
+	    }
 	  else if (strcmp (argv[stat], "-erc32") == 0)
 	    {
 	      lcputype = CPU_ERC32;
