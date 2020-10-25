@@ -103,4 +103,8 @@ grlib_init ()
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_IRQMP, 2, 0),
 		   GRLIB_PP_APBADDR (0x80000200, 0xFFF));
 
+  grlib_ahbmpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GRETH, 0, 0));
+  grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GRETH, 0, 6),
+		   GRLIB_PP_APBADDR (0x80000B00, 0xFFF));
+
 }

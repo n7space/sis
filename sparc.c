@@ -917,7 +917,7 @@ sparc_dispatch_instruction (sregs)
 		    {
 		      pwd_enter (sregs);
 		      if (sync_rt)
-		        rt_sync();
+			rt_sync ();
 		    }
 		}
 	      break;

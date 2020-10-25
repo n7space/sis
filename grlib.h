@@ -36,6 +36,7 @@
 #define GAISLER_APBUART	0x00C
 #define GAISLER_IRQMP	0x00D
 #define GAISLER_GPTIMER	0x011
+#define GAISLER_GRETH	0x01D
 #define ESA_MCTRL	0x00F
 
 /* How to build entries in the plug&play area */

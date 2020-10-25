@@ -367,7 +367,7 @@ sim_insert_swbreakpoint (uint32 addr, int len)
 	  breakinsn = CEBREAK;
 	  ms->sis_memory_write (addr, (char *) &breakinsn, 2);
 	}
-      if (sis_verbose)
+      if (sis_verbose > 1)
 	printf ("sim_insert_swbreakpoint: added breakpoint %d at 0x%08x\n",
 		ebase.bptnum + 1, addr);
       ebase.bptnum += 1;
@@ -391,7 +391,7 @@ sim_remove_swbreakpoint (uint32 addr, int len)
     {
       /* write back saved opcode */
       ms->sis_memory_write (addr, (char *) &ebase.bpsave[i], len);
-      if (sis_verbose)
+      if (sis_verbose > 1)
 	printf ("sim_remove_swbreakpoint: remove breakpoint %d at 0x%08x\n",
 		i, addr);
       /* shift down remaining breakpoints */

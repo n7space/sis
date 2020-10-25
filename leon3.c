@@ -150,7 +150,6 @@ static void close_port (void);
 static void leon3_reset (void);
 static void irqmp_intack (int level, int cpu);
 static void chk_irq (void);
-static void set_irq (int32 level);
 static int32 apb_read (uint32 addr, uint32 * data);
 static int apb_write (uint32 addr, uint32 data);
 static void port_init (void);
@@ -170,6 +169,7 @@ static char *get_mem_ptr (uint32 addr, uint32 size);
 static void store_bytes (char *mem, uint32 waddr,
 			 uint32 * data, int sz, int32 * ws);
 static void gpt_add_intr (int i);
+static void set_irq (int32 level);
 
 /* One-time init. */
 
@@ -443,7 +443,9 @@ apb_read (uint32 addr, uint32 * data)
 
     default:
       *data = 0;
-      if (sis_verbose > 1)
+      if ((addr & 0xF00) == 0xB00)
+	*data = greth_read (addr);
+      else if (sis_verbose > 1)
 	printf ("%8" PRIu64
 		" cpu %d APB read  a: %08x, d: %08x  unimplemented!\n",
 		ebase.simtime, cpu, addr, *data);
@@ -582,7 +584,9 @@ apb_write (uint32 addr, uint32 data)
       break;
 
     default:
-      if (sis_verbose)
+      if ((addr & 0xF00) == 0xB00)
+	greth_write (addr, data);
+      else if (sis_verbose)
 	printf ("%8" PRIu64
 		" cpu %d APB write a: %08x, d: %08x  unimplemented!\n",
 		ebase.simtime, cpu, addr, data);
@@ -1136,7 +1140,7 @@ get_mem_ptr (uint32 addr, uint32 size)
       return &ramb[addr & RAM_MASK];
     }
 
-  return (char *) -1;
+  return NULL;
 }
 
 static int
@@ -1145,7 +1149,7 @@ sis_memory_write (uint32 addr, const char *data, uint32 length)
   char *mem;
   int32 ws;
 
-  if ((mem = get_mem_ptr (addr, length)) != ((char *) -1))
+  if ((mem = get_mem_ptr (addr, length)) != NULL)
     {
       memcpy (mem, data, length);
       return length;
@@ -1167,7 +1171,7 @@ sis_memory_read (uint32 addr, char *data, uint32 length)
       return 4;
     }
 
-  if ((mem = get_mem_ptr (addr, length)) == ((char *) -1))
+  if ((mem = get_mem_ptr (addr, length)) == NULL)
     return 0;
 
   memcpy (data, mem, length);
@@ -1211,5 +1215,7 @@ const struct memsys leon3 = {
   memory_write,
   sis_memory_write,
   sis_memory_read,
-  boot_init
+  boot_init,
+  get_mem_ptr,
+  set_irq
 };
