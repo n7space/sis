@@ -78,13 +78,14 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(infodir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__sis_SOURCES_DIST = erc32.c grlib.c leon3.c exec.c func.c help.c \
-	sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
-	linenoise.c
+	sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c greth.c \
+	tap.c linenoise.c
 @LINENOISE_TRUE@am__objects_1 = linenoise.$(OBJEXT)
 am_sis_OBJECTS = erc32.$(OBJEXT) grlib.$(OBJEXT) leon3.$(OBJEXT) \
 	exec.$(OBJEXT) func.$(OBJEXT) help.$(OBJEXT) sparc.$(OBJEXT) \
 	riscv.$(OBJEXT) leon2.$(OBJEXT) sis.$(OBJEXT) interf.$(OBJEXT) \
-	remote.$(OBJEXT) elf.$(OBJEXT) $(am__objects_1)
+	remote.$(OBJEXT) elf.$(OBJEXT) greth.$(OBJEXT) tap.$(OBJEXT) \
+	$(am__objects_1)
 sis_OBJECTS = $(am_sis_OBJECTS)
 sis_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -265,6 +266,7 @@ top_srcdir = @top_srcdir@
 @LINENOISE_TRUE@LN_SRC = linenoise.c
 sis_SOURCES = erc32.c grlib.c leon3.c exec.c func.c help.c \
 	      sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
+	      greth.c tap.c \
 	      $(LN_SRC)
 
 AM_CFLAGS = -DFAST_UART
@@ -379,6 +381,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/erc32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/func.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/greth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grlib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/help.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interf.Po@am__quote@
@@ -389,6 +392,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/riscv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sparc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tap.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -1374,6 +1374,8 @@ riscv_dispatch_instruction (sregs)
 		  break;
 		case 5:	/* wfi */
 		  pwd_enter (sregs);
+		  if (sync_rt)
+		    rt_sync ();
 		  break;
 		default:
 		  sregs->trap = TRAP_ILLEG;
@@ -1721,22 +1723,20 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FSGNJ */
 		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
 		      sregs->fsi[frd + 1 - BEH] =
-			(sregs->fsi[frs1 + 1 - BEH] & 0x7fffffff) | (sregs->
-								     fsi[frs2
-									 + 1 -
-									 BEH]
-								     &
-								     0x80000000);
+			(sregs->
+			 fsi[frs1 + 1 -
+			     BEH] & 0x7fffffff) | (sregs->fsi[frs2 + 1 -
+							      BEH] &
+						   0x80000000);
 		      break;
 		    case 1:	/* FSGNJN */
 		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
 		      sregs->fsi[frd + 1 - BEH] =
-			(sregs->fsi[frs1 + 1 - BEH] & 0x7fffffff) | (~sregs->
-								     fsi[frs2
-									 + 1 -
-									 BEH]
-								     &
-								     0x80000000);
+			(sregs->
+			 fsi[frs1 + 1 -
+			     BEH] & 0x7fffffff) | (~sregs->fsi[frs2 + 1 -
+							       BEH] &
+						   0x80000000);
 		      break;
 		    case 2:	/* FSGNJX */
 		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];

@@ -64,6 +64,7 @@ int nouartrx = 0;
 int port = 1234;
 int sim_run = 0;
 int sync_rt = 0;
+char bridge[32] = "";
 
 /* RAM and ROM for all systems */
 char romb[ROM_SIZE];
@@ -1056,7 +1057,7 @@ pwd_enter (struct pstate *sregs)
 }
 
 void
-rt_sync()
+rt_sync ()
 {
   double walltime, realtime, dtime;
   int64 stime;
@@ -1065,11 +1066,11 @@ rt_sync()
   walltime = ebase.tottime + get_time () - ebase.starttime;
   dtime = (realtime - walltime);
   if (dtime > 0.001)
-  {
-    if (dtime > 1.0)
-      dtime = 0.1;
-    usleep ((useconds_t) (dtime * 1E6));
-  }
+    {
+      if (dtime > 1.0)
+	dtime = 0.1;
+      usleep ((useconds_t) (dtime * 1E6));
+    }
 }
 
 int

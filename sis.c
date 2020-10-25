@@ -63,7 +63,7 @@ main (argc, argv)
   int lcputype = 0;
 
   printf
-    ("\n SIS - SPARC/RISCV instruction simulator %s,  copyright Jiri Gaisler 2019\n",
+    ("\n SIS - SPARC/RISCV instruction simulator %s,  copyright Jiri Gaisler 2020\n",
      sis_version);
   printf (" Bug-reports to jiri@gaisler.se\n\n");
 
@@ -98,6 +98,11 @@ main (argc, argv)
 		  copt = 1;
 		  cfile = argv[++stat];
 		}
+	    }
+	  else if (strcmp (argv[stat], "-bridge") == 0)
+	    {
+	      if ((stat + 1) < argc)
+		strncpy (bridge, argv[++stat], 31);
 	    }
 	  else if (strcmp (argv[stat], "-cov") == 0)
 	    ebase.coven = 1;

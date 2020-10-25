@@ -29,7 +29,7 @@ sis_usage ()
   printf ("[-cov] [-nfp] [-ift] [-wrp] [-rom8] [-uben]\n");
   printf ("[-freq frequency] [-c batch_file]\n");
   printf ("[-erc32] [-leon2] [-leon3] [-ricsv]\n");
-  printf ("[-d] [-v] [files]\n");
+  printf ("[-d] [-v] [-rt] [-bridge name] [files]\n");
 }
 
 void

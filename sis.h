@@ -325,6 +325,7 @@ extern void int_handler (int sig);
 extern uint32 daddr;
 extern void l1data_update (uint32 address, uint32 cpu);
 extern void l1data_snoop (uint32 address, uint32 cpu);
+extern char bridge[];
 extern int sync_rt;
 extern void rt_sync();
 
@@ -359,6 +360,8 @@ struct memsys
   int (*sis_memory_write) (uint32 addr, const char *data, uint32 length);
   int (*sis_memory_read) (uint32 addr, char *data, uint32 length);
   void (*boot_init) (void);
+  char *(*get_mem_ptr) (uint32 addr, uint32 size);
+  void (*set_irq) (int32 level);
 };
 
 extern const struct memsys *ms;
@@ -368,7 +371,6 @@ extern const struct memsys leon2;
 
 /* leon3.c */
 extern const struct memsys leon3;
-
 /* remote.c */
 
 extern void gdb_remote (int port);
@@ -389,6 +391,16 @@ extern int sim_clear_watchpoint (uint32 mem, int length, int type);
 
 /* sparc.c */
 extern int gdb_sp_read (uint32 mem, char *buf, int length);
+
+/* greth.c */
+extern uint32 greth_read (uint32 address);
+extern void greth_write (uint32 address, uint32 data);
+extern void greth_rxready(unsigned char *buffer, int len);
+
+/* tap.c */
+
+extern int sis_tap_init (long unsigned emac);
+extern int sis_tap_write (unsigned char *buffer, int len);
 
 /* FPU timing based on Meiko */
 
