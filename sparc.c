@@ -845,17 +845,27 @@ sparc_dispatch_instruction (sregs)
 	      *rdd = sregs->psr;
 	      break;
 	    case RDY:
-	      *rdd = sregs->y;
 	      if (cputype == CPU_LEON3)
 		{
-		  int rs1_is_asr = (sregs->inst >> 14) & 0x1f;
-		  if (0 == rs1_is_asr)
-		    *rdd = sregs->y;
-		  else if (17 == rs1_is_asr)
+		  rs1 = (sregs->inst >> 14) & 0x1f;
+		  switch (rs1)
 		    {
+		    case 0:
+		      *rdd = sregs->y;
+		      break;
+		    case 17:
 		      *rdd = sregs->asr17;
+		      break;
+		    case 22:
+		      *rdd = (uint32) (sregs->simtime >> 32);
+		      break;
+		    case 23:
+		      *rdd = (uint32) (sregs->simtime & 0xffffffff);
+		      break;
 		    }
 		}
+	      else
+		*rdd = sregs->y;
 	      break;
 	    case RDWIM:
 	      if (!(sregs->psr & PSR_S))
@@ -2058,8 +2068,11 @@ sparc_display_ctrl (struct pstate *sregs)
 static void
 sparc_display_special (struct pstate *sregs)
 {
-  printf ("\n cache ctrl  :   %08X\n asr17       :   %08X\n\n",
+  printf ("\n cache ctrl  :   %08X\n asr17       :   %08X",
 	  sregs->cache_ctrl, sregs->asr17);
+  printf ("\n asr22       :   %08X\n asr23       :   %08X\n\n",
+	  (uint32) (sregs->simtime >> 32),
+	  (uint32) sregs->simtime & 0xffffffff);
 }
 
 static void
