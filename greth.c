@@ -255,9 +255,6 @@ greth_read (uint32 address)
     default:
       res = 0;
     }
-  if (sis_verbose > 1)
-    printf ("%8lu cpu %d APB read  a: %08x, d: %08x\n",
-	    ebase.simtime, cpu, address, res);
   return res;
 }
 

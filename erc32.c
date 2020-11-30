@@ -17,7 +17,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #define ROM_START 	0
+#define ROM_SIZE 	0x01000000
 #define RAM_START 	0x02000000
+#define RAM_SIZE 	0x01000000
 
 #include "config.h"
 #include <errno.h>

@@ -52,6 +52,9 @@
 #define APBPP_START	0x800FF000
 #define APBPP_END	0x800FFFFF
 
+#define ROM_MASKPP	((~ROM_MASK >> 20) & 0xFFF)
+#define RAM_MASKPP	((~RAM_MASK >> 20) & 0xFFF)
+
 extern int grlib_apbpp_add (uint32 id, uint32 addr);
 extern int grlib_ahbmpp_add (uint32 id);
 extern int grlib_ahbspp_add (uint32 id, uint32 addr1, uint32 addr2,
@@ -60,3 +63,39 @@ extern uint32 grlib_ahbpnp_read (uint32 addr);
 extern uint32 grlib_apbpnp_read (uint32 addr);
 extern void grlib_init ();
 extern uint32 rvtimer_read (int address, int cpu);
+
+struct grlib_ipcore
+{
+  void (*init) (void);
+  void (*reset) (void);
+  int (*read) (uint32 addr, uint32 * data);
+  int (*write) (uint32 addr, uint32 * data, uint32 size);
+  void (*add) (int irq, uint32 addr, uint32 mask);
+};
+
+struct grlib_buscore
+{
+  const struct grlib_ipcore *core;
+  uint32 start;
+  uint32 end;
+  uint32 mask;
+};
+
+extern void grlib_ahbs_add (const struct grlib_ipcore *core, int irq,
+			    uint32 addr, uint32 mask);
+extern void grlib_ahbm_add (const struct grlib_ipcore *core, int irq);
+extern void grlib_apb_add (const struct grlib_ipcore *core, int irq,
+			   uint32 addr, uint32 mask);
+extern int grlib_read (uint32 addr, uint32 * data);
+extern int grlib_write (uint32 addr, uint32 * data, uint32 sz);
+extern void grlib_set_irq (int32 level);
+extern void grlib_store_bytes (char *mem, uint32 waddr, uint32 * data,
+			       int32 sz);
+extern void grlib_boot_init (void);
+extern void grlib_reset (void);
+extern void apbuart_init_stdio (void);
+extern void apbuart_restore_stdio (void);
+extern void apbuart_close_port (void);
+extern void apbuart_flush (void);
+extern const struct grlib_ipcore gptimer, irqmp, apbuart, apbmst,
+  greth, leon3s, srctrl;

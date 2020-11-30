@@ -240,13 +240,13 @@ elf_load (char *fname, int load)
 
 
   res = read_elf_header (fp);
-  if (res < 0)
+  if (res == -1)
     printf ("File read error\n");
 
-  if (load && (res >= 0))
+  else if (load)
     {
       res = read_elf_body ();
-      if (res < 0)
+      if (res == -1)
 	printf ("File read error\n");
       else
 	printf (" Loaded %s, entry 0x%08x\n", fname, res);

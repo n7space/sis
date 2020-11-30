@@ -42,12 +42,13 @@
 #define NCPU 4
 
 /* size of simulated memory */
-#define ROM_SIZE  0x01000000
 #define ROM_MASK  (ROM_SIZE - 1)
 #define ROM_END   (ROM_START + ROM_SIZE)
-#define RAM_SIZE  0x01000000
 #define RAM_MASK  (RAM_SIZE - 1)
 #define RAM_END   (RAM_START + RAM_SIZE)
+#define MAX_ROM_SIZE 0x01000000
+#define MAX_RAM_SIZE 0x04000000
+#define MAX_RAM_MASK (MAX_RAM_SIZE - 1)
 
 /* cache config */
 
