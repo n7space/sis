@@ -20,7 +20,9 @@
  */
 
 #define ROM_START	0x00000000
+#define ROM_SIZE 	0x01000000
 #define RAM_START	0x40000000
+#define RAM_SIZE 	0x02000000
 
 #include "config.h"
 #include <errno.h>

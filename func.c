@@ -36,8 +36,6 @@
 #include <inttypes.h>
 #include <sys/time.h>
 
-//#define ROM_ENABLED
-
 /* set if UART device cannot handle attributes, terminal oriented IO by default */
 int dumbio = 0;
 
@@ -67,8 +65,8 @@ int sync_rt = 0;
 char bridge[32] = "";
 
 /* RAM and ROM for all systems */
-char romb[ROM_SIZE];
-char ramb[RAM_SIZE];
+char romb[MAX_ROM_SIZE];
+char ramb[MAX_RAM_SIZE];
 const struct memsys *ms = &erc32sys;
 int cputype = 0;		/* 0 = erc32, 2 = leon2,3 = leon3, 5 = riscv */
 int sis_gdb_break;
@@ -301,7 +299,7 @@ exec_cmd (const char *cmd)
 	      sregs[i].pc = len & ~1;
 	      sregs[i].npc = sregs->pc + 4;
 	    }
-	  if ((sregs->pc != 0) && (ebase.simtime == 0))
+	  if (ebase.simtime == 0)
 	    ms->boot_init ();
 	  printf ("resuming at 0x%08x\n", sregs->pc);
 	  if ((cmd2 = strtok (NULL, " \t\n\r")) != NULL)
@@ -468,7 +466,7 @@ exec_cmd (const char *cmd)
 		  sregs[i].npc = sregs[i].pc + 4;
 		}
 	    }
-	  if ((sregs->pc != 0) && (ebase.simtime == 0))
+	  if (ebase.simtime == 0)
 	    ms->boot_init ();
 	  if ((cmd1 = strtok (NULL, " \t\n\r")) == NULL)
 	    {
@@ -1184,13 +1182,7 @@ run_sim_un (sregs, icount, dis)
 	    irq = arch->check_interrupts (sregs);
 	  if (!irq)
 	    {
-#ifdef ROM_ENABLED
 	      mexc = ms->memory_iread (sregs->pc, &sregs->inst, &sregs->hold);
-#else
-	      inst = (uint32 *) & ramb[sregs->pc & RAM_MASK];
-	      sregs->inst = *inst;
-	      sregs->hold = 0;
-#endif
 	      if (mexc)
 		{
 		  sregs->trap = I_ACC_EXC;
@@ -1310,12 +1302,7 @@ run_sim_core (sregs, ntime, deb, dis)
 	else
 	  irq = 0;
 	sregs->icnt = 1;
-#ifdef ROM_ENABLED
 	mexc = ms->memory_iread (sregs->pc, &sregs->inst, &sregs->hold);
-#else
-	sregs->inst = *((uint32 *) & ramb[sregs->pc & RAM_MASK]);
-	sregs->hold = 0;
-#endif
 #ifdef ENABLE_L1CACHE
 	if (sregs->l1itags[(sregs->pc >> L1ILINEBITS) & L1IMASK] !=
 	    (sregs->pc >> L1ILINEBITS))
@@ -1585,39 +1572,39 @@ mygetline (char **lineptr, size_t * n, FILE * stream)
 #define COV_BT		8
 #define COV_BNT		16
 
-unsigned char covram[RAM_SIZE / 4];
+unsigned char covram[MAX_RAM_SIZE / 4];
 
 void
 cov_start (int address)
 {
-  covram[(address >> 2) & RAM_MASK] |= (COV_START | COV_EXEC);
+  covram[(address >> 2) & MAX_RAM_MASK] |= (COV_START | COV_EXEC);
 }
 
 void
 cov_exec (int address)
 {
-  covram[(address >> 2) & RAM_MASK] |= COV_EXEC;
+  covram[(address >> 2) & MAX_RAM_MASK] |= COV_EXEC;
 }
 
 
 void
 cov_bt (int address1, int address2)
 {
-  covram[(address1 >> 2) & RAM_MASK] |= (COV_BT | COV_EXEC);
-  covram[(address2 >> 2) & RAM_MASK] |= (COV_START | COV_EXEC);
+  covram[(address1 >> 2) & MAX_RAM_MASK] |= (COV_BT | COV_EXEC);
+  covram[(address2 >> 2) & MAX_RAM_MASK] |= (COV_START | COV_EXEC);
 }
 
 void
 cov_bnt (int address)
 {
-  covram[(address >> 2) & RAM_MASK] |= (COV_BNT | COV_EXEC);
+  covram[(address >> 2) & MAX_RAM_MASK] |= (COV_BNT | COV_EXEC);
 }
 
 void
 cov_jmp (int address1, int address2)
 {
-  covram[(address1 >> 2) & RAM_MASK] |= (COV_JMP | COV_EXEC);
-  covram[(address2 >> 2) & RAM_MASK] |= (COV_START | COV_EXEC);
+  covram[(address1 >> 2) & MAX_RAM_MASK] |= (COV_JMP | COV_EXEC);
+  covram[(address2 >> 2) & MAX_RAM_MASK] |= (COV_START | COV_EXEC);
 }
 
 void
@@ -1631,7 +1618,7 @@ cov_save (char *name)
   strcat (filename, ".cov");
   fp = fopen (filename, "w");
   state = 0;
-  for (i = 0; i < RAM_SIZE / 4; i += 32)
+  for (i = 0; i < MAX_RAM_SIZE / 4; i += 32)
     {
       k = 0;
       for (j = 0; j < 32; j++)
