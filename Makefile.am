@@ -7,7 +7,7 @@ endif
 bin_PROGRAMS = sis
 sis_SOURCES = erc32.c grlib.c leon3.c exec.c func.c help.c \
 	      sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
-	      greth.c tap.c \
+	      greth.c tap.c gr740.c \
 	      $(LN_SRC)
 
 AM_CFLAGS = -DFAST_UART

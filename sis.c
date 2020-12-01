@@ -168,6 +168,11 @@ main (argc, argv)
 	    {
 	      lcputype = CPU_LEON3;
 	    }
+	  else if (strcmp (argv[stat], "-gr740") == 0)
+	    {
+	      lcputype = CPU_LEON3;
+              ms = &gr740;
+	    }
 	  else if (strcmp (argv[stat], "-riscv") == 0)
 	    {
 	      lcputype = CPU_RISCV;
@@ -231,7 +236,8 @@ main (argc, argv)
     case CPU_LEON3:
       printf (" LEON3 emulation enabled, %d cpus online, delta %d clocks\n",
 	      ncpu, delta);
-      ms = &leon3;
+      if (!ms)
+        ms = &leon3;
       if (!freq)
 	freq = 50;
       break;
@@ -246,6 +252,7 @@ main (argc, argv)
     default:
       printf (" ERC32 emulation enabled\n");
       cputype = CPU_ERC32;
+      ms = &erc32sys;
       if (!freq)
 	freq = 14;
     }

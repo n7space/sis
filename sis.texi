@@ -126,6 +126,9 @@ The frequency must be an integer indicating the frequency in MHz.
 Start a gdb server, listening on port 1234. An alternative port can
 be specified with @var{-port nn}.
 
+@item -gr740
+Emulate a (limited) GR740 SOC device
+
 @item -leon2
 Emulate the SPARC V8 LEON2 processor
 
@@ -620,6 +623,43 @@ Access to non-existing memory will result in a memory exception trap.
 The LEON3 power-down register (%ars19) is supported. When power-down is
 entered, time is skipped forward until the next event in the event queue.
 A Ctrl-C in the simulator window will exit the power-down mode.
+
+@section GR740 emulation
+
+In GR740 mode, SIS emulates a limited subset of the GR740 quad-core LEON4
+system as defined in the GR740 datasheet.  The emulated system includes only
+standard peripherals such as APBUART, GPTIMER, IRQMP GRETHm and SRCTRL.
+The emulated system includes 16 Mbyte ROM and 64 Mbyte RAM. The SPARC
+emulation supports an FPU but not the LEON3 MMU.
+
+To start sis in GR740 mode, use the -gr740 switch.
+
+@subsection GR740 peripherals
+
+The following IP cores from GRLIB are emulated in GR740 mode:
+
+@multitable {The long name of the core} {Address_long} {Interrupt}
+@headitem IP Core  @tab Address @tab Interrupt
+@item  APBMAST @tab 0xFF900000 @tab -
+@item  APBUART @tab 0xFF900000 @tab 3
+@item  IRQMP @tab 0xFF904000 @tab -
+@item  GPTIMER @tab 0xFF908000 @tab 1, 2
+@item  GRETH @tab 0xFF940000 @tab 6
+@end multitable
+
+@subsection Memory interface
+
+The following memory areas are valid for GR740:
+
+@multitable {Very long text so that we avoid wrapping } {A long long Address}
+@headitem Address  @tab Type
+@item 0x00000000 - 0x04000000 @tab RAM (64 Mbyte)
+@item 0xC0000000 - 0xC1000000 @tab RAM (16 Mbyte)
+@item 0xFF900000 - 0xFFA00000 @tab APB bus
+@item 0xFFFFF000 - 0xFFFFFFFF @tab AHB plug&play
+@end multitable
+
+Access to non-existing memory will result in a memory exception trap.
 
 @section RISC-V emulation
 
