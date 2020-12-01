@@ -372,6 +372,10 @@ extern const struct memsys leon2;
 
 /* leon3.c */
 extern const struct memsys leon3;
+
+/* gr740.c */
+extern const struct memsys gr740;
+
 /* remote.c */
 
 extern void gdb_remote (int port);

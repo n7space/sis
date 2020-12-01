@@ -1,6 +1,6 @@
 This is sis.info, produced by makeinfo version 6.5 from sis.texi.
 
-This manual is for SIS (version 2.23, 25 October 2020).
+This manual is for SIS (version 2.25, 1 December 2020).
 
    Copyright (C) 2020 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.23, 25 October 2020).
+This manual is for SIS (version 2.25, 1 December 2020).
 
 * Menu:
 
@@ -619,7 +619,45 @@ The LEON3 power-down register (%ars19) is supported.  When power-down is
 entered, time is skipped forward until the next event in the event
 queue.  A Ctrl-C in the simulator window will exit the power-down mode.
 
-4.4 RISC-V emulation
+4.4 GR740 emulation
+===================
+
+In GR740 mode, SIS emulates a limited subset of the GR740 quad-core
+LEON4 system as defined in the GR740 datasheet.  The emulated system
+includes only standard peripherals such as APBUART, GPTIMER, IRQMP
+GRETHm and SRCTRL. The emulated system includes 16 Mbyte ROM and 64
+Mbyte RAM. The SPARC emulation supports an FPU but not the LEON3 MMU.
+
+   To start sis in GR740 mode, use the -gr740 switch.
+
+4.4.1 GR740 peripherals
+-----------------------
+
+The following IP cores from GRLIB are emulated in GR740 mode:
+
+IP Core                     Address        Interrupt
+-------------------------------------------------------
+APBMAST                     0xFF900000     -
+APBUART                     0xFF900000     3
+IRQMP                       0xFF904000     -
+GPTIMER                     0xFF908000     1, 2
+GRETH                       0xFF940000     6
+
+4.4.2 Memory interface
+----------------------
+
+The following memory areas are valid for GR740:
+
+Address                                     Type
+------------------------------------------------------------------
+0x00000000 - 0x04000000                     RAM (64 Mbyte)
+0xC0000000 - 0xC1000000                     RAM (16 Mbyte)
+0xFF900000 - 0xFFA00000                     APB bus
+0xFFFFF000 - 0xFFFFFFFF                     AHB plug&play
+
+   Access to non-existing memory will result in a memory exception trap.
+
+4.5 RISC-V emulation
 ====================
 
 In RISC-V mode, SIS emulates a RV32IMACFD processor as defined in the
@@ -628,20 +666,20 @@ identical GRLIB sub-system as when LEON3 is emulated.
 
    To start sis in RISC-V mode, use the -riscv switch.
 
-4.4.1 Power-down mode
+4.5.1 Power-down mode
 ---------------------
 
 The RISC-V power-down feature (WFI) is supported.  When power-down is
 entered, time is skipped forward until the next event in the event
 queue.  Ctrl-C in the simulator window will exit the power-down mode.
 
-4.4.2 Code coverage
+4.5.2 Code coverage
 -------------------
 
 Code coverage is currently only supported for 32-bit instructions, i.e.
 the C-extension can not be used when code coverage is measured.
 
-4.4.3 RISC-V 64-bit timer
+4.5.3 RISC-V 64-bit timer
 -------------------------
 
 The standard RISC-V 64-bit timer is provided and can be read through the
@@ -1362,12 +1400,12 @@ Node: Introduction1053
 Node: Invoking sis1677
 Node: Commands4109
 Node: Emulated Systems8213
-Node: Multi-processing20925
-Node: Networking21413
-Node: Interfacing to GDB27723
-Node: Code coverage28127
-Node: Building SIS29132
-Node: GNU Free Documentation License29782
-Node: Index54926
+Node: Multi-processing22329
+Node: Networking22817
+Node: Interfacing to GDB29127
+Node: Code coverage29531
+Node: Building SIS30536
+Node: GNU Free Documentation License31186
+Node: Index56330
 
 End Tag Table

@@ -67,7 +67,7 @@ char bridge[32] = "";
 /* RAM and ROM for all systems */
 char romb[MAX_ROM_SIZE];
 char ramb[MAX_RAM_SIZE];
-const struct memsys *ms = &erc32sys;
+const struct memsys *ms;
 int cputype = 0;		/* 0 = erc32, 2 = leon2,3 = leon3, 5 = riscv */
 int sis_gdb_break;
 int cpu = 0;			/* active cpu */
