@@ -85,6 +85,7 @@ set_csr (address, sregs, value)
      struct pstate *sregs;
      uint32 value;
 {
+  int res = 0;
   switch (address)
     {
     case CSR_MSTATUS:
@@ -121,12 +122,13 @@ set_csr (address, sregs, value)
       riscv_set_fsr (sregs->fsr);
       break;
     default:
-      return 1;
+      res = 1;
     }
   if (sis_verbose > 1)
     printf (" %8" PRIu64 " set csr 0x%03X :  %08X\n",
 	    sregs->simtime, address, value);
-  return 0;
+  rv32_check_lirq (sregs->cpu);
+  return res;
 }
 
 int
@@ -134,6 +136,7 @@ get_csr (address, sregs)
      uint32 address;
      struct pstate *sregs;
 {
+  uint64 tmp;
   switch (address)
     {
     case CSR_MSTATUS:
@@ -167,7 +170,8 @@ get_csr (address, sregs)
       return (sregs->simtime & 0xffffffff);
       break;
     case CSR_TIMEH:
-      return ((sregs->simtime >> 32) & 0xffffffff);
+      tmp = sregs->simtime >> 32;
+      return tmp & 0xffffffff;
       break;
     case CSR_MHARTID:
       return (sregs->cpu);
@@ -186,6 +190,26 @@ get_csr (address, sregs)
       break;
     default:
       return 0;
+    }
+}
+
+int
+rv32_check_lirq (int cpu)
+{
+  uint32 tmpirq;
+
+  if (sregs[cpu].mstatus & MSTATUS_MIE)
+    {
+      tmpirq = sregs[cpu].mip & sregs[cpu].mie;
+      if (tmpirq & MIP_MSIP)
+	ext_irl[cpu] = 0x13;
+      else if (tmpirq & MIP_MTIP)
+	ext_irl[cpu] = 0x17;
+      if ((ext_irl[cpu]) && sregs[cpu].pwd_mode)
+	{
+	  sregs[cpu].pwdtime += sregs[cpu].simtime - sregs[cpu].pwdstart;
+	  sregs[cpu].pwd_mode = 0;
+	}
     }
 }
 
@@ -1369,6 +1393,7 @@ riscv_dispatch_instruction (sregs)
 		  sregs->mode = sregs->mpp;
 		  sregs->mstatus |= (sregs->mstatus >> 4) & MSTATUS_MIE;
 		  sregs->mstatus |= MSTATUS_MPIE;	// set mstatus.mpie
+		  rv32_check_lirq (sregs->cpu);
 		  if (ebase.coven)
 		    cov_jmp (sregs->pc, npc);
 		  break;
@@ -1723,20 +1748,20 @@ riscv_dispatch_instruction (sregs)
 		    case 0:	/* FSGNJ */
 		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
 		      sregs->fsi[frd + 1 - BEH] =
-			(sregs->
-			 fsi[frs1 + 1 -
-			     BEH] & 0x7fffffff) | (sregs->fsi[frs2 + 1 -
-							      BEH] &
-						   0x80000000);
+			(sregs->fsi[frs1 + 1 -
+				    BEH] & 0x7fffffff) | (sregs->fsi[frs2 +
+								     1 -
+								     BEH] &
+							  0x80000000);
 		      break;
 		    case 1:	/* FSGNJN */
 		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
 		      sregs->fsi[frd + 1 - BEH] =
-			(sregs->
-			 fsi[frs1 + 1 -
-			     BEH] & 0x7fffffff) | (~sregs->fsi[frs2 + 1 -
-							       BEH] &
-						   0x80000000);
+			(sregs->fsi[frs1 + 1 -
+				    BEH] & 0x7fffffff) | (~sregs->fsi[frs2 +
+								      1 -
+								      BEH] &
+							  0x80000000);
 		      break;
 		    case 2:	/* FSGNJX */
 		      sregs->fsi[frd + BEH] = sregs->fsi[frs1 + BEH];
@@ -2055,14 +2080,19 @@ riscv_execute_trap (sregs)
 	}
 
       if (((sregs->trap >= 16) && (sregs->trap < 32))
-//              || ((sregs->trap == 7) || (sregs->trap == 11))
-	)
+	  || ((sregs->trap == 0x23) || (sregs->trap == 0x27)))
 	{
 	  sregs->mcause &= 0x1f;	// filter trap cause
 	  sregs->mcause |= 0x80000000;	// indicate async interrupt
 	  if ((sregs->trap > 16) && (sregs->trap < 32))
 	    sregs->intack (sregs->trap - 16, sregs->cpu);
+	  else
+	    ext_irl[sregs->cpu] = 0;
 	}
+      if (sregs->trap == 0x23)
+	sregs->mip &= ~MIP_MSIP;
+      if (sregs->trap == 0x27)
+	sregs->mip &= ~MIP_MTIP;
 
       // save mstatus.mie in mstatus.mpie
       sregs->mstatus |= (sregs->mstatus << 4) & MSTATUS_MPIE;
@@ -2091,8 +2121,8 @@ static int
 riscv_check_interrupts (sregs)
      struct pstate *sregs;
 {
-  if ((ext_irl[sregs->cpu]) && (sregs->mstatus & MSTATUS_MIE) &&
-      (sregs->mie & MIE_MEIE))
+  if ((ext_irl[sregs->cpu]) &&
+      ((sregs->mstatus & MSTATUS_MIE) && (sregs->mie & MIE_MEIE)))
     {
       if (sregs->pwd_mode)
 	{

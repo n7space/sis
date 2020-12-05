@@ -60,7 +60,6 @@ main (argc, argv)
   int run = 0;
   char prompt[8];
   int gdb = 0;
-  int lcputype = 0;
 
   printf
     ("\n SIS - SPARC/RISCV instruction simulator %s,  copyright Jiri Gaisler 2020\n",
@@ -75,9 +74,9 @@ main (argc, argv)
   strncpy (uart_dev1, argv[0], 128);
   cfile = basename (uart_dev1);
   if (strncmp (cfile, "riscv", 5) == 0)
-    {
-      lcputype = CPU_RISCV;
-    }
+    archtype = CPU_RISCV;
+  if (strncmp (cfile, "sparc", 5) == 0)
+    archtype = CPU_SPARC;
 
   cfile = 0;
   uart_dev1[0] = 0;
@@ -158,24 +157,37 @@ main (argc, argv)
 	    }
 	  else if (strcmp (argv[stat], "-erc32") == 0)
 	    {
-	      lcputype = CPU_ERC32;
+	      cputype = CPU_ERC32;
+	      archtype = CPU_SPARC;
 	    }
 	  else if (strcmp (argv[stat], "-leon2") == 0)
 	    {
-	      lcputype = CPU_LEON2;
+	      cputype = CPU_LEON2;
+	      archtype = CPU_SPARC;
 	    }
 	  else if (strcmp (argv[stat], "-leon3") == 0)
 	    {
-	      lcputype = CPU_LEON3;
+	      cputype = CPU_LEON3;
+	      archtype = CPU_SPARC;
 	    }
 	  else if (strcmp (argv[stat], "-gr740") == 0)
 	    {
-	      lcputype = CPU_LEON3;
-              ms = &gr740;
+	      cputype = CPU_LEON4;
+	      archtype = CPU_SPARC;
 	    }
 	  else if (strcmp (argv[stat], "-riscv") == 0)
 	    {
-	      lcputype = CPU_RISCV;
+	      archtype = CPU_RISCV;
+	    }
+	  else if (strcmp (argv[stat], "-griscv") == 0)
+	    {
+	      cputype = CPU_LEON3;
+	      archtype = CPU_RISCV;
+	    }
+	  else if (strcmp (argv[stat], "-rv32") == 0)
+	    {
+	      cputype = CPU_RISCV;
+	      archtype = CPU_RISCV;
 	    }
 	  else if (strcmp (argv[stat], "-tlim") == 0)
 	    {
@@ -218,15 +230,44 @@ main (argc, argv)
   if (lfile)
     {
       last_load_addr = elf_load (argv[lfile], 0);
-      if (ebase.cpu)
-	cputype = ebase.cpu;
     }
 
-  if (lcputype)
-    cputype = lcputype;
+  if (!archtype)
+    {
+      if (!ebase.arch)
+	{
+	  archtype = CPU_SPARC;
+	  cputype = CPU_ERC32;
+	}
+      else
+	{
+	  archtype = ebase.arch;
+	  cputype = ebase.cpu;
+	}
+      if (!cputype)
+	cputype = CPU_LEON3;
+    }
+  else if (!cputype)
+    {
+      cputype = ebase.cpu;
+      if (!cputype)
+	{
+	  if (archtype == CPU_SPARC)
+	    cputype = CPU_ERC32;
+	  else
+	    cputype = CPU_LEON3;
+	}
+    }
 
   switch (cputype)
     {
+    case CPU_ERC32:
+      printf (" ERC32 emulation enabled\n");
+      cputype = CPU_ERC32;
+      ms = &erc32sys;
+      if (!freq)
+	freq = 14;
+      break;
     case CPU_LEON2:
       printf (" LEON2 emulation enabled\n");
       ms = &leon2;
@@ -234,17 +275,34 @@ main (argc, argv)
 	freq = 50;
       break;
     case CPU_LEON3:
-      printf (" LEON3 emulation enabled, %d cpus online, delta %d clocks\n",
-	      ncpu, delta);
-      if (!ms)
-        ms = &leon3;
+      if (archtype == CPU_SPARC)
+	printf (" LEON3 emulation enabled, %d cpus online, delta %d clocks\n",
+		ncpu, delta);
+      else
+	{
+	  printf
+	    (" RISCV/GRLIB emulation enabled, %d cpus online, delta %d clocks\n",
+	     ncpu, delta);
+	  arch = &riscv;
+	}
+      ms = &leon3;
+      if (!freq)
+	freq = 50;
+      break;
+    case CPU_LEON4:
+      printf
+	(" GR740/LEON4 emulation enabled, %d cpus online, delta %d clocks\n",
+	 ncpu, delta);
+      ms = &gr740;
       if (!freq)
 	freq = 50;
       break;
     case CPU_RISCV:
-      printf (" RISCV emulation enabled, %d cpus online, delta %d clocks\n",
-	      ncpu, delta);
-      ms = &leon3;
+//      if (delta == 50)        delta = 25;   // 25 clock delta works better with the CLINT
+      printf
+	(" RISCV/CLINT emulation enabled, %d cpus online, delta %d clocks\n",
+	 ncpu, delta);
+      ms = &rv32;
       arch = &riscv;
       if (!freq)
 	freq = 50;

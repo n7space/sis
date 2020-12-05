@@ -85,14 +85,22 @@ read_elf_header (FILE * fp)
     case EM_SPARC:
       if (sis_verbose)
 	printf ("SPARC executable\n");
-      efile.arch = CPU_ERC32;
-      efile.cpu = CPU_ERC32;
+      efile.arch = CPU_SPARC;
+      if (ehdr.e_entry == 0)
+	efile.cpu = CPU_LEON4;
+      else if (ehdr.e_entry == 0x40000000)
+	efile.cpu = CPU_LEON3;
+      else if (ehdr.e_entry == 0x2000000)
+	efile.cpu = CPU_ERC32;
       break;
     case EM_RISCV:
       if (sis_verbose)
 	printf ("RISCV executable\n");
       efile.arch = CPU_RISCV;
-      efile.cpu = CPU_RISCV;
+      if (ehdr.e_entry == 0x40000000)
+	efile.cpu = CPU_LEON3;
+      else if (ehdr.e_entry == 0x80000000)
+	efile.cpu = CPU_RISCV;
       break;
     default:
       printf ("Unknown architecture (%d)\n", ehdr.e_machine);
@@ -106,6 +114,7 @@ read_elf_header (FILE * fp)
     }
   efile.ehdr = ehdr;
   ebase.cpu = efile.cpu;
+  ebase.arch = efile.arch;
   return (ehdr.e_entry);
 }
 
