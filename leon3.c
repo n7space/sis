@@ -56,11 +56,11 @@ init_sim (void)
 {
   int i;
 
-  for (i = 0; i < NCPU; i++)
+  for (i = 0; i < ncpu; i++)
     grlib_ahbm_add (&leon3s, 0);
 
   grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFF);
-  grlib_ahbs_add (&srctrl, 0, RAM_START, RAM_MASKPP);
+  grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
 
   grlib_apb_add (&apbuart, 3, APBSTART + 0x100, 0xFFF);
   grlib_apb_add (&irqmp, 0, APBSTART + 0x200, 0xFFF);

@@ -68,7 +68,8 @@ char bridge[32] = "";
 char romb[MAX_ROM_SIZE];
 char ramb[MAX_RAM_SIZE];
 const struct memsys *ms;
-int cputype = 0;		/* 0 = erc32, 2 = leon2,3 = leon3, 5 = riscv */
+int cputype = 0;
+int archtype = 0;
 int sis_gdb_break;
 int cpu = 0;			/* active cpu */
 int ncpu = 1;			/* number of cpus to emulate */

@@ -26,6 +26,7 @@
 #define VENDOR_GAISLER	1
 #define VENDOR_PENDER	2
 #define VENDOR_ESA	4
+#define VENDOR_CONTRIB	9
 #define VENDOR_DLR	10
 
 /* Devices */
@@ -33,11 +34,16 @@
 #define GAISLER_LEON3	0x003
 #define GAISLER_APBMST	0x006
 #define GAISLER_SRCTRL	0x008
+#define GAISLER_SDCTRL	0x009
 #define GAISLER_APBUART	0x00C
 #define GAISLER_IRQMP	0x00D
 #define GAISLER_GPTIMER	0x011
 #define GAISLER_GRETH	0x01D
 #define ESA_MCTRL	0x00F
+#define CONTRIB_NS16550	0x050
+#define CONTRIB_CLINT	0x051
+#define CONTRIB_PLIC	0x052
+#define CONTRIB_S5TEST	0x053
 
 /* How to build entries in the plug&play area */
 
@@ -98,4 +104,4 @@ extern void apbuart_restore_stdio (void);
 extern void apbuart_close_port (void);
 extern void apbuart_flush (void);
 extern const struct grlib_ipcore gptimer, irqmp, apbuart, apbmst,
-  greth, leon3s, srctrl;
+  greth, leon3s, srctrl, ns16550, clint, plic, sdctrl, s5test;

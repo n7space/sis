@@ -79,13 +79,13 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(infodir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__sis_SOURCES_DIST = erc32.c grlib.c leon3.c exec.c func.c help.c \
 	sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c greth.c \
-	tap.c gr740.c linenoise.c
+	tap.c gr740.c rv32.c linenoise.c
 @LINENOISE_TRUE@am__objects_1 = linenoise.$(OBJEXT)
 am_sis_OBJECTS = erc32.$(OBJEXT) grlib.$(OBJEXT) leon3.$(OBJEXT) \
 	exec.$(OBJEXT) func.$(OBJEXT) help.$(OBJEXT) sparc.$(OBJEXT) \
 	riscv.$(OBJEXT) leon2.$(OBJEXT) sis.$(OBJEXT) interf.$(OBJEXT) \
 	remote.$(OBJEXT) elf.$(OBJEXT) greth.$(OBJEXT) tap.$(OBJEXT) \
-	gr740.$(OBJEXT) $(am__objects_1)
+	gr740.$(OBJEXT) rv32.$(OBJEXT) $(am__objects_1)
 sis_OBJECTS = $(am_sis_OBJECTS)
 sis_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -266,12 +266,12 @@ top_srcdir = @top_srcdir@
 @LINENOISE_TRUE@LN_SRC = linenoise.c
 sis_SOURCES = erc32.c grlib.c leon3.c exec.c func.c help.c \
 	      sparc.c riscv.c leon2.c sis.c interf.c remote.c elf.c \
-	      greth.c tap.c gr740.c \
+	      greth.c tap.c gr740.c rv32.c \
 	      $(LN_SRC)
 
 AM_CFLAGS = -DFAST_UART
 sis_LDADD = -lm @READLINE@ @LIBADD@
-EXTRA_DIST = elf.h grlib.h linenoise.h riscv.h sis.h sparc.h
+EXTRA_DIST = elf.h grlib.h linenoise.h riscv.h sis.h sparc.h rv32dtb.h
 info_TEXINFOS = sis.texi
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -391,6 +391,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linenoise.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/riscv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rv32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sparc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tap.Po@am__quote@
@@ -1032,6 +1033,10 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dvi-am uninstall-html-am \
 	uninstall-binPROGRAMS uninstall-dvi-am uninstall-html-am \
 	uninstall-info-am uninstall-pdf-am uninstall-ps-am
 
+
+rv32dtb.h: $(abs_srcdir)/rv32.dts
+	dtc -O dtb $(abs_srcdir)/rv32.dts -o rv32.dtb
+	xxd --include rv32.dtb > rv32dtb.h
 
 .PHONY: v
 v:	version.texi

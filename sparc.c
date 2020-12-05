@@ -845,7 +845,7 @@ sparc_dispatch_instruction (sregs)
 	      *rdd = sregs->psr;
 	      break;
 	    case RDY:
-	      if (cputype == CPU_LEON3)
+	      if (cputype != CPU_ERC32)
 		{
 		  rs1 = (sregs->inst >> 14) & 0x1f;
 		  switch (rs1)
@@ -916,7 +916,7 @@ sparc_dispatch_instruction (sregs)
 	      break;
 	    case WRY:
 	      sregs->y = (rs1 ^ operand2);
-	      if (cputype == CPU_LEON3)
+	      if (cputype != CPU_ERC32)
 		{
 		  if (17 == rd)
 		    {
@@ -1089,7 +1089,7 @@ sparc_dispatch_instruction (sregs)
 	      sregs->trap = TRAP_UNALI;
 	      break;
 	    }
-	  if ((cputype == CPU_LEON3) && (asi == 2))
+	  if ((cputype != CPU_ERC32) && (asi == 2))
 	    {
 	      if (address == 0)
 		*rdd = sregs->cache_ctrl;
@@ -1321,7 +1321,7 @@ sparc_dispatch_instruction (sregs)
 	      sregs->trap = TRAP_UNALI;
 	      break;
 	    }
-	  if ((cputype == CPU_LEON3) && (asi == 2))
+	  if ((cputype != CPU_ERC32) && (asi == 2))
 	    {
 	      sregs->cache_ctrl = *rdd;
 	      break;
@@ -1802,7 +1802,7 @@ fpexec (op3, rd, rs1, rs2, sregs)
       sregs->ftime += T_FMULs;
       break;
     case FsMULd:
-      if (cputype == CPU_LEON3)
+      if (cputype != CPU_ERC32)
 	{			/* FSMULD only supported for LEON3 */
 	  sregs->fd[rd >> 1] =
 	    (double) sregs->fs[rs1] * (double) sregs->fs[rs2];

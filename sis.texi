@@ -67,7 +67,7 @@ It consist of three main parts: an event-based simulator core,
 a cpu (SPARC/RISCV) emulation module and system-specific memory and
 peripheral modules.
 
-SIS can emulate four specific systems:
+SIS can emulate six specific systems:
 
 
 @table @code
@@ -80,12 +80,18 @@ LEON2 SPARC V8 processor
 @item LEON3
 LEON3 SPARC V8 processor
 
-@item RISC-V
-RISC-V (RV32IMACFD) processor
+@item GR740
+LEON4 SPARC V8 processor
+
+@item GRISCV
+RISC-V (RV32IMACFD) processor with GRLIB peripherals
+
+@item RV32
+RISC-V (RV32IMACFD) processor with CLINT and ns16550 UART
 
 @end table
 
-The LEON3 and RISC-V emulation also supports SMP with up to four processor cores.
+The LEON3/4 and RISC-V emulation supports SMP with up to four processor cores.
 
 @node Invoking sis
 @chapter Invoking sis
@@ -129,6 +135,9 @@ be specified with @var{-port nn}.
 @item -gr740
 Emulate a (limited) GR740 SOC device
 
+@item -griscv
+Emulate a GRISCV (RISCV/GRLIB) SOC device
+
 @item -leon2
 Emulate the SPARC V8 LEON2 processor
 
@@ -152,8 +161,8 @@ for automated testing.
 @item -rt
 Real-time mode. When enabled, the simulator tries to synchronize the simulator time to the wall (host) time. Useful for interactive programs. Enabled by default when networking is used.
 
-@item -riscv
-Emulate a RISC-V RV32IMACFD processor
+@item -rv32
+Emulate a RISC-V RV32IMACFD processor with CLINT module.
 
 @item -tlim @var{delay}
 Used together with @var{-r} to limit the amount of simulated time that
@@ -611,7 +620,7 @@ The following memory areas are valid for LEON3:
 @multitable {Very long text so that we avoid wrapping } {A long long Address}
 @headitem Address  @tab Type
 @item 0x00000000 - 0x01000000 @tab ROM (16 Mbyte)
-@item 0x40000000 - 0x41000000 @tab RAM (16 Mbyte)
+@item 0x40000000 - 0x41000000 @tab RAM (64 Mbyte)
 @item 0x80000000 - 0x81000000 @tab APB bus
 @item 0xFFFFF000 - 0xFFFFFFFF @tab AHB plug&play
 @end multitable
@@ -654,7 +663,7 @@ The following memory areas are valid for GR740:
 @multitable {Very long text so that we avoid wrapping } {A long long Address}
 @headitem Address  @tab Type
 @item 0x00000000 - 0x04000000 @tab RAM (64 Mbyte)
-@item 0xC0000000 - 0xC1000000 @tab RAM (16 Mbyte)
+@item 0xC0000000 - 0xC1000000 @tab ROM (16 Mbyte)
 @item 0xFF900000 - 0xFFA00000 @tab APB bus
 @item 0xFFFFF000 - 0xFFFFFFFF @tab AHB plug&play
 @end multitable
@@ -664,10 +673,23 @@ Access to non-existing memory will result in a memory exception trap.
 @section RISC-V emulation
 
 In RISC-V mode, SIS emulates a RV32IMACFD processor as defined in the 
-RISC-V specification 1.9. The RISC-V procssor is attached to an identical GRLIB
-sub-system as when LEON3 is emulated.
+RISC-V specification 1.9. Two different SOCs can be emulated, GRISCV and 
+a CLINT base system.
 
-To start sis in RISC-V mode, use the -riscv switch.
+The GRISCV SOC uses the same peripherals and memory maps as a SPARC
+LEON3 processor. A CLINT based system uses a CLINT core for timers
+and UARTs with the following address map:
+
+@multitable {Very long text so that we avoid wrapping } {A long long Address}
+@headitem Address  @tab Type
+@item 0x02000000 - 0x02100000 @tab CLINT
+@item 0x0C000000 - 0x0C200000 @tab PLIC
+@item 0x10000000 - 0x10000100 @tab NS16550 UART
+@item 0x20000000 - 0x21000000 @tab ROM (16 Mbyte)
+@item 0x80000000 - 0x84000000 @tab RAM (64 Mbyte)
+@end multitable
+
+The DTB (device-tree table) is located at the end of ROM (0x20FF0000).
 
 @subsection Power-down mode
 
@@ -683,8 +705,7 @@ the C-extension can not be used when code coverage is measured.
 @subsection RISC-V 64-bit timer
 
 The standard RISC-V 64-bit timer is provided and can be read through the 
-time and timeh CSR. The timer does not generare any interrupt and the
-timecmp register is not implemented.
+time and timeh CSR.
 
 @node Multi-processing
 @chapter Multi-processing 

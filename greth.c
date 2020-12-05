@@ -31,6 +31,7 @@
 #include <arpa/inet.h>
 
 #include "sis.h"
+#include "grlib.h"
 
 #define MDIO_WRITE 	1
 #define MDIO_READ 	2
@@ -64,6 +65,7 @@ static unsigned char *greth_rxbufptr;
 static unsigned char greth_mac[6];
 static long unsigned mac;
 static const char broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+int greth_irq;
 
 /* Simple emulation of Microchip KSZ8041NL/RNL PHY */
 
@@ -138,7 +140,7 @@ greth_tx (void)
 	    sis_tap_write (greth_txbufptr, greth_txdesc & 0x7ff);
 	  greth_status |= STATUS_TI;
 	  if ((greth_ctrl & CTRL_TI) && (greth_txdesc & DESC_IE))
-	    ms->set_irq (6);
+	    grlib_set_irq (greth_irq);
 	  if (sis_verbose)
 	    printf ("packet transmitted, len %d, desc %d\n",
 		    greth_txdesc & 0x7ff, (greth_txbase & BASE_PNT) >> 3);
@@ -299,7 +301,7 @@ greth_rxready (unsigned char *buffer, int len)
 	    greth_rxbase += 8;
 
 	  if ((greth_ctrl & CTRL_RI) && (greth_rxdesc & DESC_IE))
-	    ms->set_irq (6);
+	    grlib_set_irq (greth_irq);
 	}
       else if (sis_verbose > 1)
 	printf ("net: received packet dropped!\n");

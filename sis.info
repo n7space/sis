@@ -1,6 +1,6 @@
 This is sis.info, produced by makeinfo version 6.5 from sis.texi.
 
-This manual is for SIS (version 2.25, 1 December 2020).
+This manual is for SIS (version 2.26, 15 December 2020).
 
    Copyright (C) 2020 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.25, 1 December 2020).
+This manual is for SIS (version 2.26, 15 December 2020).
 
 * Menu:
 
@@ -48,7 +48,7 @@ consist of three main parts: an event-based simulator core, a cpu
 (SPARC/RISCV) emulation module and system-specific memory and peripheral
 modules.
 
-   SIS can emulate four specific systems:
+   SIS can emulate six specific systems:
 
 'ERC32'
      ERC32 SPARC V7 processor
@@ -59,10 +59,16 @@ modules.
 'LEON3'
      LEON3 SPARC V8 processor
 
-'RISC-V'
-     RISC-V (RV32IMACFD) processor
+'GR740'
+     LEON4 SPARC V8 processor
 
-   The LEON3 and RISC-V emulation also supports SMP with up to four
+'GRISCV'
+     RISC-V (RV32IMACFD) processor with GRLIB peripherals
+
+'RV32'
+     RISC-V (RV32IMACFD) processor with CLINT and ns16550 UART
+
+   The LEON3/4 and RISC-V emulation supports SMP with up to four
 processor cores.
 
 
@@ -103,6 +109,12 @@ The simulator is started as follows:
      Start a gdb server, listening on port 1234.  An alternative port
      can be specified with -PORT NN.
 
+'-gr740'
+     Emulate a (limited) GR740 SOC device
+
+'-griscv'
+     Emulate a GRISCV (RISCV/GRLIB) SOC device
+
 '-leon2'
      Emulate the SPARC V8 LEON2 processor
 
@@ -129,8 +141,8 @@ The simulator is started as follows:
      the simulator time to the wall (host) time.  Useful for interactive
      programs.  Enabled by default when networking is used.
 
-'-riscv'
-     Emulate a RISC-V RV32IMACFD processor
+'-rv32'
+     Emulate a RISC-V RV32IMACFD processor with CLINT module.
 
 '-tlim DELAY'
      Used together with -R to limit the amount of simulated time that
@@ -606,7 +618,7 @@ The following memory areas are valid for LEON3:
 Address                                     Type
 ------------------------------------------------------------------
 0x00000000 - 0x01000000                     ROM (16 Mbyte)
-0x40000000 - 0x41000000                     RAM (16 Mbyte)
+0x40000000 - 0x41000000                     RAM (64 Mbyte)
 0x80000000 - 0x81000000                     APB bus
 0xFFFFF000 - 0xFFFFFFFF                     AHB plug&play
 
@@ -651,7 +663,7 @@ The following memory areas are valid for GR740:
 Address                                     Type
 ------------------------------------------------------------------
 0x00000000 - 0x04000000                     RAM (64 Mbyte)
-0xC0000000 - 0xC1000000                     RAM (16 Mbyte)
+0xC0000000 - 0xC1000000                     ROM (16 Mbyte)
 0xFF900000 - 0xFFA00000                     APB bus
 0xFFFFF000 - 0xFFFFFFFF                     AHB plug&play
 
@@ -661,10 +673,23 @@ Address                                     Type
 ====================
 
 In RISC-V mode, SIS emulates a RV32IMACFD processor as defined in the
-RISC-V specification 1.9.  The RISC-V procssor is attached to an
-identical GRLIB sub-system as when LEON3 is emulated.
+RISC-V specification 1.9.  Two different SOCs can be emulated, GRISCV
+and a CLINT base system.
 
-   To start sis in RISC-V mode, use the -riscv switch.
+   The GRISCV SOC uses the same peripherals and memory maps as a SPARC
+LEON3 processor.  A CLINT based system uses a CLINT core for timers and
+UARTs with the following address map:
+
+Address                                     Type
+------------------------------------------------------------------
+0x02000000 - 0x02100000                     CLINT
+0x0C000000 - 0x0C200000                     PLIC
+0x10000000 - 0x10000100                     NS16550 UART
+0x20000000 - 0x21000000                     ROM (16 Mbyte)
+0x80000000 - 0x84000000                     RAM (64 Mbyte)
+
+   The DTB (device-tree table) is located at the end of ROM
+(0x20FF0000).
 
 4.5.1 Power-down mode
 ---------------------
@@ -683,8 +708,7 @@ the C-extension can not be used when code coverage is measured.
 -------------------------
 
 The standard RISC-V 64-bit timer is provided and can be read through the
-time and timeh CSR. The timer does not generare any interrupt and the
-timecmp register is not implemented.
+time and timeh CSR.
 
 
 File: sis.info,  Node: Multi-processing,  Next: Networking,  Prev: Emulated Systems,  Up: Top
@@ -1395,17 +1419,17 @@ Index
 
 
 Tag Table:
-Node: Top700
-Node: Introduction1053
-Node: Invoking sis1677
-Node: Commands4109
-Node: Emulated Systems8213
-Node: Multi-processing22329
-Node: Networking22817
-Node: Interfacing to GDB29127
-Node: Code coverage29531
-Node: Building SIS30536
-Node: GNU Free Documentation License31186
-Node: Index56330
+Node: Top701
+Node: Introduction1055
+Node: Invoking sis1808
+Node: Commands4368
+Node: Emulated Systems8472
+Node: Multi-processing23069
+Node: Networking23557
+Node: Interfacing to GDB29867
+Node: Code coverage30271
+Node: Building SIS31276
+Node: GNU Free Documentation License31926
+Node: Index57070
 
 End Tag Table

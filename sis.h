@@ -225,7 +225,8 @@ struct estate
   uint32 ramstart;		/* start of RAM */
   uint32 bpcpu;			/* cpu that hit breakpoint */
   uint32 bend;			/* cpu big endian */
-  uint32 cpu;			/* cpu typefrom elf file */
+  uint32 cpu;			/* cpu type from elf file */
+  uint32 arch;			/* cpu arch from elf file */
 };
 
 extern const struct cpu_arch *arch;
@@ -251,7 +252,9 @@ extern const struct cpu_arch riscv;
 #define CPU_ERC32  1
 #define CPU_LEON2  2
 #define CPU_LEON3  3
+#define CPU_LEON4  4
 #define CPU_RISCV  5
+#define CPU_SPARC  6
 
 /* Prototypes  */
 
@@ -306,6 +309,7 @@ extern int nouartrx;
 extern int dumbio;
 extern int tty_setup;
 extern int cputype;
+extern int archtype;
 extern int sis_gdb_break;
 extern int cpu;			/* active debug cpu */
 extern int ncpu;		/* number of online cpus */
@@ -376,6 +380,9 @@ extern const struct memsys leon3;
 /* gr740.c */
 extern const struct memsys gr740;
 
+/* rv32.c */
+extern const struct memsys rv32;
+
 /* remote.c */
 
 extern void gdb_remote (int port);
@@ -396,6 +403,10 @@ extern int sim_clear_watchpoint (uint32 mem, int length, int type);
 
 /* sparc.c */
 extern int gdb_sp_read (uint32 mem, char *buf, int length);
+
+/* riscv.c */
+
+extern int rv32_check_lirq (int cpu);
 
 /* greth.c */
 extern uint32 greth_read (uint32 address);

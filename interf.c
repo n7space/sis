@@ -98,7 +98,7 @@ sim_read (uint32 mem, char *buf, int length)
 {
   int i, len;
 
-  if (sis_gdb_break && (cputype <= CPU_LEON3) && (length >= 4))
+  if (sis_gdb_break && (archtype == CPU_SPARC) && (length >= 4))
     {
       if (gdb_sp_read (mem, buf, length))
 	return length;

@@ -20,12 +20,11 @@
  * Leon3 emulation, loosely based on erc32.c.
  */
 
-#define ROM_START 	0xC0000000
+#define ROM_START 	0x20000000
 #define ROM_SIZE 	0x01000000
-#define RAM_START 	0x00000000
+#define RAM_START 	0x80000000
 #define RAM_SIZE 	0x04000000
 
-#include "config.h"
 #include <errno.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -36,17 +35,25 @@
 #endif
 #include <sys/file.h>
 #include <unistd.h>
-#include "sis.h"
+#include "riscv.h"
 #include "grlib.h"
+#include "rv32dtb.h"
+
+#define PLIC_START	0x0C000000
+#define PLIC_MASK  	0xFFC
+#define NS16550_START 	0x10000000
+#define TESTSTART  	0x00100000
+
+#define CLINT_START	0x02000000
 
 /* APB registers */
-#define APBSTART	0xFF900000
+#define APBSTART	0xC0000000
 
 /* Memory exception waitstates.  */
 #define MEM_EX_WS 	1
 
-/* Forward declarations. */
 
+/* Forward declarations. */
 static char *get_mem_ptr (uint32 addr, uint32 size);
 
 /* One-time init. */
@@ -56,18 +63,18 @@ init_sim (void)
 {
   int i;
 
-  for (i = 0; i < NCPU; i++)
+  for (i = 0; i < ncpu; i++)
     grlib_ahbm_add (&leon3s, 0);
 
-  grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFF);
+  grlib_ahbs_add (&s5test, 0, TESTSTART, 0xFFF);
+  grlib_ahbs_add (&clint, 0, CLINT_START, 0xFFF);
+  grlib_ahbs_add (&plic, 0, PLIC_START, PLIC_MASK);
+  grlib_ahbs_add (&ns16550, 0, NS16550_START, 0xFFF);
+  grlib_ahbs_add (&srctrl, 0, ROM_START, ROM_MASKPP);
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
 
-  grlib_apb_add (&apbuart, 3, APBSTART + 0x02000, 0xFFF);
-  grlib_apb_add (&irqmp, 0, APBSTART + 0x04000, 0xFFF);
-  grlib_apb_add (&gptimer, 1, APBSTART + 0x08000, 0xFFF);
-  grlib_apb_add (&greth, 6, APBSTART + 0x40000, 0xFFF);
-
   grlib_init ();
+  memcpy (&romb[(ROM_END - 0x10000) & ROM_MASK], rv32_dtb, sizeof (rv32_dtb));
   ebase.ramstart = RAM_START;
 }
 
@@ -108,25 +115,29 @@ exit_sim (void)
 static int
 memory_read (uint32 addr, uint32 * data, int32 * ws)
 {
+  uint64 tmp;
   int32 mexc;
+  int reg, cpuid;
 
   *ws = 0;
+  /* bypass system bus decoding to speed-up RAM/ROM access */
   if ((addr >= RAM_START) && (addr < RAM_END))
     {
       memcpy (data, &ramb[addr & RAM_MASK], 4);
       return 0;
     }
-  else if ((addr >= ROM_START) && (addr < ROM_END))
+  if ((addr >= ROM_START) && (addr < ROM_END))
     {
       memcpy (data, &romb[addr & ROM_MASK], 4);
-      *ws = 2;
       return 0;
     }
-  else
-    {
-      mexc = grlib_read (addr, data);
-      *ws = 4;
-    }
+
+  /* regular system bus access */
+  mexc = grlib_read (addr, data);
+  *ws = 4;
+
+  if (sis_verbose > 1)
+    printf ("BUS read  a: %08x, d: %08x\n", addr, *data);
 
   if (sis_verbose && mexc)
     {
@@ -141,7 +152,10 @@ memory_write (uint32 addr, uint32 * data, int32 sz, int32 * ws)
 {
   uint32 waddr;
   int32 mexc;
+  uint64 tmp;
+  int reg, cpuid;
 
+  mexc = 0;
   *ws = 0;
   if ((addr >= RAM_START) && (addr < RAM_END))
     {
@@ -160,6 +174,8 @@ memory_write (uint32 addr, uint32 * data, int32 sz, int32 * ws)
       *ws = 4;
     }
 
+  if (sis_verbose > 0)
+    printf ("AHB write a: %08x, d: %08x\n", addr, *data);
   if (sis_verbose && mexc)
     {
       printf ("Memory exception at %x (illegal address)\n", addr);
@@ -225,7 +241,7 @@ boot_init (void)
   int i;
 
   grlib_boot_init ();
-  for (i = 0; i < NCPU; i++)
+  for (i = 0; i < ncpu; i++)
     {
       sregs[i].wim = 2;
       sregs[i].psr = 0xF30010e0;
@@ -233,10 +249,12 @@ boot_init (void)
       sregs[i].r[14] = sregs[i].r[30] - 96 * 4;
       sregs[i].cache_ctrl = 0x81000f;
       sregs[i].r[2] = sregs[i].r[30];	/* sp on RISCV-V */
+      sregs[i].r[11] = ROM_END - 0x10000;	/* dtb on RISCV-V */
+      sregs[i].pwd_mode = 0;
     }
 }
 
-const struct memsys gr740 = {
+const struct memsys rv32 = {
   init_sim,
   reset,
   error_mode,

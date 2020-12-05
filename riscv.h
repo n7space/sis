@@ -155,7 +155,8 @@
 #define MSTATUS_MPIE 0x80
 #define MSTATUS_MPP  0x1800
 
-#define MIP_MTI   0x080
+#define MIP_MSIP  0x008
+#define MIP_MTIP  0x080
 #define MIP_MEIP  0x800
 #define MIE_MTIE  0x080
 #define MIE_MEIE  0x800

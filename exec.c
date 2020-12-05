@@ -136,12 +136,12 @@ init_regs (sregs)
       sregs[i].npc = 4;
       sregs[i].trap = 0;
       sregs[i].psr &= 0x00f03fdf;
-      if (cputype == CPU_LEON3)
-	sregs[i].psr |= 0xF3000080;	/* Set supervisor bit */
+      if (cputype == CPU_ERC32)
+	sregs[i].psr |= 0x11000080;	/* Set supervisor bit */
       else if (cputype == CPU_LEON2)
 	sregs[i].psr |= 0x00000080;	/* Set supervisor bit */
       else
-	sregs[i].psr |= 0x11000080;	/* Set supervisor bit */
+	sregs[i].psr |= 0xF3000080;	/* Set supervisor bit */
       sregs[i].breakpoint = 0;
       sregs[i].fpstate = 0;
       sregs[i].fpqn = 0;
@@ -163,12 +163,9 @@ init_regs (sregs)
 
       sregs[i].rett_err = 0;
       sregs[i].jmpltime = 0;
-      if (cputype == CPU_LEON3)
-	{
-	  sregs[i].asr17 = 0x04000107 | (i << 28);
-	  if (!nfp)
-	    sregs[i].asr17 |= (3 << 10);	/* Meiko FPU */
-	}
+      sregs[i].asr17 = 0x04000107 | (i << 28);
+      if (!nfp)
+	sregs[i].asr17 |= (3 << 10);	/* Meiko FPU */
       sregs[i].cpu = i;
       sregs[i].simtime = 0;
       sregs[i].pwdtime = 0;

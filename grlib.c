@@ -18,7 +18,7 @@
  *
  */
 
-#include "config.h"
+#include "riscv.h"
 #include <stdio.h>
 #include <inttypes.h>
 #ifdef HAVE_TERMIOS_H
@@ -29,7 +29,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <string.h>
-#include "sis.h"
 #include "grlib.h"
 
 
@@ -169,9 +168,9 @@ grlib_read (uint32 addr, uint32 * data)
       {
 	if (ahbscores[i].core->read)
 	  res = ahbscores[i].core->read (addr & ahbscores[i].mask, data);
-	if (sis_verbose > 2)
-	  printf ("AHB read  a: %08x, d: %08x\n", addr, *data);
-	break;
+	else
+	  res = 1;
+	return !res;
       }
 
   if (!res && ((addr >= AHBPP_START) && (addr <= AHBPP_END)))
@@ -196,6 +195,8 @@ grlib_write (uint32 addr, uint32 * data, uint32 sz)
       {
 	if (ahbscores[i].core->write)
 	  res = ahbscores[i].core->write (addr & ahbscores[i].mask, data, sz);
+	else
+	  res = 1;
 	if (sis_verbose > 2)
 	  printf ("AHB write a: %08x, d: %08x\n", addr, *data);
 	break;
@@ -221,6 +222,7 @@ grlib_apb_add (const struct grlib_ipcore *core, int irq,
 
 /* ------------------- GRETH -----------------------*/
 
+extern int greth_irq;
 
 static int
 grlib_greth_read (uint32 addr, uint32 * data)
@@ -238,8 +240,11 @@ static void
 greth_add (int irq, uint32 addr, uint32 mask)
 {
   grlib_ahbmpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GRETH, 0, 0));
-  grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GRETH, 0, 6),
+  grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GRETH, 0, irq),
 		   GRLIB_PP_APBADDR (addr, mask));
+  greth_irq = irq;
+  if (sis_verbose)
+    printf(" GRETH 10/100 Mbit Ethernet core    0x%08x   %d\n", addr, irq);
 }
 
 const struct grlib_ipcore greth = {
@@ -253,6 +258,8 @@ static void
 leon3_add ()
 {
   grlib_ahbmpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_LEON3, 0, 0));
+  if (sis_verbose)
+    printf(" LEON3 SPARC V8 processor                      \n");
 }
 
 const struct grlib_ipcore leon3s = {
@@ -326,6 +333,8 @@ apbmst_add (int irq, uint32 addr, uint32 mask)
 {
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_APBMST, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
+  if (sis_verbose)
+    printf(" AHB/APB Bridge                     0x%08x\n", addr);
 }
 
 const struct grlib_ipcore apbmst = {
@@ -588,6 +597,8 @@ irqmp_add (int irq, uint32 addr, uint32 mask)
 {
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_IRQMP, 2, 0),
 		   GRLIB_PP_APBADDR (addr, mask));
+  if (sis_verbose)
+    printf(" IRQMP Interrupt controller         0x%08x\n", addr);
 }
 
 const struct grlib_ipcore irqmp = {
@@ -659,6 +670,8 @@ gpt_add (int irq, uint32 addr, uint32 mask)
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GPTIMER, 0, irq),
 		   GRLIB_PP_APBADDR (addr, mask));
   gpt_irq = irq;
+  if (sis_verbose)
+    printf(" GPTIMER timer unit                 0x%08x   %d\n", addr, irq);
 }
 
 static void
@@ -1209,13 +1222,15 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
 {
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_APBUART, 1, irq),
 		   GRLIB_PP_APBADDR (addr, mask));
+  if (sis_verbose)
+    printf(" APBUART serial port                0x%08x   %d\n", addr, irq);
 }
 
 const struct grlib_ipcore apbuart = {
   apbuart_init, apbuart_reset, apbuart_read, apbuart_write, apbuart_add
 };
 
-/* ------------------- SRCTRL -----------------------*/
+/* ------------------- SDCTRL -----------------------*/
 
 /* Store data in host byte order.  MEM points to the beginning of the
    emulated memory; WADDR contains the index the emulated memory,
@@ -1246,16 +1261,47 @@ grlib_store_bytes (char *mem, uint32 waddr, uint32 * data, int32 sz)
 }
 
 static int
-srctrl_write (uint32 addr, uint32 * data, uint32 sz)
+sdctrl_write (uint32 addr, uint32 * data, uint32 sz)
 {
   grlib_store_bytes (ramb, addr, data, sz);
   return 1;
 }
 
 static int
-srctrl_read (uint32 addr, uint32 * data)
+sdctrl_read (uint32 addr, uint32 * data)
 {
   memcpy (data, &ramb[addr & ~0x3], 4);
+  return 4;
+}
+
+static void
+sdctrl_add (int irq, uint32 addr, uint32 mask)
+{
+  grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_SDCTRL, 0, 0),
+		    GRLIB_PP_AHBADDR (addr, mask, 1, 1, 2), 0, 0, 0);
+  if (sis_verbose)
+    printf(" SDRAM controller %d M              0x%08x\n", 
+	    (~(mask << 20) + 1) >> 20, addr);
+}
+
+const struct grlib_ipcore sdctrl = {
+  NULL, NULL, sdctrl_read, sdctrl_write, sdctrl_add
+};
+
+/* ------------------- srctrl -----------------------*/
+/* used only for ROM access */
+
+static int
+srctrl_write (uint32 addr, uint32 * data, uint32 sz)
+{
+  grlib_store_bytes (romb, addr, data, sz);
+  return 1;
+}
+
+static int
+srctrl_read (uint32 addr, uint32 * data)
+{
+  memcpy (data, &romb[addr & ~0x3], 4);
   return 4;
 }
 
@@ -1265,20 +1311,19 @@ srctrl_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_SRCTRL, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 1, 1, 2), 0, 0, 0);
   if (sis_verbose)
-    printf ("RAM start: 0x%x, RAM size: %d K\n",
-	    addr, ((~mask << 20) + 1) / 1024);
+    printf(" PROM controller %d M               0x%08x\n", 
+	    (~(mask << 20) + 1) >> 20, addr);
 }
 
 const struct grlib_ipcore srctrl = {
   NULL, NULL, srctrl_read, srctrl_write, srctrl_add
 };
 
+/* ------------------- boot init --------------------*/
 void
 grlib_boot_init (void)
 {
   uint32 tmp;
-  /* Generate 1 MHz RTC tick.  */
-//  apb_write (GPTIMER_SCALER, ebase.freq - 1);
   tmp = ebase.freq - 1;
   gpt_write (GPTIMER_SCLOAD, &tmp, 2);
   tmp = -1;
@@ -1287,3 +1332,216 @@ grlib_boot_init (void)
   tmp = 7;
   gpt_write (GPTIMER_CTRL1, &tmp, 2);
 }
+
+/* ------------------- ns16550 -----------------------*/
+
+static int32 uart_lcr;
+
+static void
+ns16550_add (int irq, uint32 addr, uint32 mask)
+{
+  grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_NS16550, 0, 0),
+		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
+  if (sis_verbose)
+    printf(" NS16550 UART                       0x%08x   %d\n", addr, irq);
+}
+
+static int
+ns16550_write (uint32 addr, uint32 * data, uint32 sz)
+{
+      switch (addr & 0xff)
+	{
+	case 0:
+	  if (!uart_lcr)
+	    putchar (*data & 0xff);
+	  break;
+	case 0x0c:
+	  uart_lcr = *data & 0x80;
+	  break;
+	}
+
+  return 1;
+}
+
+static int
+ns16550_read (uint32 addr, uint32 * data)
+{
+      *data = 0;
+      switch (addr & 0xff)
+	{
+	case 0x10:
+	  *data = 0x03;
+	  break;
+	case 0x14:
+	  *data = 0x60;
+	  break;
+	}
+  return 4;
+}
+
+static void
+ns16550_reset (void)
+{
+  uart_lcr = 0;
+}
+
+const struct grlib_ipcore ns16550 = {
+  NULL, ns16550_reset, ns16550_read, ns16550_write, ns16550_add
+};
+
+/* ------------------- clint -------------------------*/
+
+static void
+clint_add (int irq, uint32 addr, uint32 mask)
+{
+  grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_CLINT, 0, 0),
+		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
+  if (sis_verbose)
+    printf(" CLINT Interrupt controller         0x%08x   %d\n", addr, irq);
+}
+
+#define CLINTSTART  	0x00000
+#define CLINTEND  	0x10000
+#define CLINT_TIMECMP	0x04000
+#define CLINT_TIMEBASE	0x0BFF8
+static int
+clint_read (uint32 addr, uint32 * data)
+{
+  uint64 tmp;
+  int reg, cpuid;
+
+      reg = (addr >> 2) & 1;
+      cpuid = ((addr >> 3) % NCPU);
+      if ((addr >= CLINT_TIMEBASE) && (addr < CLINTEND))
+	{
+	  tmp = ebase.simtime >> 32;
+	  if (reg)
+	    *data = tmp & 0xffffffff;
+	  else
+	    *data = ebase.simtime & 0xffffffff;
+	}
+      else if ((addr >= CLINT_TIMECMP) && (addr < CLINT_TIMEBASE))
+	{
+	  tmp = sregs[cpuid].mtimecmp >> 32;
+	  if (reg)
+	    *data = tmp & 0xffffffff;
+	  else
+	    *data = sregs[cpuid].mtimecmp & 0xffffffff;
+	}
+      else if ((addr >= 0) && (addr < CLINT_TIMECMP))
+	{
+	  cpuid = ((addr >> 2) % NCPU);
+	  *data = ((sregs[cpuid].mip & MIP_MSIP) >> 4) & 1;
+	}
+
+  return 4;
+}
+
+static void
+set_mtip (int32 arg)
+{
+  sregs[arg].mip |= MIP_MTIP;
+  rv32_check_lirq (arg);
+}
+
+static int
+clint_write (uint32 addr, uint32 * data, uint32 sz)
+{
+  uint64 tmp;
+  int reg, cpuid;
+
+  if ((addr >= CLINTSTART) && (addr < CLINTEND))
+    {
+      reg = (addr >> 2) & 1;
+      if ((addr >= CLINT_TIMECMP) && (addr <= CLINT_TIMEBASE))
+	{
+	  cpuid = ((addr >> 3) % NCPU);
+	  if (reg)
+	    {
+	      tmp = sregs[cpuid].mtimecmp & 0xffffffff;
+	      sregs[cpuid].mtimecmp = *data;
+	      sregs[cpuid].mtimecmp <<= 32;
+	      sregs[cpuid].mtimecmp |= tmp;
+	    }
+	  else
+	    {
+	      tmp = sregs[cpuid].mtimecmp >> 32;
+	      sregs[cpuid].mtimecmp = (tmp << 32) | *data;
+	    }
+	  remove_event (set_mtip, cpuid);
+	  sregs[cpuid].mip &= ~MIP_MTIP;
+	  if (sregs[cpuid].mtimecmp <= sregs[cpuid].simtime)
+	    sregs[cpuid].mip |= MIP_MTIP;
+	  else
+	    event (set_mtip, cpuid,
+		   sregs[cpuid].mtimecmp - sregs[cpuid].simtime);
+	}
+      else if ((addr >= CLINTSTART) && (addr <= CLINT_TIMECMP))
+	{
+	  cpuid = ((addr >> 2) % NCPU);
+	  if ((*data & 1) == 1)
+	    sregs[cpuid].mip |= MIP_MSIP;
+	  else
+	    sregs[cpuid].mip &= ~MIP_MSIP;
+	  rv32_check_lirq (cpuid);
+	}
+    }
+
+  return 1;
+}
+
+const struct grlib_ipcore clint = {
+  NULL, NULL, clint_read, clint_write, clint_add
+};
+
+/* ------------------- plic --------------------------*/
+/* no functionality supported for now */
+
+static void
+plic_add (int irq, uint32 addr, uint32 mask)
+{
+  grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_PLIC, 0, 0),
+		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
+  if (sis_verbose)
+    printf(" PLIC Interrupt controller          0x%08x   %d\n", addr, irq);
+}
+
+const struct grlib_ipcore plic = {
+  NULL, NULL, NULL, NULL, plic_add
+};
+
+/* ------------------- sifive test module --------------*/
+/* used to halt processor */
+
+static int
+s5test_write (uint32 addr, uint32 * data, uint32 sz)
+{
+  int i;
+
+      switch (addr & 0xff)
+	{
+	case 0:
+	  if (*data == 0x5555)
+	    {
+	      printf ("Power-off issued, exiting ...\n");
+	      for (i=0; i< ncpu; i++)
+	        sregs[i].trap = ERROR_TRAP;
+	    }
+	  break;
+	}
+
+  return 1;
+}
+
+static void
+s5test_add (int irq, uint32 addr, uint32 mask)
+{
+  grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_S5TEST, 0, 0),
+		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
+  if (sis_verbose)
+    printf(" S5 Test module                     0x%08x   %d\n", addr, irq);
+}
+
+const struct grlib_ipcore s5test = {
+  NULL, NULL, NULL, s5test_write, s5test_add
+};

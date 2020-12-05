@@ -28,7 +28,7 @@ sis_usage ()
   printf ("[-m <n>] [-dumbio] [-gdb] [-port port]\n");
   printf ("[-cov] [-nfp] [-ift] [-wrp] [-rom8] [-uben]\n");
   printf ("[-freq frequency] [-c batch_file]\n");
-  printf ("[-erc32] [-leon2] [-leon3] [-ricsv]\n");
+  printf ("[-erc32] [-leon2] [-leon3] [-griscv] [-rv32]\n");
   printf ("[-d] [-v] [-rt] [-bridge name] [files]\n");
 }
 
@@ -42,6 +42,7 @@ gen_help ()
   printf (" bp                    print all breakpoints\n");
   printf
     (" cont [icnt]           continue execution for [icnt] instructions\n");
+  printf (" cpu <core>            select cpu core for further commands\n");
   printf (" deb <level>           set debug level\n");
   printf
     (" dis [addr] [count]    disassemble [count] instructions at address [addr]\n");
