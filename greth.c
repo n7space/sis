@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <sys/file.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 
 #include "sis.h"
 #include "grlib.h"
@@ -63,7 +63,7 @@ static uint32 greth_rxdesc;
 static uint32 greth_rxbuf;
 static unsigned char *greth_rxbufptr;
 static unsigned char greth_mac[6];
-static long unsigned mac;
+static uint64 mac;
 static const char broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 int greth_irq;
 
