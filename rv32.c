@@ -69,7 +69,7 @@ init_sim (void)
   grlib_ahbs_add (&s5test, 0, TESTSTART, 0xFFF);
   grlib_ahbs_add (&clint, 0, CLINT_START, 0xFFF);
   grlib_ahbs_add (&plic, 0, PLIC_START, PLIC_MASK);
-  grlib_ahbs_add (&ns16550, 0, NS16550_START, 0xFFF);
+  grlib_ahbs_add (&ns16550, 10, NS16550_START, 0xFFF);
   grlib_ahbs_add (&srctrl, 0, ROM_START, ROM_MASKPP);
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
 
@@ -174,7 +174,7 @@ memory_write (uint32 addr, uint32 * data, int32 sz, int32 * ws)
       *ws = 4;
     }
 
-  if (sis_verbose > 0)
+  if (sis_verbose > 2)
     printf ("AHB write a: %08x, d: %08x\n", addr, *data);
   if (sis_verbose && mexc)
     {

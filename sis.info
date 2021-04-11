@@ -1,6 +1,6 @@
-This is sis.info, produced by makeinfo version 6.5 from sis.texi.
+This is sis.info, produced by makeinfo version 6.7 from sis.texi.
 
-This manual is for SIS (version 2.26, 15 December 2020).
+This manual is for SIS (version 2.27, 18 December 2020).
 
    Copyright (C) 2020 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.26, 15 December 2020).
+This manual is for SIS (version 2.27, 18 December 2020).
 
 * Menu:
 
@@ -1433,3 +1433,8 @@ Node: GNU Free Documentation License31926
 Node: Index57070
 
 End Tag Table
+
+
+Local Variables:
+coding: utf-8
+End:
