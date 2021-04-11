@@ -244,7 +244,7 @@ greth_add (int irq, uint32 addr, uint32 mask)
 		   GRLIB_PP_APBADDR (addr, mask));
   greth_irq = irq;
   if (sis_verbose)
-    printf(" GRETH 10/100 Mbit Ethernet core    0x%08x   %d\n", addr, irq);
+    printf (" GRETH 10/100 Mbit Ethernet core    0x%08x   %d\n", addr, irq);
 }
 
 const struct grlib_ipcore greth = {
@@ -259,7 +259,7 @@ leon3_add ()
 {
   grlib_ahbmpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_LEON3, 0, 0));
   if (sis_verbose)
-    printf(" LEON3 SPARC V8 processor                      \n");
+    printf (" LEON3 SPARC V8 processor                      \n");
 }
 
 const struct grlib_ipcore leon3s = {
@@ -334,7 +334,7 @@ apbmst_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_APBMST, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
   if (sis_verbose)
-    printf(" AHB/APB Bridge                     0x%08x\n", addr);
+    printf (" AHB/APB Bridge                     0x%08x\n", addr);
 }
 
 const struct grlib_ipcore apbmst = {
@@ -598,7 +598,7 @@ irqmp_add (int irq, uint32 addr, uint32 mask)
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_IRQMP, 2, 0),
 		   GRLIB_PP_APBADDR (addr, mask));
   if (sis_verbose)
-    printf(" IRQMP Interrupt controller         0x%08x\n", addr);
+    printf (" IRQMP Interrupt controller         0x%08x\n", addr);
 }
 
 const struct grlib_ipcore irqmp = {
@@ -671,7 +671,7 @@ gpt_add (int irq, uint32 addr, uint32 mask)
 		   GRLIB_PP_APBADDR (addr, mask));
   gpt_irq = irq;
   if (sis_verbose)
-    printf(" GPTIMER timer unit                 0x%08x   %d\n", addr, irq);
+    printf (" GPTIMER timer unit                 0x%08x   %d\n", addr, irq);
 }
 
 static void
@@ -1223,7 +1223,7 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_APBUART, 1, irq),
 		   GRLIB_PP_APBADDR (addr, mask));
   if (sis_verbose)
-    printf(" APBUART serial port                0x%08x   %d\n", addr, irq);
+    printf (" APBUART serial port                0x%08x   %d\n", addr, irq);
 }
 
 const struct grlib_ipcore apbuart = {
@@ -1280,7 +1280,7 @@ sdctrl_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_SDCTRL, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 1, 1, 2), 0, 0, 0);
   if (sis_verbose)
-    printf(" SDRAM controller %d M              0x%08x\n", 
+    printf (" SDRAM controller %d M              0x%08x\n",
 	    (~(mask << 20) + 1) >> 20, addr);
 }
 
@@ -1311,7 +1311,7 @@ srctrl_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_SRCTRL, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 1, 1, 2), 0, 0, 0);
   if (sis_verbose)
-    printf(" PROM controller %d M               0x%08x\n", 
+    printf (" PROM controller %d M               0x%08x\n",
 	    (~(mask << 20) + 1) >> 20, addr);
 }
 
@@ -1334,48 +1334,69 @@ grlib_boot_init (void)
 }
 
 /* ------------------- ns16550 -----------------------*/
-
-static int32 uart_lcr;
+static void plic_irq (int irq);
+static int32 uart_lcr, uart_ie, uart_mcr, ns16550_irq, uart_txctrl;
 
 static void
 ns16550_add (int irq, uint32 addr, uint32 mask)
 {
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_NS16550, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
+  ns16550_irq = irq;
   if (sis_verbose)
-    printf(" NS16550 UART                       0x%08x   %d\n", addr, irq);
+    printf (" NS16550 UART                       0x%08x   %d\n", addr, irq);
 }
 
 static int
 ns16550_write (uint32 addr, uint32 * data, uint32 sz)
 {
-      switch (addr & 0xff)
+  switch (addr & 0xff)
+    {
+    case 0:
+      if (!uart_lcr)
 	{
-	case 0:
-	  if (!uart_lcr)
-	    putchar (*data & 0xff);
-	  break;
-	case 0x0c:
-	  uart_lcr = *data & 0x80;
-	  break;
+	  putchar (*data & 0xff);
 	}
+      break;
+    case 4:
+      if (!uart_lcr)
+	uart_ie = *data & 0xff;
+      break;
+    case 0x08:
+      uart_txctrl = *data & 0xff;
+      break;
+    case 0x0c:
+      uart_lcr = *data & 0x80;
+      break;
+    case 0x10:
+      uart_mcr = *data & 0xff;
+      break;
+    }
 
+  if ((uart_ie & 0x2) && (uart_mcr & 0x8))
+    plic_irq (ns16550_irq);
   return 1;
 }
 
 static int
 ns16550_read (uint32 addr, uint32 * data)
 {
-      *data = 0;
-      switch (addr & 0xff)
-	{
-	case 0x10:
-	  *data = 0x03;
-	  break;
-	case 0x14:
-	  *data = 0x60;
-	  break;
-	}
+  *data = 0;
+  switch (addr & 0xff)
+    {
+    case 0x04:
+      *data = uart_ie;
+      break;
+    case 0x08:
+      *data = uart_txctrl;
+      break;
+    case 0x10:
+      *data = uart_mcr;		//0x03;
+      break;
+    case 0x14:
+      *data = 0x60;
+      break;
+    }
   return 4;
 }
 
@@ -1383,6 +1404,8 @@ static void
 ns16550_reset (void)
 {
   uart_lcr = 0;
+  uart_ie = 0;
+  uart_mcr = 0;
 }
 
 const struct grlib_ipcore ns16550 = {
@@ -1397,7 +1420,7 @@ clint_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_CLINT, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
   if (sis_verbose)
-    printf(" CLINT Interrupt controller         0x%08x   %d\n", addr, irq);
+    printf (" CLINT Interrupt controller         0x%08x   %d\n", addr, irq);
 }
 
 #define CLINTSTART  	0x00000
@@ -1410,29 +1433,29 @@ clint_read (uint32 addr, uint32 * data)
   uint64 tmp;
   int reg, cpuid;
 
-      reg = (addr >> 2) & 1;
-      cpuid = ((addr >> 3) % NCPU);
-      if ((addr >= CLINT_TIMEBASE) && (addr < CLINTEND))
-	{
-	  tmp = ebase.simtime >> 32;
-	  if (reg)
-	    *data = tmp & 0xffffffff;
-	  else
-	    *data = ebase.simtime & 0xffffffff;
-	}
-      else if ((addr >= CLINT_TIMECMP) && (addr < CLINT_TIMEBASE))
-	{
-	  tmp = sregs[cpuid].mtimecmp >> 32;
-	  if (reg)
-	    *data = tmp & 0xffffffff;
-	  else
-	    *data = sregs[cpuid].mtimecmp & 0xffffffff;
-	}
-      else if ((addr >= 0) && (addr < CLINT_TIMECMP))
-	{
-	  cpuid = ((addr >> 2) % NCPU);
-	  *data = ((sregs[cpuid].mip & MIP_MSIP) >> 4) & 1;
-	}
+  reg = (addr >> 2) & 1;
+  cpuid = ((addr >> 3) % NCPU);
+  if ((addr >= CLINT_TIMEBASE) && (addr < CLINTEND))
+    {
+      tmp = ebase.simtime >> 32;
+      if (reg)
+	*data = tmp & 0xffffffff;
+      else
+	*data = ebase.simtime & 0xffffffff;
+    }
+  else if ((addr >= CLINT_TIMECMP) && (addr < CLINT_TIMEBASE))
+    {
+      tmp = sregs[cpuid].mtimecmp >> 32;
+      if (reg)
+	*data = tmp & 0xffffffff;
+      else
+	*data = sregs[cpuid].mtimecmp & 0xffffffff;
+    }
+  else if ((addr >= 0) && (addr < CLINT_TIMECMP))
+    {
+      cpuid = ((addr >> 2) % NCPU);
+      *data = ((sregs[cpuid].mip & MIP_MSIP) >> 4) & 1;
+    }
 
   return 4;
 }
@@ -1495,7 +1518,115 @@ const struct grlib_ipcore clint = {
 };
 
 /* ------------------- plic --------------------------*/
-/* no functionality supported for now */
+/* simplified functionality supported for now */
+
+#define PLIC_PRIO 0
+#define PLIC_IPEND 0x1000
+#define PLIC_IENA  0x2000
+#define PLIC_THRES 0x200000
+#define PLIC_CLAIM 0x200004
+#define PLIC_MASK1 0xFC
+
+static unsigned char plic_prio[64];
+static uint32 plic_ie[NCPU][2];
+static uint32 plic_ip[2];
+static uint32 plic_thres[NCPU];
+static uint32 plic_claim[NCPU];
+
+static void
+plic_check_irq (uint32 hart)
+{
+  int i, irq;
+  if (irq = (plic_ie[hart][0] & plic_ip[0]))
+    {
+      for (i = 1; i < 32; i++)
+	{
+	  if ((irq >> i) & 1)
+	    plic_claim[hart] = i;
+	}
+      sregs[hart].mip |= MIP_MEIP;
+    }
+}
+
+static void
+plic_irq (int irq)
+{
+  int i;
+  plic_ip[0] |= (1 << irq);
+  for (i = 0; i < NCPU; i++)
+    {
+      plic_check_irq (i);
+      rv32_check_lirq (i);
+    }
+}
+
+static int
+plic_read (uint32 addr, uint32 * data)
+{
+  int hart;
+  if (addr >= PLIC_THRES)
+    {
+      hart = ((addr >> 12) & 0x0F) % NCPU;
+      if ((addr & PLIC_MASK1) == 0)
+	*data = plic_thres[hart];	// irq threshold, not used for now
+      else
+	{
+	  *data = plic_claim[hart];
+	  plic_claim[hart] = 0;
+	  plic_ip[0] &= ~(1 << *data);
+	}
+    }
+  else if (addr >= PLIC_IENA)
+    {
+      hart = ((addr >> 7) & 0x0F) % NCPU;
+      if (addr & 4)
+	*data = plic_ie[hart][1];	// irq enable
+      else
+	*data = plic_ie[hart][0];
+    }
+  else if (addr >= PLIC_IPEND)
+    {
+      hart = ((addr >> 7) & 0x0F) % NCPU;
+      if (addr & 4)
+	*data = plic_ip[1];	// irq pending
+      else
+	*data = plic_ip[0];
+    }
+  else if (addr < PLIC_IPEND)
+    {
+      *data = plic_prio[(addr & 0x0ff) >> 2];	// irq priority, not used for now
+    }
+  if (sis_verbose)
+    printf (" PLIC read          0x%08x   %d\n", addr, *data);
+  return 4;
+}
+
+static int
+plic_write (uint32 addr, uint32 * data, uint32 sz)
+{
+  int hart;
+  if (addr >= PLIC_THRES)
+    {
+      hart = ((addr >> 12) & 0x0F) % NCPU;
+      if ((addr & PLIC_MASK1) == 0)
+	plic_thres[hart] = *data;	// irq threshold, not used for now
+      else
+	plic_check_irq (hart);	// irq completion
+    }
+  else if (addr >= PLIC_IENA)
+    {
+      hart = ((addr >> 7) & 0x0F) % NCPU;
+      if (addr & 4)
+	plic_ie[hart][1] = *data;	// irq enable
+      else
+	plic_ie[hart][0] = *data;
+    }
+  else if (addr < PLIC_IPEND)
+    {
+      plic_prio[(addr & 0x0ff) >> 2] = *data;	// irq priority, not used for now
+    }
+  return 1;
+}
 
 static void
 plic_add (int irq, uint32 addr, uint32 mask)
@@ -1503,11 +1634,11 @@ plic_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_PLIC, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
   if (sis_verbose)
-    printf(" PLIC Interrupt controller          0x%08x   %d\n", addr, irq);
+    printf (" PLIC Interrupt controller          0x%08x   %d\n", addr, irq);
 }
 
 const struct grlib_ipcore plic = {
-  NULL, NULL, NULL, NULL, plic_add
+  NULL, NULL, plic_read, plic_write, plic_add
 };
 
 /* ------------------- sifive test module --------------*/
@@ -1518,17 +1649,17 @@ s5test_write (uint32 addr, uint32 * data, uint32 sz)
 {
   int i;
 
-      switch (addr & 0xff)
+  switch (addr & 0xff)
+    {
+    case 0:
+      if (*data == 0x5555)
 	{
-	case 0:
-	  if (*data == 0x5555)
-	    {
-	      printf ("Power-off issued, exiting ...\n");
-	      for (i=0; i< ncpu; i++)
-	        sregs[i].trap = ERROR_TRAP;
-	    }
-	  break;
+	  printf ("Power-off issued, exiting ...\n");
+	  for (i = 0; i < ncpu; i++)
+	    sregs[i].trap = ERROR_TRAP;
 	}
+      break;
+    }
 
   return 1;
 }
@@ -1539,7 +1670,7 @@ s5test_add (int irq, uint32 addr, uint32 mask)
   grlib_ahbspp_add (GRLIB_PP_ID (VENDOR_CONTRIB, CONTRIB_S5TEST, 0, 0),
 		    GRLIB_PP_AHBADDR (addr, mask, 0, 0, 2), 0, 0, 0);
   if (sis_verbose)
-    printf(" S5 Test module                     0x%08x   %d\n", addr, irq);
+    printf (" S5 Test module                     0x%08x   %d\n", addr, irq);
 }
 
 const struct grlib_ipcore s5test = {

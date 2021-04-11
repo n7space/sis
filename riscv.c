@@ -201,7 +201,9 @@ rv32_check_lirq (int cpu)
   if (sregs[cpu].mstatus & MSTATUS_MIE)
     {
       tmpirq = sregs[cpu].mip & sregs[cpu].mie;
-      if (tmpirq & MIP_MSIP)
+      if (tmpirq & MIP_MEIP)
+	ext_irl[cpu] = 0x1b;
+      else if (tmpirq & MIP_MSIP)
 	ext_irl[cpu] = 0x13;
       else if (tmpirq & MIP_MTIP)
 	ext_irl[cpu] = 0x17;
@@ -2080,7 +2082,8 @@ riscv_execute_trap (sregs)
 	}
 
       if (((sregs->trap >= 16) && (sregs->trap < 32))
-	  || ((sregs->trap == 0x23) || (sregs->trap == 0x27)))
+	  || ((sregs->trap == 0x23) || (sregs->trap == 0x27)
+	      || (sregs->trap == 0x2b)))
 	{
 	  sregs->mcause &= 0x1f;	// filter trap cause
 	  sregs->mcause |= 0x80000000;	// indicate async interrupt
@@ -2093,6 +2096,8 @@ riscv_execute_trap (sregs)
 	sregs->mip &= ~MIP_MSIP;
       if (sregs->trap == 0x27)
 	sregs->mip &= ~MIP_MTIP;
+      if (sregs->trap == 0x2b)
+	sregs->mip &= ~MIP_MEIP;
 
       // save mstatus.mie in mstatus.mpie
       sregs->mstatus |= (sregs->mstatus << 4) & MSTATUS_MPIE;
