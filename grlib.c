@@ -551,22 +551,22 @@ irqmp_write (uint32 addr, uint32 * data, uint32 size)
       break;
 
     case IRQMP_IMR:		/* 0x40 */
-      irqmp_imr[0] = *data & 0x7ffe;
+      irqmp_imr[0] = *data & 0xfffe;
       chk_irq ();
       break;
 
     case IRQMP_IMR1:		/* 0x44 */
-      irqmp_imr[1] = *data & 0x7ffe;
+      irqmp_imr[1] = *data & 0xfffe;
       chk_irq ();
       break;
 
     case IRQMP_IMR2:		/* 0x48 */
-      irqmp_imr[2] = *data & 0x7ffe;
+      irqmp_imr[2] = *data & 0xfffe;
       chk_irq ();
       break;
 
     case IRQMP_IMR3:		/* 0x4C */
-      irqmp_imr[3] = *data & 0x7ffe;
+      irqmp_imr[3] = *data & 0xfffe;
       chk_irq ();
       break;
 
