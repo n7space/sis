@@ -1,6 +1,6 @@
 This is sis.info, produced by makeinfo version 6.7 from sis.texi.
 
-This manual is for SIS (version 2.27, 18 December 2020).
+This manual is for SIS (version 2.28, 30 July 2021).
 
    Copyright (C) 2020 Free Software Foundation, Inc.
 
@@ -21,7 +21,7 @@ File: sis.info,  Node: Top,  Next: Introduction,  Up: (dir)
 SIS
 ***
 
-This manual is for SIS (version 2.27, 18 December 2020).
+This manual is for SIS (version 2.28, 30 July 2021).
 
 * Menu:
 
@@ -649,6 +649,7 @@ The following IP cores from GRLIB are emulated in GR740 mode:
 
 IP Core                     Address        Interrupt
 -------------------------------------------------------
+L2CACHE                     0xF0000000     -
 APBMAST                     0xFF900000     -
 APBUART                     0xFF900000     3
 IRQMP                       0xFF904000     -
@@ -664,6 +665,7 @@ Address                                     Type
 ------------------------------------------------------------------
 0x00000000 - 0x04000000                     RAM (64 Mbyte)
 0xC0000000 - 0xC1000000                     ROM (16 Mbyte)
+0xF0000000 - 0xF0100000                     L2 cache
 0xFF900000 - 0xFFA00000                     APB bus
 0xFFFFF000 - 0xFFFFFFFF                     AHB plug&play
 
@@ -1419,18 +1421,18 @@ Index
 
 
 Tag Table:
-Node: Top701
-Node: Introduction1055
-Node: Invoking sis1808
-Node: Commands4368
-Node: Emulated Systems8472
-Node: Multi-processing23069
-Node: Networking23557
-Node: Interfacing to GDB29867
-Node: Code coverage30271
-Node: Building SIS31276
-Node: GNU Free Documentation License31926
-Node: Index57070
+Node: Top697
+Node: Introduction1047
+Node: Invoking sis1800
+Node: Commands4360
+Node: Emulated Systems8464
+Node: Multi-processing23159
+Node: Networking23647
+Node: Interfacing to GDB29957
+Node: Code coverage30361
+Node: Building SIS31366
+Node: GNU Free Documentation License32016
+Node: Index57160
 
 End Tag Table
 

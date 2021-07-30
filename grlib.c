@@ -251,6 +251,40 @@ const struct grlib_ipcore greth = {
   NULL, NULL, grlib_greth_read, grlib_greth_write, greth_add
 };
 
+/* ------------------- L2C -----------------------*/
+
+static int
+grlib_l2c_read (uint32 addr, uint32 * data)
+{
+  uint32 res;
+
+  switch (addr & 0xFC)
+    {
+    case 4:
+      /* Status */
+      res = 0x00502803;
+      break;
+    default:
+      res = 0;
+    }
+
+  *data = res;
+}
+
+static void
+l2c_add (int irq, uint32 addr, uint32 mask)
+{
+  grlib_ahbmpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_L2C, 0, 0));
+  grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_L2C, 0, 0),
+		   GRLIB_PP_APBADDR (addr, mask));
+  if (sis_verbose)
+    printf(" Level 2 Cache controller           0x%08x\n", addr);
+}
+
+const struct grlib_ipcore l2c = {
+  NULL, NULL, grlib_l2c_read, NULL, l2c_add
+};
+
 
 /* ------------------- LEON3 -----------------------*/
 

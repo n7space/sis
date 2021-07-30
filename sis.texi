@@ -649,6 +649,7 @@ The following IP cores from GRLIB are emulated in GR740 mode:
 
 @multitable {The long name of the core} {Address_long} {Interrupt}
 @headitem IP Core  @tab Address @tab Interrupt
+@item  L2CACHE @tab 0xF0000000 @tab -
 @item  APBMAST @tab 0xFF900000 @tab -
 @item  APBUART @tab 0xFF900000 @tab 3
 @item  IRQMP @tab 0xFF904000 @tab -
@@ -664,6 +665,7 @@ The following memory areas are valid for GR740:
 @headitem Address  @tab Type
 @item 0x00000000 - 0x04000000 @tab RAM (64 Mbyte)
 @item 0xC0000000 - 0xC1000000 @tab ROM (16 Mbyte)
+@item 0xF0000000 - 0xF0100000 @tab L2 cache
 @item 0xFF900000 - 0xFFA00000 @tab APB bus
 @item 0xFFFFF000 - 0xFFFFFFFF @tab AHB plug&play
 @end multitable
