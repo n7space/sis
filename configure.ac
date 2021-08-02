@@ -1,4 +1,4 @@
-AC_INIT([sis], [2.28])
+AC_INIT([sis], [2.29])
 AC_CONFIG_SRCDIR([sis.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS(config.h)

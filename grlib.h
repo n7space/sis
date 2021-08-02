@@ -106,3 +106,4 @@ extern void apbuart_close_port (void);
 extern void apbuart_flush (void);
 extern const struct grlib_ipcore gptimer, irqmp, apbuart, apbmst,
   greth, l2c, leon3s, srctrl, ns16550, clint, plic, sdctrl, s5test;
+extern int irqmp_extirq;
