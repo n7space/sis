@@ -390,6 +390,10 @@ const struct grlib_ipcore apbmst = {
 #define IRQMP_IFR1 	0x84
 #define IRQMP_IFR2 	0x88
 #define IRQMP_IFR3 	0x8C
+#define IRQMP_PEXTACK0 	0xC0
+#define IRQMP_PEXTACK1 	0xC4
+#define IRQMP_PEXTACK2 	0xC8
+#define IRQMP_PEXTACK3 	0xCC
 
 static void irqmp_intack (int level, int cpu);
 static void chk_irq (void);
@@ -400,6 +404,13 @@ static uint32 irqmp_ipr;
 static uint32 irqmp_ibr;
 static uint32 irqmp_imr[NCPU];
 static uint32 irqmp_ifr[NCPU];
+static uint32 irqmp_pextack[NCPU];
+
+/* Mask with the supported interrupts */
+static uint32 irqmp_mask;
+
+/* The extended interrupt line (a zero value disables the feature) */
+int irqmp_extirq;
 
 static void
 irqmp_init (void)
@@ -410,6 +421,11 @@ irqmp_init (void)
     {
       sregs[i].intack = irqmp_intack;
     }
+
+  if (irqmp_extirq)
+    irqmp_mask = 0xfffffffe;
+  else
+    irqmp_mask = 0x0000fffe;
 }
 
 static void
@@ -422,21 +438,40 @@ irqmp_reset (void)
     {
       irqmp_imr[i] = 0;
       irqmp_ifr[i] = 0;
+      irqmp_pextack[i] = 0;
     }
 }
 
 static void
 irqmp_intack (int level, int cpu)
 {
-  int irq_test;
+  int bit = 1 << level;
 
-  if ((sis_verbose > 2) && (level != 10))
+  if (sis_verbose > 2)
     printf ("%8" PRIu64 " cpu %d interrupt %d acknowledged\n",
 	    ebase.simtime, cpu, level);
-  if (irqmp_ifr[cpu] & (1 << level))
-    irqmp_ifr[cpu] &= ~(1 << level);
+
+  irqmp_pextack[cpu] = 0;
+  if (level == irqmp_extirq)
+    {
+      int i;
+
+      for (i = 16; i < 32; ++i)
+	if ((irqmp_ipr & (1 << i)) & irqmp_imr[cpu])
+	  {
+	    if (sis_verbose > 2)
+	      printf ("%8" PRIu64 " cpu %d set extended interrupt "
+		      "acknowledge to %i\n", ebase.simtime, cpu, i);
+	    irqmp_ipr &= ~(1 << i);
+	    irqmp_pextack[cpu] = i;
+	    break;
+	  }
+    }
+
+  if (irqmp_ifr[cpu] & bit)
+    irqmp_ifr[cpu] &= ~bit;
   else
-    irqmp_ipr &= ~(1 << level);
+    irqmp_ipr &= ~bit;
   chk_irq ();
 }
 
@@ -450,7 +485,14 @@ chk_irq ()
   for (cpu = 0; cpu < ncpu; cpu++)
     {
       old_irl = ext_irl[cpu];
-      itmp = ((irqmp_ipr | irqmp_ifr[cpu]) & irqmp_imr[cpu]) & 0x0fffe;
+      itmp = ((irqmp_ipr | irqmp_ifr[cpu]) & irqmp_imr[cpu]) & irqmp_mask;
+      if (itmp & 0xffff0000)
+	{
+	  if (sis_verbose > 2)
+	    printf ("%8" PRIu64 " cpu %d forward extended interrupt\n",
+		    ebase.simtime, cpu);
+	  itmp |= 1 << irqmp_extirq;
+	}
       ext_irl[cpu] = 0;
       if (itmp != 0)
 	{
@@ -498,7 +540,7 @@ irqmp_read (uint32 addr, uint32 * data)
       break;
 
     case IRQMP_ISR:		/* 0x10 */
-      *data = ((ncpu - 1) << 28);
+      *data = ((ncpu - 1) << 28) | (irqmp_extirq << 16);
       for (i = 0; i < ncpu; i++)
 	*data |= (sregs[i].pwd_mode << i);
       break;
@@ -539,6 +581,22 @@ irqmp_read (uint32 addr, uint32 * data)
       *data = irqmp_ifr[3];
       break;
 
+    case IRQMP_PEXTACK0:	/* 0xC0 */
+      *data = irqmp_pextack[0];
+      break;
+
+    case IRQMP_PEXTACK1:	/* 0xC4 */
+      *data = irqmp_pextack[1];
+      break;
+
+    case IRQMP_PEXTACK2:	/* 0xC8 */
+      *data = irqmp_pextack[2];
+      break;
+
+    case IRQMP_PEXTACK3:	/* 0xCC */
+      *data = irqmp_pextack[3];
+      break;
+
     default:
       *data = 0;
     }
@@ -552,13 +610,18 @@ irqmp_write (uint32 addr, uint32 * data, uint32 size)
   switch (addr & 0xff)
     {
 
+    case IRQMP_IPR:		/* 0x04 */
+      irqmp_ipr = *data & irqmp_mask;
+      chk_irq ();
+      break;
+
     case IRQMP_IFR:		/* 0x08 */
       irqmp_ifr[0] = *data & 0xfffe;
       chk_irq ();
       break;
 
     case IRQMP_ICR:		/* 0x0C */
-      irqmp_ipr &= ~*data & 0x0fffe;
+      irqmp_ipr &= ~*data & irqmp_mask;
       chk_irq ();
       break;
 
@@ -585,22 +648,22 @@ irqmp_write (uint32 addr, uint32 * data, uint32 size)
       break;
 
     case IRQMP_IMR:		/* 0x40 */
-      irqmp_imr[0] = *data & 0xfffe;
+      irqmp_imr[0] = *data & irqmp_mask;
       chk_irq ();
       break;
 
     case IRQMP_IMR1:		/* 0x44 */
-      irqmp_imr[1] = *data & 0xfffe;
+      irqmp_imr[1] = *data & irqmp_mask;
       chk_irq ();
       break;
 
     case IRQMP_IMR2:		/* 0x48 */
-      irqmp_imr[2] = *data & 0xfffe;
+      irqmp_imr[2] = *data & irqmp_mask;
       chk_irq ();
       break;
 
     case IRQMP_IMR3:		/* 0x4C */
-      irqmp_imr[3] = *data & 0xfffe;
+      irqmp_imr[3] = *data & irqmp_mask;
       chk_irq ();
       break;
 

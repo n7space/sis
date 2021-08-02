@@ -56,6 +56,8 @@ init_sim (void)
 {
   int i;
 
+  irqmp_extirq = 10;
+
   for (i = 0; i < NCPU; i++)
     grlib_ahbm_add (&leon3s, 0);
 
