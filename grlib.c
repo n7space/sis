@@ -960,6 +960,8 @@ const struct grlib_ipcore gptimer = {
 
 /* UART support variables.  */
 
+#define APBUART0_IRQ 2
+
 /* File descriptor for input file.  */
 static int32 fd1, fd2;
 
@@ -1083,7 +1085,7 @@ apbuart_read (uint32 addr, uint32 * data)
       if (aind < anum)
 	{
 	  if ((aind + 1) < anum)
-	    grlib_set_irq (3);
+	    grlib_set_irq (APBUART0_IRQ);
 	  *data = (uint32) aq[aind++];
 	  return 0;
 	}
@@ -1097,7 +1099,7 @@ apbuart_read (uint32 addr, uint32 * data)
 	    {
 	      aind = 0;
 	      if ((aind + 1) < anum)
-		grlib_set_irq (3);
+		grlib_set_irq (APBUART0_IRQ);
 	      *data = (uint32) aq[aind++];
 	      return 0;
 	    }
@@ -1139,7 +1141,7 @@ apbuart_read (uint32 addr, uint32 * data)
 	    {
 	      Ucontrol |= 0x00000001;
 	      aind = 0;
-	      grlib_set_irq (3);
+	      grlib_set_irq (APBUART0_IRQ);
 	    }
 	}
       Ucontrol |= 0x00000006;
@@ -1191,7 +1193,7 @@ apbuart_write (uint32 addr, uint32 * data, uint32 sz)
 	      wbufa[wnuma++] = c;
 	    }
 	}
-      grlib_set_irq (3);
+      grlib_set_irq (APBUART0_IRQ);
 #else
       if (uart_stat_reg & UARTA_SRE)
 	{
@@ -1247,7 +1249,7 @@ uarta_tx (void)
       uart_stat_reg |= UARTA_HRE;
       event (uarta_tx, 0, UART_TX_TIME);
     }
-  grlib_set_irq (3);
+  grlib_set_irq (APBUART0_IRQ);
 }
 
 static void
@@ -1269,7 +1271,7 @@ uart_rx (int32 arg)
 	  uart_stat_reg |= UARTA_OR;
 	}
       uart_stat_reg |= UARTA_DR;
-      grlib_set_irq (3);
+      grlib_set_irq (APBUART0_IRQ);
     }
   event (uart_rx, 0, UART_RX_TIME);
 }
