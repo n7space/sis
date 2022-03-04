@@ -40,7 +40,27 @@
 #include "grlib.h"
 
 /* APB registers */
-#define APBSTART	0x80000000
+#define APBSTART	        0x80000000
+
+/* APB IRQMP registers */
+
+#define IRQMP_ADDRESS       0x80000200
+
+/* APB Timer registers */
+
+#define GPTIMER_ADDRESS     0x80000300
+
+/* APB UART registers */
+
+#define APBUART0_ADDRESS    0x80000100
+#define APBUART0_IRQ 2
+
+#define APBUART1_ADDRESS    0x80000100
+#define APBUART1_IRQ 17
+
+/* GRETH address */
+
+#define GRETH_ADDRESS       0x80000B00
 
 /* Memory exception waitstates.  */
 #define MEM_EX_WS 	1
@@ -65,10 +85,11 @@ init_sim (void)
   grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFF);
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
 
-  grlib_apb_add (&apbuart, 3, APBSTART + 0x100, 0xFFF);
-  grlib_apb_add (&irqmp, 0, APBSTART + 0x200, 0xFFF);
-  grlib_apb_add (&gptimer, 8, APBSTART + 0x300, 0xFFF);
-  grlib_apb_add (&greth, 6, APBSTART + 0xB00, 0xFFF);
+  grlib_apb_add (&apbuart, APBUART0_IRQ, APBUART0_ADDRESS, 0xFFF);
+/*  grlib_apb_add (&apbuart, APBUART1_IRQ, APBUART1_ADDRESS, 0xFFF); */
+  grlib_apb_add (&irqmp, 0, IRQMP_ADDRESS, 0xFFF);
+  grlib_apb_add (&gptimer, 8, GPTIMER_ADDRESS, 0xFFF);
+  grlib_apb_add (&greth, 6, GRETH_ADDRESS, 0xFFF);
 
   grlib_init ();
   ebase.ramstart = RAM_START;
