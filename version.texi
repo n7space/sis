@@ -1,4 +1,0 @@
-@set UPDATED 30 July 2021
-@set UPDATED-MONTH July 2021
-@set EDITION 2.29
-@set VERSION 2.29
