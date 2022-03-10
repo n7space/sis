@@ -961,6 +961,7 @@ const struct grlib_ipcore gptimer = {
 /* UART support variables.  */
 
 #define APBUART0_IRQ 2
+#define APBUART1_IRQ 17
 
 /* File descriptor for input file.  */
 static int32 fd1, fd2;
