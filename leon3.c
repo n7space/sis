@@ -86,7 +86,7 @@ init_sim (void)
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
 
   grlib_apb_add (&apbuart, APBUART0_IRQ, APBUART0_ADDRESS, 0xFFF);
-/*  grlib_apb_add (&apbuart, APBUART1_IRQ, APBUART1_ADDRESS, 0xFFF); */
+  grlib_apb_add (&apbuart, APBUART1_IRQ, APBUART1_ADDRESS, 0xFFF);
   grlib_apb_add (&irqmp, 0, IRQMP_ADDRESS, 0xFFF);
   grlib_apb_add (&gptimer, 8, GPTIMER_ADDRESS, 0xFFF);
   grlib_apb_add (&greth, 6, GRETH_ADDRESS, 0xFFF);

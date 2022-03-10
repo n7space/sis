@@ -57,3 +57,8 @@ dkms.conf
 
 # Binary files
 sis
+
+# Dependency files
+*.Tpo
+*.Po
+.deps/
