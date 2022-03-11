@@ -1,11 +1,13 @@
-PROJECT = sis
-CC := gcc
+SIS_NAME := sis
+SIS_VERSION := 2.29
+BUILD_DIR=../build
+CC = gcc
 CFLAGS := -O3
 INCL = -I.
 LDFLAGS = -lm -lreadline
 CONFIG = -DHAVE_CONFIG_H 
 DEFS = -DFAST_UART
-SOURCES = elf.c \
+SRC = elf.c \
 		  erc32.c \
 		  exec.c \
 		  func.c \
@@ -31,16 +33,16 @@ HEADERS = config.h \
 		  rv32dtb.h \
 		  sis.h \
 		  sparc.h
-OBJECTS := $(patsubst %.c,%.o, $(SOURCES))
+OBJECTS := $(patsubst %.c,$(BUILD_DIR)/$(SIS_DIR)/%.o, $(SRC))
 
 all: $(OBJECTS)
-	$(CC) $(DEFS) $(CFLAGS) -o $(PROJECT) $(OBJECTS) $(LDFLAGS)
+	$(CC) $(DEFS) $(CFLAGS) -o $(BUILD_DIR)/$(SIS_NAME)-$(SIS_VERSION) $(OBJECTS) $(LDFLAGS)
 
-%.o: %.c
+$(BUILD_DIR)/$(SIS_DIR)/%.o: %.c
 	$(CC) $(CONFIG) $(DEFS) $(INCL) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(OBJECTS) $(PROJECT)
+	rm -f $(OBJECTS) $(BUILD_DIR)/$(SIS_NAME)-$(SIS_VERSION)
 
 .PHONY: clean
 
