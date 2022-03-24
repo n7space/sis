@@ -960,7 +960,10 @@ const struct grlib_ipcore gptimer = {
 
 /* UART support variables.  */
 
+#define APBUART0_ADDRESS    0x80000100U
 #define APBUART0_IRQ 2
+
+#define APBUART1_ADDRESS    0x80000100U
 #define APBUART1_IRQ 17
 
 /* File descriptor for input file.  */
@@ -975,7 +978,7 @@ static int32 bnum, bind = 0;
 static char wbufa[UARTBUF], wbufb[UARTBUF];
 static unsigned wnuma;
 static unsigned wnumb;
-static FILE *f1in, *f1out;
+static FILE *f1in, *f1out, *f2in, *f2out;
 #ifdef HAVE_TERMIOS_H
 static struct termios ioc1, ioc2, iocold1, iocold2;
 #endif
@@ -983,13 +986,13 @@ static struct termios ioc1, ioc2, iocold1, iocold2;
 #define O_NONBLOCK 0
 #endif
 
-static int f1open = 0;
+static int f1open = 0, f2open = 0;
 
 static char uarta_sreg, uarta_hreg;
 static uint32 uart_stat_reg;
 static uint32 uarta_data;
 
-static int ifd1 = -1, ofd1 = -1;
+static int ifd1 = -1, ofd1 = -1, ifd2 = -1, ofd2 = -1;
 
 void
 apbuart_init_stdio (void)
@@ -1020,55 +1023,97 @@ apbuart_restore_stdio (void)
 		( dumbio || nouartrx ? (0) : read( _fd_, _buf_, _len_ ) )
 
 static void
-apbuart_init (void)
+apbuart_init (int uartDevice)
 {
-  f1in = stdin;
-  f1out = stdout;
-  if (uart_dev1[0] != 0)
-    {
-      if ((fd1 = open (uart_dev1, O_RDWR | O_NONBLOCK)) < 0)
-	{
-	  printf ("Warning, couldn't open output device %s\n", uart_dev1);
-	}
-      else
-	{
-	  if (sis_verbose)
-	    printf ("serial port A on %s\n", uart_dev1);
-	  f1in = f1out = fdopen (fd1, "r+");
-	  setbuf (f1out, NULL);
-	  f1open = 1;
-	}
-    }
-  if (f1in)
-    ifd1 = fileno (f1in);
-  if (ifd1 == 0)
-    {
-      if (sis_verbose)
-	printf ("serial port A on stdin/stdout\n");
-      if (!dumbio)
-	{
+    switch(uartDevice){
+        case 0:
+        default:
+            f1in = stdin;
+            f1out = stdout;
+            if (uart_dev1[0] != 0) {
+                if ((fd1 = open (uart_dev1, O_RDWR | O_NONBLOCK)) < 0) {
+                    printf ("Warning, couldn't open output device %s\n", uart_dev1);
+                } else {
+                    if (sis_verbose) {
+                        printf ("serial port A on %s\n", uart_dev1);
+                    }
+                    f1in = f1out = fdopen (fd1, "r+");
+                    setbuf (f1out, NULL);
+                    f1open = 1;
+                }
+            }
+            if (f1in) {
+                ifd1 = fileno (f1in);
+            }
+            if (ifd1 == 0) {
+                if (sis_verbose) {
+                    printf ("serial port A on stdin/stdout\n");
+                }
+                if (!dumbio) {
 #ifdef HAVE_TERMIOS_H
-	  tcgetattr (ifd1, &ioc1);
-	  if (tty_setup)
-	    {
-	      iocold1 = ioc1;
-	      ioc1.c_lflag &= ~(ICANON | ECHO);
-	      ioc1.c_cc[VMIN] = 0;
-	      ioc1.c_cc[VTIME] = 0;
-	    }
+                    tcgetattr (ifd1, &ioc1);
+                    if (tty_setup) {
+                        iocold1 = ioc1;
+                        ioc1.c_lflag &= ~(ICANON | ECHO);
+                        ioc1.c_cc[VMIN] = 0;
+                        ioc1.c_cc[VTIME] = 0;
+                    }
 #endif
-	}
-      f1open = 1;
+                }
+                f1open = 1;
+            }
+            if (f1out) {
+                ofd1 = fileno (f1out);
+                if (!dumbio && tty_setup && ofd1 == 1) {
+                    setbuf (f1out, NULL);
+                }
+            }
+            wnuma = 0;
+            break;
+        case 1:
+            f2in = stdin;
+            f2out = stdout;
+            if (uart_dev2[0] != 0) {
+                if ((fd2 = open (uart_dev2, O_RDWR | O_NONBLOCK)) < 0) {
+                    printf ("Warning, couldn't open output device %s\n", uart_dev2);
+                } else {
+                    if (sis_verbose) {
+                        printf ("serial port A on %s\n", uart_dev1);
+                    }
+                    f2in = f2out = fdopen (fd2, "r+");
+                    setbuf (f2out, NULL);
+                    f2open = 1;
+                }
+            }
+            if (f2in) {
+                ifd2 = fileno (f2in);
+            }
+            if (ifd2 == 0) {
+                if (sis_verbose) {
+                    printf ("serial port A on stdin/stdout\n");
+                }
+                if (!dumbio) {
+#ifdef HAVE_TERMIOS_H
+                    tcgetattr (ifd2, &ioc2);
+                    if (tty_setup) {
+                        iocold2 = ioc2;
+                        ioc2.c_lflag &= ~(ICANON | ECHO);
+                        ioc2.c_cc[VMIN] = 0;
+                        ioc2.c_cc[VTIME] = 0;
+                    }
+#endif
+                }
+                f2open = 1;
+            }
+            if (f2out) {
+                ofd2 = fileno (f2out);
+                if (!dumbio && tty_setup && ofd2 == 1) {
+                    setbuf (f1out, NULL);
+                }
+            }
+            wnuma = 0;
+            break;
     }
-
-  if (f1out)
-    {
-      ofd1 = fileno (f1out);
-      if (!dumbio && tty_setup && ofd1 == 1)
-	setbuf (f1out, NULL);
-    }
-
-  wnuma = 0;
 }
 
 static int
@@ -1326,7 +1371,11 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
     printf (" APBUART serial port                0x%08x   %d\n", addr, irq);
 }
 
-const struct grlib_ipcore apbuart = {
+const struct grlib_ipcore apbuart0 = {
+  apbuart_init, apbuart_reset, apbuart_read, apbuart_write, apbuart_add
+};
+
+const struct grlib_ipcore apbuart1 = {
   apbuart_init, apbuart_reset, apbuart_read, apbuart_write, apbuart_add
 };
 

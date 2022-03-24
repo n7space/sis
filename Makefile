@@ -1,5 +1,6 @@
 SIS_NAME := sis
 SIS_VERSION := 2.29
+SIS_DIR := sis
 BUILD_DIR=../build
 CC = gcc
 CFLAGS := -O3
@@ -35,10 +36,15 @@ HEADERS = config.h \
 		  sparc.h
 OBJECTS := $(patsubst %.c,$(BUILD_DIR)/$(SIS_DIR)/%.o, $(SRC))
 
-all: $(OBJECTS)
+all: sis
+
+sis: $(OBJECTS)
 	$(CC) $(DEFS) $(CFLAGS) -o $(BUILD_DIR)/$(SIS_NAME)-$(SIS_VERSION) $(OBJECTS) $(LDFLAGS)
 
-$(BUILD_DIR)/$(SIS_DIR)/%.o: %.c
+$(BUILD_DIR)/$(SIS_DIR):
+	mkdir -p $(BUILD_DIR)/$(SIS_DIR)
+
+$(BUILD_DIR)/sis/%.o: %.c | $(BUILD_DIR)/$(SIS_DIR)
 	$(CC) $(CONFIG) $(DEFS) $(INCL) $(CFLAGS) -c -o $@ $<
 
 clean:
