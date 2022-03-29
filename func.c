@@ -56,6 +56,7 @@ int wrp = 0;
 int rom8 = 0;
 int uben = 0;
 int termsave;
+char uart_dev0[128] = "";
 char uart_dev1[128] = "";
 char uart_dev2[128] = "";
 uint32 last_load_addr = 0;

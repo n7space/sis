@@ -68,15 +68,15 @@ char** argv;
         cmdq[i] = 0;
 
     /* if binary name starts with riscv, force RISCV emulation */
-    strncpy(uart_dev1, argv[0], 128);
-    cfile = basename(uart_dev1);
+    strncpy(uart_dev0, argv[0], 128);
+    cfile = basename(uart_dev0);
     if(strncmp(cfile, "riscv", 5) == 0)
         archtype = CPU_RISCV;
     if(strncmp(cfile, "sparc", 5) == 0)
         archtype = CPU_SPARC;
 
     cfile = 0;
-    uart_dev1[0] = 0;
+    uart_dev0[0] = 0;
 
     /* parse start-up switches */
     while(stat < argc) {
@@ -105,10 +105,10 @@ char** argv;
                 uben = 1;
             else if(strcmp(argv[stat], "-uart1") == 0) {
                 if((stat + 1) < argc)
-                    strcpy(uart_dev1, argv[++stat]);
+                    strcpy(uart_dev0, argv[++stat]);
             } else if(strcmp(argv[stat], "-uart2") == 0) {
                 if((stat + 1) < argc)
-                    strcpy(uart_dev2, argv[++stat]);
+                    strcpy(uart_dev1, argv[++stat]);
             } else if(strcmp(argv[stat], "-freq") == 0) {
                 if((stat + 1) < argc)
                     freq = VAL(argv[++stat]);

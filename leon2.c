@@ -464,12 +464,12 @@ port_init(void)
 {
     f1in = stdin;
     f1out = stdout;
-    if(uart_dev1[0] != 0)
-        if((fd1 = open(uart_dev1, O_RDWR | O_NONBLOCK)) < 0)
-            printf("Warning, couldn't open output device %s\n", uart_dev1);
+    if(uart_dev0[0] != 0)
+        if((fd1 = open(uart_dev0, O_RDWR | O_NONBLOCK)) < 0)
+            printf("Warning, couldn't open output device %s\n", uart_dev0);
         else {
             if(sis_verbose)
-                printf("serial port A on %s\n", uart_dev1);
+                printf("serial port A on %s\n", uart_dev0);
             f1in = f1out = fdopen(fd1, "r+");
             setbuf(f1out, NULL);
             f1open = 1;

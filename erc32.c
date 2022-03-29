@@ -905,12 +905,12 @@ port_init()
         f1out = stdout;
         f2out = NULL;
     }
-    if(uart_dev1[0] != 0)
-        if((fd1 = open(uart_dev1, O_RDWR | O_NONBLOCK)) < 0) {
-            printf("Warning, couldn't open output device %s\n", uart_dev1);
+    if(uart_dev0[0] != 0)
+        if((fd1 = open(uart_dev0, O_RDWR | O_NONBLOCK)) < 0) {
+            printf("Warning, couldn't open output device %s\n", uart_dev0);
         } else {
             if(sis_verbose)
-                printf("serial port A on %s\n", uart_dev1);
+                printf("serial port A on %s\n", uart_dev0);
             f1in = f1out = fdopen(fd1, "r+");
             setbuf(f1out, NULL);
             f1open = 1;
@@ -940,12 +940,12 @@ port_init()
             setbuf(f1out, NULL);
     }
 
-    if(uart_dev2[0] != 0)
-        if((fd2 = open(uart_dev2, O_RDWR | O_NONBLOCK)) < 0) {
-            printf("Warning, couldn't open output device %s\n", uart_dev2);
+    if(uart_dev1[0] != 0)
+        if((fd2 = open(uart_dev1, O_RDWR | O_NONBLOCK)) < 0) {
+            printf("Warning, couldn't open output device %s\n", uart_dev1);
         } else {
             if(sis_verbose)
-                printf("serial port B on %s\n", uart_dev2);
+                printf("serial port B on %s\n", uart_dev1);
             f2in = f2out = fdopen(fd2, "r+");
             setbuf(f2out, NULL);
             f2open = 1;
