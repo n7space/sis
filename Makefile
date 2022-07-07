@@ -10,6 +10,6 @@ clean:
 	$(MAKE) -C $(SRC_DIR) clean
 	rm -rf $(BUILD_DIR)
 
-.PHONY: test clean
+.PHONY: clean
 
 .DEFAULT_GOAL := all
