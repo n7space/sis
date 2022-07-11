@@ -1,0 +1,10 @@
+
+ SIS - SPARC/RISCV instruction simulator 2.29~N7Space,  copyright Jiri Gaisler 2020
+ Bug-reports to jiri@gaisler.se
+
+ LEON3 emulation enabled, 1 cpus online, delta 50 clocks
+
+ Loaded /opt/rtems-6-sparc-gr712rc-smp-4/src/example/b-gr712rc-qual-only/app.exe, entry 0x40000000
+Hello, world!
+cpu 0 in error mode (tt = 0x80)
+    86433  40008ce0:  91d02000   ta  0x0
