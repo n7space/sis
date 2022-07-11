@@ -22,7 +22,9 @@ check: ${TESTS}
 ##############################INTEGRATION TESTS################################
 
 run_rtems:
-	echo "Run example RTEMS application"
-ifneq ($(EXPECTED), $(RESULT))
+	echo "Run example RTEMS application..."
+ifeq ($(EXPECTED), $(RESULT))
+	echo "Success."
+else
 	$(error "RTEMS application output is different than expected.")
 endif

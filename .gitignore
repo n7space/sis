@@ -62,3 +62,6 @@ sis
 *.Tpo
 *.Po
 .deps/
+
+# Build files
+build/*
