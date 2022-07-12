@@ -1,14 +1,9 @@
-SIS_NAME = sis
-SIS_VERSION = 2.29
+include ../../definitions.mk
 
-SRC_DIR = src
-BUILD_DIR = ../../build
-RTEMS_APP_DIR = /opt/rtems-6-sparc-gr712rc-smp-4/src/example/b-gr712rc-qual-only/app.exe
-RESOURCES_DIR = resources/expectedResult
+SIS_APP_DIR = ../../$(BUILD_DIR)/$(SRC_DIR)
+OUTPUT_FILE = $(SIS_APP_DIR)/system.output
 
-EXPECTED := "$(shell cat $(RESOURCES_DIR))"
-RESULT := "$(shell ./$(BUILD_DIR)/$(SRC_DIR)/$(SIS_NAME)-$(SIS_VERSION) -dumbio -r $(RTEMS_APP_DIR))"
-TESTS = run_rtems
+TESTS = init_test
 
 check: ${TESTS}
 
@@ -21,10 +16,8 @@ check: ${TESTS}
 
 ##############################INTEGRATION TESTS################################
 
-run_rtems:
+init_test:
 	echo "Run example RTEMS application..."
-ifeq ($(EXPECTED), $(RESULT))
-	echo "Success."
-else
-	$(error "RTEMS application output is different than expected.")
-endif
+	./$(SIS_APP_DIR)/$(SIS_NAME)-$(SIS_VERSION) -dumbio -r $(RTEMS_APP_DIR) > $(OUTPUT_FILE)
+	grep -q "Hello, world!" $(OUTPUT_FILE)
+	rm -f $(OUTPUT_FILE)

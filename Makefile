@@ -1,5 +1,5 @@
-SRC_DIR = src
-BUILD_DIR = build
+include definitions.mk
+
 INTEGRATION_TEST_DIR = test/integration
 
 all: sis
