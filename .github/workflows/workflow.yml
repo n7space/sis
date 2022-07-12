@@ -1,0 +1,21 @@
+name: Workflow
+on: [pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/n7space/taste-dev-env:main
+    name: Check
+    steps:    
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: make all
+
+    - name: Functional check
+      run: make check
