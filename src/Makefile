@@ -2,7 +2,7 @@ include ../definitions.mk
 
 CFLAGS := -O3
 INCL = -I.
-LDFLAGS = -lm -lreadline
+LDFLAGS = -lm
 CONFIG = -DHAVE_CONFIG_H 
 DEFS = -DFAST_UART
 
