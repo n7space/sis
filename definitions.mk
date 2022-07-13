@@ -2,6 +2,7 @@ SIS_NAME = sis
 SIS_VERSION = 2.29
 
 CC = gcc
+AR = ar
 
 BUILD_DIR = build
 SRC_DIR = src
