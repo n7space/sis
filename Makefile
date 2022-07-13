@@ -1,7 +1,5 @@
 include definitions.mk
 
-INTEGRATION_TEST_DIR = test/integration
-
 all: sis
 
 sis: 
