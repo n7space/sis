@@ -1,6 +1,6 @@
 include definitions.mk
 
-all: sis
+all: sis test
 
 sis: 
 	$(MAKE) -C $(SRC_DIR) sis
