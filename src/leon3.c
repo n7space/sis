@@ -53,18 +53,8 @@
 /* APB UART registers */
 
 #define APBUART0_ADDRESS    0x80000100
-// #define APBUART1_ADDRESS    0x80100100
-// #define APBUART2_ADDRESS    0x80100200
-// #define APBUART3_ADDRESS    0x80100300
-// #define APBUART4_ADDRESS    0x80100400
-// #define APBUART5_ADDRESS    0x80100500
 
 #define APBUART0_IRQ 2
-// #define APBUART1_IRQ 17
-// #define APBUART2_IRQ 18
-// #define APBUART3_IRQ 19
-// #define APBUART4_IRQ 20
-// #define APBUART5_IRQ 21
 
 /* GRETH address */
 
@@ -92,13 +82,7 @@ init_sim (void)
 
   grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFF);
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
-
   grlib_apb_add (&apbuart, APBUART0_IRQ, APBUART0_ADDRESS, 0xFFF);
-  // grlib_apb_add (&apbuart, APBUART1_IRQ, APBUART1_ADDRESS, 0xFFF);
-  // grlib_apb_add (&apbuart, APBUART2_IRQ, APBUART2_ADDRESS, 0xFFF);
-  // grlib_apb_add (&apbuart, APBUART3_IRQ, APBUART3_ADDRESS, 0xFFF);
-  // grlib_apb_add (&apbuart, APBUART4_IRQ, APBUART4_ADDRESS, 0xFFF);
-  // grlib_apb_add (&apbuart, APBUART5_IRQ, APBUART5_ADDRESS, 0xFFF);
   grlib_apb_add (&irqmp, 0, IRQMP_ADDRESS, 0xFFF);
   grlib_apb_add (&gptimer, 8, GPTIMER_ADDRESS, 0xFFF);
   grlib_apb_add (&greth, 6, GRETH_ADDRESS, 0xFFF);
