@@ -5,7 +5,7 @@ TESTS_BUILD_DIR = ../../$(BUILD_DIR)/$(TEST_DIR)
 
 SRC = main.c $(wildcard ./**/*.c)
 TEST_HEADERS = $(wildcard ./**/*.h)
-INCL = $(addprefix -I,$(sort $(dir $(TEST_HEADERS))))
+INCL = $(addprefix -I,$(sort $(dir $(TEST_HEADERS)))) $(addprefix -I,$(sort $(dir $(wildcard ./../../$(SRC_DIR)/*.h))))
 
 TESTS := $(patsubst %.c,$(TESTS_BUILD_DIR)/%.o, $(SRC))
 STATIC_LIBS = -Bstatic $(LIBSIS)
@@ -21,6 +21,7 @@ $(TESTS_BUILD_DIR):
 	mkdir -p $(addprefix $(TESTS_BUILD_DIR)/,$(sort $(dir $(TEST_HEADERS))))
 
 $(TESTS_BUILD_DIR)/%.o: %.c | $(TESTS_BUILD_DIR)
+	@echo $(INCL)
 	$(CC) $(DEFS) $(CFLAGS) $(INCL) -c -o $@ $<
 
 clean:

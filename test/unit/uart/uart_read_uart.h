@@ -1,4 +1,4 @@
-#include "../../../src/sis.h"
-#include "stdio.h"
+#include "sis.h"
+#include "grlib.h"
 
-void test();
+int readUart();

@@ -3,6 +3,8 @@
 int
 main (void)
 {
-    test();
+    if(!readUart()) {
+        return 1;
+    }
     return 0;
 }
