@@ -2,6 +2,8 @@ SIS_NAME = sis
 SIS_VERSION = 2.29
 
 CC = gcc
+G++ = g++
+
 AR = ar
 
 CFLAGS := -O3

@@ -1,28 +1,30 @@
 include ../../definitions.mk
 
+CPPUTEST_HOME = /opt/cpputest/host
+CPPUTEST_INCL = -I$(CPPUTEST_HOME)/include
+CPPUTEST_LIB = -L$(CPPUTEST_HOME)/lib -lCppUTest -lCppUTestExt
+
 LIBSIS = ../../$(BUILD_DIR)/$(SRC_DIR)/libsis.a
 TESTS_BUILD_DIR = ../../$(BUILD_DIR)/$(TEST_DIR)
 
-SRC = main.c $(wildcard ./**/*.c)
-TEST_HEADERS = $(wildcard ./**/*.h)
-INCL = $(addprefix -I,$(sort $(dir $(TEST_HEADERS)))) $(addprefix -I,$(sort $(dir $(wildcard ./../../$(SRC_DIR)/*.h))))
+SRC = main.cc $(wildcard ./**/*.cc)
+INCL = $(addprefix -I,$(sort $(dir $(wildcard ./../../$(SRC_DIR)/*.h))))
 
-TESTS := $(patsubst %.c,$(TESTS_BUILD_DIR)/%.o, $(SRC))
+TESTS := $(patsubst %.cc,$(TESTS_BUILD_DIR)/%.o, $(SRC))
 STATIC_LIBS = -Bstatic $(LIBSIS)
 
-CCLINK = $(CC) $(CONFIG) $(DEFS) $(CFLAGS) -Wl,-Map,$(TESTS_BUILD_DIR)/$(basename $@).map
+CCLINK = $(G++) $(CONFIG) $(DEFS) $(CFLAGS) -Wl,-Map,$(TESTS_BUILD_DIR)/$(basename $@).map
 
 all: test
 
 test: $(TESTS)
-	$(CCLINK) $(TESTS) $(STATIC_LIBS) $(LDFLAGS) -o $(TESTS_BUILD_DIR)/$@
+	$(CCLINK) $(TESTS) $(STATIC_LIBS) $(CPPUTEST_LIB) $(LDFLAGS) -o $(TESTS_BUILD_DIR)/$@
 
 $(TESTS_BUILD_DIR):
-	mkdir -p $(addprefix $(TESTS_BUILD_DIR)/,$(sort $(dir $(TEST_HEADERS))))
+	mkdir -p $(addprefix $(TESTS_BUILD_DIR)/,$(sort $(dir $(SRC))))
 
-$(TESTS_BUILD_DIR)/%.o: %.c | $(TESTS_BUILD_DIR)
-	@echo $(INCL)
-	$(CC) $(DEFS) $(CFLAGS) $(INCL) -c -o $@ $<
+$(TESTS_BUILD_DIR)/%.o: %.cc | $(TESTS_BUILD_DIR)
+	$(G++) $(DEFS) $(CFLAGS) $(INCL) $(CPPUTEST_INCL) -c -o $@ $<
 
 clean:
 	rm -rf $(TESTS) $(TESTS_BUILD_DIR)
