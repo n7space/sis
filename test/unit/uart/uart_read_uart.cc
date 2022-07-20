@@ -1,10 +1,11 @@
 #include "CppUTest/TestHarness.h"
+#include "sis.h"
 
-TEST_GROUP(FirstTestGroup)
+TEST_GROUP(UartTestGroup)
 {
 };
 
-TEST(FirstTestGroup, FirstTest)
+TEST(UartTestGroup, CheckIfTestsAreWorking)
 {
-   FAIL("Fail me!");
+   FAIL("As it should");
 }
