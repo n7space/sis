@@ -1,5 +1,8 @@
 #include "CppUTest/TestHarness.h"
+
+extern "C" {
 #include "sis.h"
+}
 
 TEST_GROUP(UartTestGroup)
 {
