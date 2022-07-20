@@ -1,6 +1,6 @@
 include ../../definitions.mk
 
-CPPUTEST_HOME = /opt/cpputest/host
+CPPUTEST_HOME = /opt/cpputest
 CPPUTEST_INCL = -I$(CPPUTEST_HOME)/include
 CPPUTEST_LIB = -L$(CPPUTEST_HOME)/lib -lCppUTest -lCppUTestExt
 
