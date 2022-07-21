@@ -9,9 +9,10 @@ libsis:
 	$(MAKE) -C $(SRC_DIR) libsis
 
 test: libsis
-	$(MAKE) -C $(TEST_DIR) test
+	$(MAKE) -C $(UNIT_TEST_DIR) test
 
-check: sis
+check: sis test
+	$(MAKE) -C $(UNIT_TEST_DIR) check
 	$(MAKE) -C $(INTEGRATION_TEST_DIR) check
 
 clean:
