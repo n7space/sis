@@ -1,11 +1,18 @@
 include definitions.mk
 
-all: sis
+all: sis test
 
 sis: 
 	$(MAKE) -C $(SRC_DIR) sis
 
-check: sis
+libsis:
+	$(MAKE) -C $(SRC_DIR) libsis
+
+test: libsis
+	$(MAKE) -C $(UNIT_TEST_DIR) test
+
+check: sis test
+	$(MAKE) -C $(UNIT_TEST_DIR) check
 	$(MAKE) -C $(INTEGRATION_TEST_DIR) check
 
 clean:
