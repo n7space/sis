@@ -21,6 +21,8 @@
 
 /* Definitions for AMBA PNP in Gaisler Research GRLIB SOC */
 
+#include "uartdef.h"
+
 /* Vendors */
 
 #define VENDOR_GAISLER	1
@@ -103,7 +105,7 @@ extern void grlib_reset (void);
 extern void apbuart_init_stdio (void);
 extern void apbuart_restore_stdio (void);
 extern void apbuart_close_port (void);
-extern void apbuart_flush (void);
-extern const struct grlib_ipcore gptimer, irqmp, apbuart, apbmst,
+extern void apbuart_flush (UART_DEF *uart);
+extern const struct grlib_ipcore gptimer, irqmp, apbuart0, apbmst,
   greth, l2c, leon3s, srctrl, ns16550, clint, plic, sdctrl, s5test;
 extern int irqmp_extirq;
