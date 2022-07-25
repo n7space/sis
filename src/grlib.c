@@ -957,15 +957,6 @@ const struct grlib_ipcore gptimer = {
 #define UARTA_HRE	0x4
 #define UARTA_OR	0x10
 
-/* UART support variables.  */
-
-#define APBUART0_IRQ 2
-#define APBUART1_IRQ 17
-#define APBUART2_IRQ 18
-#define APBUART3_IRQ 19
-#define APBUART4_IRQ 20
-#define APBUART5_IRQ 21
-
 /* File descriptor for input file.  */
 static int32 fd1, fd2;
 
@@ -1097,164 +1088,187 @@ apbuart0_init (void)
   uart_init(&uarts[0]);
 }
 
-static int
-apbuart_read (uint32 addr, uint32 * data)
+int
+uart_read (UART_DEF *uart, uint32 *data)
 {
+  int result = 0;
   unsigned tmp = 0;
 
-  switch (addr & 0xff)
-    {
-
+  switch (uart->address & 0xff)
+  {
     case 0x00:			/* UART 1 RX/TX */
 #ifndef _WIN32
 #ifdef FAST_UART
-
-      if (aind < anum)
-	{
-	  if ((aind + 1) < anum)
-	    grlib_set_irq (APBUART0_IRQ);
-	  *data = (uint32) aq[aind++];
-	  return 0;
-	}
+      if (uart->in_stream.buffer_size_index < uart->in_stream.buffer_size_cnt)
+	    {
+	      if ((uart->in_stream.buffer_size_index + 1) < uart->in_stream.buffer_size_cnt)
+        {
+          grlib_set_irq (uart->irq);
+        }
+	      *data = (uint32) uart->in_stream.buffer[uart->in_stream.buffer_size_index++];
+	    }
       else
-	{
-	  if (f1open)
-	    anum = DO_STDIO_READ (ifd1, aq, UARTBUF);
-	  else
-	    anum = 0;
-	  if (anum > 0)
 	    {
-	      aind = 0;
-	      if ((aind + 1) < anum)
-		grlib_set_irq (APBUART0_IRQ);
-	      *data = (uint32) aq[aind++];
-	      return 0;
+	      if (uart->device_open)
+        {
+          uart->in_stream.buffer_size_cnt = DO_STDIO_READ (uart->in_stream.descriptor, uart->in_stream.buffer, UART_BUFFER_SIZE);
+        }
+	      else
+        {
+          uart->in_stream.buffer_size_cnt = 0;
+        }
+
+	      if (uart->in_stream.buffer_size_cnt > 0)
+	      {
+	        uart->in_stream.buffer_size_index = 0;
+	        if ((uart->in_stream.buffer_size_index + 1) < uart->in_stream.buffer_size_cnt)
+		        grlib_set_irq (uart->irq);
+	        *data = (uint32) aq[uart->in_stream.buffer_size_index++];
+	      }
+	      else
+	      {
+	        *data = (uint32) uart->in_stream.buffer[uart->in_stream.buffer_size_index];
+	      }
 	    }
-	  else
-	    {
-	      *data = (uint32) aq[aind];
-	      return 0;
-	    }
-	}
 #else
       tmp = uarta_data;
       uarta_data &= ~UART_DR;
-      uart_stat_reg &= ~UARTA_DR;
+      uart->status_register &= ~UARTA_DR;
       *data = tmp;
-      return 0;
 #endif
 #else
       *data = 0;
-      return 0;
 #endif
       break;
 
     case 0x04:			/* UART status register  */
 #ifndef _WIN32
 #ifdef FAST_UART
-
       Ucontrol = 0;
-      if (aind < anum)
-	{
-	  Ucontrol |= 0x00000001;
-	}
-      else
-	{
-	  if (f1open)
-	    anum = DO_STDIO_READ (ifd1, aq, UARTBUF);
-	  else
-	    anum = 0;
-	  if (anum > 0)
+      if (uart->in_stream.buffer_size_index < uart->in_stream.buffer_size_cnt)
 	    {
 	      Ucontrol |= 0x00000001;
-	      aind = 0;
-	      grlib_set_irq (APBUART0_IRQ);
 	    }
-	}
+      else
+	    {
+	      if (uart->device_open)
+        {
+          uart->in_stream.buffer_size_cnt = DO_STDIO_READ (uart->in_stream.descriptor, uart->in_stream.buffer, UART_BUFFER_SIZE);
+        }
+	      else
+        {
+          uart->in_stream.buffer_size_cnt = 0;
+        }
+	      if (uart->in_stream.buffer_size_cnt > 0)
+	      {
+	        Ucontrol |= 0x00000001;
+	        uart->in_stream.buffer_size_index = 0;
+	        grlib_set_irq (uart->irq);
+	      }
+	    }
       Ucontrol |= 0x00000006;
       *data = Ucontrol;
-      return 0;
 #else
-      *data = uart_stat_reg;
-      return 0;
+      *data = uart->status_register;
+      result = 0;
 #endif
 #else
       *data = 0x00060006;
-      return 0;
 #endif
       break;
+
     case 0x08:			/* UART control register  */
       *data = 3;
-      return 0;
+      result = 0;
       break;
     default:
       if (sis_verbose)
-	printf ("Read from unimplemented UART register (%x)\n", addr);
-    }
+	    printf ("Read from unimplemented UART register (%x)\n", uart->address);
+  }
 
-  *data = 0;
-  return 0;
+  return result;
+}
+
+static int
+apbuart_read (uint32 addr, uint32 * data)
+{
+  UART_DEF *uart = get_uart_by_address (addr);
+  int result = uart_read (uart, data);
+
+  return result;
+}
+
+int
+uart_write (UART_DEF *uart, uint32 *data, uint32 sz)
+{
+//   unsigned char c;
+
+//   c = (unsigned char) *data;
+//   switch (addr & 0xff)
+//     {
+
+//     case 0x00:			/* UART A */
+// #ifdef FAST_UART
+//       if (f1open)
+// 	{
+// 	  if (wnuma < UARTBUF)
+// 	    wbufa[wnuma++] = c;
+// 	  else
+// 	    {
+// 	      while (wnuma)
+// 		{
+// 		  wnuma -= fwrite (wbufa, 1, wnuma, f1out);
+// 		}
+// 	      wbufa[wnuma++] = c;
+// 	    }
+// 	}
+//       grlib_set_irq (UART0_IRQ);
+// #else
+//       if (uart_stat_reg & UARTA_SRE)
+// 	{
+// 	  uarta_sreg = c;
+// 	  uart_stat_reg &= ~UARTA_SRE;
+// 	  event (uarta_tx, 0, UART_TX_TIME);
+// 	}
+//       else
+// 	{
+// 	  uarta_hreg = c;
+// 	  uart_stat_reg &= ~UARTA_HRE;
+// 	}
+// #endif
+//       break;
+
+//     case 0x04:			/* UART status register */
+// #ifndef FAST_UART
+//       uart_stat_reg &= 1;
+// #endif
+//       break;
+//     case 0x08:			/* UART control register  */
+//       break;
+//     default:
+//       if (sis_verbose)
+// 	printf ("Write to unimplemented UART register (%x)\n", addr);
+//     }
 }
 
 static int
 apbuart_write (uint32 addr, uint32 * data, uint32 sz)
 {
-  unsigned char c;
+  UART_DEF *uart = get_uart_by_address (addr);
+  int result = uart_write (uart, data, sz);
 
-  c = (unsigned char) *data;
-  switch (addr & 0xff)
-    {
-
-    case 0x00:			/* UART A */
-#ifdef FAST_UART
-      if (f1open)
-	{
-	  if (wnuma < UARTBUF)
-	    wbufa[wnuma++] = c;
-	  else
-	    {
-	      while (wnuma)
-		{
-		  wnuma -= fwrite (wbufa, 1, wnuma, f1out);
-		}
-	      wbufa[wnuma++] = c;
-	    }
-	}
-      grlib_set_irq (APBUART0_IRQ);
-#else
-      if (uart_stat_reg & UARTA_SRE)
-	{
-	  uarta_sreg = c;
-	  uart_stat_reg &= ~UARTA_SRE;
-	  event (uarta_tx, 0, UART_TX_TIME);
-	}
-      else
-	{
-	  uarta_hreg = c;
-	  uart_stat_reg &= ~UARTA_HRE;
-	}
-#endif
-      break;
-
-    case 0x04:			/* UART status register */
-#ifndef FAST_UART
-      uart_stat_reg &= 1;
-#endif
-      break;
-    case 0x08:			/* UART control register  */
-      break;
-    default:
-      if (sis_verbose)
-	printf ("Write to unimplemented UART register (%x)\n", addr);
-    }
+  return result;
 }
 
 void
 apbuart_flush (UART_DEF *uart)
 {
-  while (uart->out_stream.buffer_size_cnt && uart->device_open)
-  { 
-    uart->out_stream.buffer_size_cnt -= fwrite (uart->out_stream.buffer, 1, uart->out_stream.buffer_size_cnt, uart->out_stream.file);
+  if (uart != NULL)
+  {
+    while (uart->out_stream.buffer_size_cnt && uart->device_open)
+    { 
+      uart->out_stream.buffer_size_cnt -= fwrite (uart->out_stream.buffer, 1, uart->out_stream.buffer_size_cnt, uart->out_stream.file);
+    }
   }
 }
 
@@ -1276,7 +1290,7 @@ uarta_tx (void)
       uart_stat_reg |= UARTA_HRE;
       event (uarta_tx, 0, UART_TX_TIME);
     }
-  grlib_set_irq (APBUART0_IRQ);
+  grlib_set_irq (UART0_IRQ);
 }
 
 static void
@@ -1298,7 +1312,7 @@ uart_rx (int32 arg)
 	  uart_stat_reg |= UARTA_OR;
 	}
       uart_stat_reg |= UARTA_DR;
-      grlib_set_irq (APBUART0_IRQ);
+      grlib_set_irq (UART0_IRQ);
     }
   event (uart_rx, 0, UART_RX_TIME);
 }
@@ -1351,42 +1365,86 @@ apbuart_close_port (void)
     fclose (f1in);
 }
 
+int
+uart_add (UART_DEF *uart)
+{
+  int result = 0;
+
+  result = grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_APBUART, 1, uart->irq),
+		   GRLIB_PP_APBADDR (uart->address, uart->mask));
+  if (sis_verbose)
+    printf (" APBUART serial port                0x%08x   %d\n", uart->address, uart->irq);
+
+  return result;
+}
+
 static void
 apbuart_add (int irq, uint32 addr, uint32 mask)
 {
-  grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_APBUART, 1, irq),
-		   GRLIB_PP_APBADDR (addr, mask));
-  if (sis_verbose)
-    printf (" APBUART serial port                0x%08x   %d\n", addr, irq);
+  UART_DEF *uart = get_uart_by_address (addr);
+  uart_add (uart);
+}
+
+UART_DEF *
+get_uart_by_address (uint32 address)
+{
+  UART_DEF *result;
+  uint32 uart_address = address & UART_START_ADDRESS_MASK;
+
+  switch(uart_address)
+  {
+    case UART0_START_ADDRESS:
+      result = &uarts[0];
+      break;
+    case UART1_START_ADDRESS:
+      result = &uarts[1];
+      break;
+    case UART2_START_ADDRESS:
+      result = &uarts[2];
+      break;
+    case UART3_START_ADDRESS:
+      result = &uarts[3];
+      break;
+    case UART4_START_ADDRESS:
+      result = &uarts[4];
+      break;
+    case UART5_START_ADDRESS:
+      result = &uarts[5];
+      break;
+    default:
+      result = NULL;
+  }
+
+  return result;
 }
 
 UART_DEF *
 get_uart_by_irq (int irq)
 {
-  UART_DEF *result = NULL;
+  UART_DEF *result;
 
   switch(irq)
   {
-    case APBUART0_IRQ:
+    case UART0_IRQ:
       result = &uarts[0];
       break;
-    case APBUART1_IRQ:
+    case UART1_IRQ:
       result = &uarts[1];
       break;
-    case APBUART2_IRQ:
+    case UART2_IRQ:
       result = &uarts[2];
       break;
-    case APBUART3_IRQ:
+    case UART3_IRQ:
       result = &uarts[3];
       break;
-    case APBUART4_IRQ:
+    case UART4_IRQ:
       result = &uarts[4];
       break;
-    case APBUART5_IRQ:
+    case UART5_IRQ:
       result = &uarts[5];
       break;
     default:
-      break;
+      result = NULL;
   }
 
   return result;

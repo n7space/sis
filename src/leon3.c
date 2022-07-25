@@ -113,7 +113,7 @@ static void
 sim_halt (void)
 {
 #ifdef FAST_UART
-  apbuart_flush ();
+  apbuart_flush (NULL);
 #endif
 }
 
