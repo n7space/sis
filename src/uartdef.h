@@ -26,6 +26,8 @@ typedef struct
     char buffer[UART_BUFFER_SIZE];
     int buffer_size_cnt;
     int buffer_size_index;
+    char holding_register;
+    char data;
 } IO_STREAM;
 
 typedef struct

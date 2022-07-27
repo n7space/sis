@@ -955,7 +955,7 @@ const struct grlib_ipcore gptimer = {
 #define UARTA_DR	0x1
 #define UARTA_SRE	0x2
 #define UARTA_HRE	0x4
-#define UARTA_OR	0x10
+#define UARTA_OV	0x10
 
 /* File descriptor for input file.  */
 static int32 fd1, fd2;
@@ -1122,8 +1122,10 @@ uart_read (UART_DEF *uart, uint32 *data)
 	      {
 	        uart->in_stream.buffer_size_index = 0;
 	        if ((uart->in_stream.buffer_size_index + 1) < uart->in_stream.buffer_size_cnt)
-		        grlib_set_irq (uart->irq);
-	        *data = (uint32) aq[uart->in_stream.buffer_size_index++];
+          {
+            grlib_set_irq (uart->irq);
+          }
+	        *data = (uint32) uart->in_stream.buffer[uart->in_stream.buffer_size_index++];
 	      }
 	      else
 	      {
@@ -1131,10 +1133,8 @@ uart_read (UART_DEF *uart, uint32 *data)
 	      }
 	    }
 #else
-      tmp = uarta_data;
-      uarta_data &= ~UART_DR;
       uart->status_register &= ~UARTA_DR;
-      *data = tmp;
+      *data = (uint32) uart->in_stream.data;
 #endif
 #else
       *data = 0;
@@ -1201,54 +1201,58 @@ apbuart_read (uint32 addr, uint32 * data)
 int
 uart_write (UART_DEF *uart, uint32 *data, uint32 sz)
 {
-//   unsigned char c;
+  unsigned char c;
 
-//   c = (unsigned char) *data;
-//   switch (addr & 0xff)
-//     {
+  c = (unsigned char) *data;
 
-//     case 0x00:			/* UART A */
-// #ifdef FAST_UART
-//       if (f1open)
-// 	{
-// 	  if (wnuma < UARTBUF)
-// 	    wbufa[wnuma++] = c;
-// 	  else
-// 	    {
-// 	      while (wnuma)
-// 		{
-// 		  wnuma -= fwrite (wbufa, 1, wnuma, f1out);
-// 		}
-// 	      wbufa[wnuma++] = c;
-// 	    }
-// 	}
-//       grlib_set_irq (UART0_IRQ);
-// #else
-//       if (uart_stat_reg & UARTA_SRE)
-// 	{
-// 	  uarta_sreg = c;
-// 	  uart_stat_reg &= ~UARTA_SRE;
-// 	  event (uarta_tx, 0, UART_TX_TIME);
-// 	}
-//       else
-// 	{
-// 	  uarta_hreg = c;
-// 	  uart_stat_reg &= ~UARTA_HRE;
-// 	}
-// #endif
-//       break;
+  switch (uart->address & 0xff)
+  {
+    case 0x00:			/* UART A */
+#ifdef FAST_UART
+      if (uart->device_open)
+	    {
+	      if (uart->out_stream.buffer_size_cnt < UART_BUFFER_SIZE)
+        {
+          uart->out_stream.buffer[uart->out_stream.buffer_size_cnt++] = c;
+        }
+	      else
+	      {
+	        while (uart->out_stream.buffer_size_cnt)
+		      {
+		        uart->out_stream.buffer_size_cnt -= fwrite (uart->out_stream.buffer, 1, uart->out_stream.buffer_size_cnt, uart->out_stream.file);
+		      }
+	        uart->out_stream.buffer[uart->out_stream.buffer_size_cnt++] = c;
+	      }
+	    }
+      grlib_set_irq (uart->irq);
+#else
+      if (uart->status_register & UARTA_SRE)
+	    {
+	      uart->out_stream.data = c;
+	      uart->status_register &= ~UARTA_SRE;
+	      event (uarta_tx, uart->irq, UART_TX_TIME);
+	    }
+      else
+	    {
+	      uart->out_stream.holding_register = c;
+	      uart->status_register &= ~UARTA_HRE;
+	    }
+#endif
+      break;
 
-//     case 0x04:			/* UART status register */
-// #ifndef FAST_UART
-//       uart_stat_reg &= 1;
-// #endif
-//       break;
-//     case 0x08:			/* UART control register  */
-//       break;
-//     default:
-//       if (sis_verbose)
-// 	printf ("Write to unimplemented UART register (%x)\n", addr);
-//     }
+    case 0x04:			/* UART status register */
+#ifndef FAST_UART
+      uart->status_register &= 1;
+#endif
+      break;
+    case 0x08:			/* UART control register  */
+      break;
+    default:
+      if (sis_verbose)
+      {
+        printf ("Write to unimplemented UART register (%x)\n", uart->address);
+      }
+  }
 }
 
 static int
@@ -1273,48 +1277,57 @@ apbuart_flush (UART_DEF *uart)
 }
 
 static void
-uarta_tx (void)
+uarta_tx (int32 arg)
 {
-  while (f1open)
+  UART_DEF *uart = get_uart_by_irq(arg);
+
+  while (uart->device_open)
     {
-      while (fwrite (&uarta_sreg, 1, 1, f1out) != 1)
-	continue;
+      while (fwrite (&uart->out_stream.data, 1, 1, uart->out_stream.file) != 1)
+	    continue;
     }
-  if (uart_stat_reg & UARTA_HRE)
+  if (uart->status_register & UARTA_HRE)
     {
-      uart_stat_reg |= UARTA_SRE;
+      uart->status_register |= UARTA_SRE;
     }
   else
     {
-      uarta_sreg = uarta_hreg;
-      uart_stat_reg |= UARTA_HRE;
-      event (uarta_tx, 0, UART_TX_TIME);
+      uart->out_stream.data = uart->out_stream.holding_register;
+      uart->status_register |= UARTA_HRE;
+      event (uarta_tx, uart->irq, UART_TX_TIME);
     }
-  grlib_set_irq (UART0_IRQ);
+  grlib_set_irq (uart->irq);
 }
 
 static void
 uart_rx (int32 arg)
 {
+  UART_DEF *uart = get_uart_by_irq(arg);
+  
   char rxd;
   int32 rsize = 0;
 
 
-  if (f1open)
-    rsize = DO_STDIO_READ (ifd1, &rxd, 1);
+  if (uart->device_open)
+  {
+    rsize = DO_STDIO_READ (uart->in_stream.descriptor, &rxd, 1);
+  }
   else
+  {
     rsize = 0;
+  }
+
   if (rsize > 0)
+  {
+    uart->in_stream.data = rxd;
+    if (uart->status_register & UARTA_DR)
     {
-      uarta_data = rxd;
-      if (uart_stat_reg & UARTA_DR)
-	{
-	  uart_stat_reg |= UARTA_OR;
-	}
-      uart_stat_reg |= UARTA_DR;
-      grlib_set_irq (UART0_IRQ);
+      uart->status_register |= UARTA_OV;
     }
-  event (uart_rx, 0, UART_RX_TIME);
+    uart->status_register |= UARTA_DR;
+    grlib_set_irq (uart->irq);
+  }
+  event (uart_rx, uart->irq, UART_RX_TIME);
 }
 
 static void
