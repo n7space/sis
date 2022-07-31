@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include "sis.h"
 #include "grlib.h"
+#include "uartdef.h"
 
 /* APB registers */
 #define APBSTART	        0x80000000
@@ -113,14 +114,14 @@ static void
 sim_halt (void)
 {
 #ifdef FAST_UART
-  apbuart_flush (NULL);
+  apbuart_flush (&uarts[0]);
 #endif
 }
 
 static void
 exit_sim (void)
 {
-  apbuart_close_port ();
+  apbuart_close_port (&uarts[0]);
 }
 
 /* Memory emulation.  */

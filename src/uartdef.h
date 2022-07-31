@@ -1,6 +1,8 @@
 #include <sys/file.h>
 #include <termios.h>
 
+#pragma once
+
 #define APBUART_NUM 6
 #define APBUART_BUFFER_SIZE 1024
 #define APBUART_START_ADDRESS_MASK 0x80F00F00

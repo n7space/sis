@@ -103,7 +103,7 @@ sim_halt (void)
 static void
 exit_sim (void)
 {
-  apbuart_close_port ();
+  apbuart_close_port (NULL);
 }
 
 /* Memory emulation.  */
