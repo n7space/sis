@@ -51,12 +51,6 @@
 
 #define GPTIMER_ADDRESS     0x80000300
 
-/* APB UART registers */
-
-#define APBUART0_ADDRESS    0x80000100
-
-#define APBUART0_IRQ 2
-
 /* GRETH address */
 
 #define GRETH_ADDRESS       0x80000B00
@@ -83,10 +77,10 @@ init_sim (void)
 
   grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFF);
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
-  grlib_apb_add (&apbuart0, APBUART0_IRQ, APBUART0_ADDRESS, APBUART_MASK);
-  grlib_apb_add (&irqmp, 0, IRQMP_ADDRESS, 0xFFF);
-  grlib_apb_add (&gptimer, 8, GPTIMER_ADDRESS, 0xFFF);
-  grlib_apb_add (&greth, 6, GRETH_ADDRESS, 0xFFF);
+  grlib_apb_add (&apbuart0, APBUART0_IRQ, APBUART0_START_ADDRESS, APBUART_ADDR_MASK);
+  grlib_apb_add (&irqmp, 0, IRQMP_ADDRESS, 0xFFFF);
+  grlib_apb_add (&gptimer, 8, GPTIMER_ADDRESS, 0xFFFF);
+  grlib_apb_add (&greth, 6, GRETH_ADDRESS, 0xFFFF);
 
   grlib_init ();
   ebase.ramstart = RAM_START;

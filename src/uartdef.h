@@ -5,8 +5,9 @@
 
 #define APBUART_NUM 6
 #define APBUART_BUFFER_SIZE 1024
-#define APBUART_START_ADDRESS_MASK 0x80F00F00
-#define APBUART_MASK 0xFFF
+#define APB_START 0x80000000
+#define APBUART_ADDR_MASK 0xFFFF
+#define APBUART_REGISTER_TYPE_MASK 0xFF
 
 #define APBUART0_START_ADDRESS 0x80000100
 #define APBUART1_START_ADDRESS 0x80100100
@@ -52,8 +53,8 @@ static apbuart_type uarts[APBUART_NUM];
 
 int uart_init (apbuart_type *uart);
 int uart_reset (apbuart_type *uart);
-int uart_read (apbuart_type *uart, uint32 * data);
-int uart_write (apbuart_type *uart, uint32 * data, uint32 sz);
+int uart_read (apbuart_type *uart, uint32 addr, uint32 * data);
+int uart_write (apbuart_type *uart, uint32 addr, uint32 * data, uint32 sz);
 int uart_add (apbuart_type *uart);
 
 apbuart_type *get_uart_by_address (uint32 address);
