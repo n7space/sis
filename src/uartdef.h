@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <sys/file.h>
 #include <termios.h>
 

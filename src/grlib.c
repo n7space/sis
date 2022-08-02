@@ -1511,9 +1511,10 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
     uart->address = addr;
     uart->irq = irq;
     uart->mask = mask;
-    get_uart_filepath (uart);
-
-    uart_add (uart);
+    if (get_uart_filepath (uart) > 0)
+    {
+      uart_add (uart);
+    }
   }
 }
 
@@ -1592,6 +1593,8 @@ get_uart_filepath(apbuart_type *uart)
   {
     sprintf (ptr + 1, "uart_file_%x", uart->address);
   }
+
+  return strlen(uart->device_path);
 }
 
 const struct grlib_ipcore apbuart0 = {
