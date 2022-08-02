@@ -3,6 +3,8 @@
 
 #pragma once
 
+#define DEVICE_PATH_SIZE 128
+
 #define APBUART_NUM 6
 #define APBUART_BUFFER_SIZE 1024
 #define APB_START 0x80000000
@@ -45,7 +47,7 @@ typedef struct
     io_stream out_stream;
     int32 device_descriptor;
     int device_open;
-    char device_path[128];
+    char device_path[DEVICE_PATH_SIZE];
     uint32 status_register;
     uint32 control_register;
 } apbuart_type;
@@ -63,3 +65,4 @@ int uart_restore_stdio(apbuart_type *uart);
 
 apbuart_type *get_uart_by_address (uint32 address);
 apbuart_type *get_uart_by_irq (int irq);
+int get_uart_filepath (apbuart_type *uart);

@@ -1511,7 +1511,7 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
     uart->address = addr;
     uart->irq = irq;
     uart->mask = mask;
-    sprintf (uart->device_path, "build/src/uart_file_%x", uart->address);
+    get_uart_filepath (uart);
 
     uart_add (uart);
   }
@@ -1581,6 +1581,17 @@ get_uart_by_irq (int irq)
   }
 
   return result;
+}
+
+int
+get_uart_filepath(apbuart_type *uart)
+{
+  readlink("/proc/self/exe", uart->device_path, DEVICE_PATH_SIZE);
+  char *ptr = strrchr (uart->device_path, '/');
+  if (ptr != NULL)
+  {
+    sprintf (ptr + 1, "uart_file_%x", uart->address);
+  }
 }
 
 const struct grlib_ipcore apbuart0 = {
