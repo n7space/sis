@@ -1038,17 +1038,16 @@ uart_restore_stdio(apbuart_type *uart)
 int
 uart_init(apbuart_type *uart)
 {
-  int result = 0;
+  int result = 1;
 
-  uart->in_stream.file = stdin;
-  uart->out_stream.file = stdout;
+  uart->in_stream.descriptor = -1;
+  uart->out_stream.descriptor = -1;
 
   if (strcmp (uart->device_path, ""))
   {
-    if ((uart->device_descriptor = open (uart->device_path, O_RDWR | O_NONBLOCK)) < 0)
+    if ((uart->device_descriptor = open (uart->device_path, O_RDWR | O_NONBLOCK | O_CREAT, 0666)) < 0)
 	  {
 	    printf ("Warning, couldn't open output device %s\n", uart->device_path);
-      result = 1;
 	  }
     else
 	  {
@@ -1056,9 +1055,10 @@ uart_init(apbuart_type *uart)
       {
         printf ("serial port A on %s\n", uart->device_path);
       }
-	  uart->in_stream.file = uart->out_stream.file = fdopen (uart->device_descriptor, "r+");
-	  setbuf (uart->out_stream.file, NULL);
-	  uart->device_open = 1;
+	    uart->in_stream.file = uart->out_stream.file = fdopen (uart->device_descriptor, "r+");
+	    setbuf (uart->out_stream.file, NULL);
+	    uart->device_open = 1;
+      result = 0;
 	  }
   }
 
@@ -1087,7 +1087,6 @@ uart_init(apbuart_type *uart)
 	      }
 #endif
 	    }
-    uart->device_open = 1;
   }
 
   if (uart->out_stream.file)
@@ -1508,10 +1507,11 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
   apbuart_type *uart = get_uart_by_address (addr);
 
   if (uart != NULL)
-  { 
+  {
     uart->address = addr;
     uart->irq = irq;
     uart->mask = mask;
+    sprintf (uart->device_path, "build/src/uart_file_%x", uart->address);
 
     uart_add (uart);
   }
