@@ -75,9 +75,14 @@ init_sim (void)
   for (i = 0; i < ncpu; i++)
     grlib_ahbm_add (&leon3s, 0);
 
-  grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFF);
+  grlib_ahbs_add (&apbmst, 0, APBSTART, 0xFFFF);
   grlib_ahbs_add (&sdctrl, 0, RAM_START, RAM_MASKPP);
   grlib_apb_add (&apbuart0, APBUART0_IRQ, APBUART0_START_ADDRESS, APBUART_ADDR_MASK);
+  grlib_apb_add (&apbuart1, APBUART1_IRQ, APBUART1_START_ADDRESS, APBUART_ADDR_MASK);
+  grlib_apb_add (&apbuart2, APBUART2_IRQ, APBUART2_START_ADDRESS, APBUART_ADDR_MASK);
+  grlib_apb_add (&apbuart3, APBUART3_IRQ, APBUART3_START_ADDRESS, APBUART_ADDR_MASK);
+  grlib_apb_add (&apbuart4, APBUART4_IRQ, APBUART4_START_ADDRESS, APBUART_ADDR_MASK);
+  grlib_apb_add (&apbuart5, APBUART5_IRQ, APBUART5_START_ADDRESS, APBUART_ADDR_MASK);
   grlib_apb_add (&irqmp, 0, IRQMP_ADDRESS, 0xFFFF);
   grlib_apb_add (&gptimer, 8, GPTIMER_ADDRESS, 0xFFFF);
   grlib_apb_add (&greth, 6, GRETH_ADDRESS, 0xFFFF);
@@ -109,6 +114,11 @@ sim_halt (void)
 {
 #ifdef FAST_UART
   apbuart_flush (&uarts[0]);
+  apbuart_flush (&uarts[1]);
+  apbuart_flush (&uarts[2]);
+  apbuart_flush (&uarts[3]);
+  apbuart_flush (&uarts[4]);
+  apbuart_flush (&uarts[5]);
 #endif
 }
 
@@ -116,6 +126,11 @@ static void
 exit_sim (void)
 {
   apbuart_close_port (&uarts[0]);
+  apbuart_close_port (&uarts[1]);
+  apbuart_close_port (&uarts[2]);
+  apbuart_close_port (&uarts[3]);
+  apbuart_close_port (&uarts[4]);
+  apbuart_close_port (&uarts[5]);
 }
 
 /* Memory emulation.  */

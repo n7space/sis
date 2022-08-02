@@ -150,7 +150,7 @@ grlib_ahbs_add (const struct grlib_ipcore *core, int irq,
     {
       ahbscores[ahbsi].start = addr;
       ahbscores[ahbsi].end = addr + ~(mask << 20) + 1;
-      ahbscores[ahbsi].mask = ~(mask << 20);
+      ahbscores[ahbsi].mask = 0x00FFFFFF;
       core->add (irq, addr, mask);
     }
   ahbsi++;
@@ -935,8 +935,26 @@ const struct grlib_ipcore gptimer = {
   gpt_init, gpt_reset, gpt_read, gpt_write, gpt_add
 };
 
-
 /* APBUART.  */
+
+#define APBUART_RXTX	0x00
+#define APBUART_STATUS  0x04
+#define APBUART_CTRL    0x08
+
+/* Size of UART buffers (bytes).  */
+#define UARTBUF	1024
+
+/* Number of simulator ticks between flushing the UARTS.  */
+/* For good performance, keep above 1000.  */
+#define UART_FLUSH_TIME	  5000
+
+/* New uart defines.  */
+#define UART_TX_TIME	1000
+#define UART_RX_TIME	1000
+#define UARTA_DR	0x1
+#define UARTA_SRE	0x2
+#define UARTA_HRE	0x4
+#define UARTA_OV	0x10
 
 #ifndef O_NONBLOCK
 #define O_NONBLOCK 0
@@ -946,12 +964,22 @@ void
 apbuart_init_stdio (void)
 {
   uart_init_stdio(&uarts[0]);
+  uart_init_stdio(&uarts[1]);
+  uart_init_stdio(&uarts[2]);
+  uart_init_stdio(&uarts[3]);
+  uart_init_stdio(&uarts[4]);
+  uart_init_stdio(&uarts[5]);
 }
 
 void
 apbuart_restore_stdio (void)
 {
   uart_restore_stdio(&uarts[0]);
+  uart_restore_stdio(&uarts[1]);
+  uart_restore_stdio(&uarts[2]);
+  uart_restore_stdio(&uarts[3]);
+  uart_restore_stdio(&uarts[4]);
+  uart_restore_stdio(&uarts[5]);
 }
 
 int
@@ -1080,6 +1108,36 @@ static void
 apbuart0_init (void)
 {
   uart_init(&uarts[0]);
+}
+
+static void
+apbuart1_init (void)
+{
+  uart_init(&uarts[1]);
+}
+
+static void
+apbuart2_init (void)
+{
+  uart_init(&uarts[2]);
+}
+
+static void
+apbuart3_init (void)
+{
+  uart_init(&uarts[3]);
+}
+
+static void
+apbuart4_init (void)
+{
+  uart_init(&uarts[4]);
+}
+
+static void
+apbuart5_init (void)
+{
+  uart_init(&uarts[5]);
 }
 
 int
@@ -1359,7 +1417,7 @@ uart_intr (int32 arg)
   {
     uint32 tmp;
     /* Check for UART interrupts every 1000 clk.  */
-    apbuart_read (APBUART_STATUS, &tmp);
+    apbuart_read (uart->address | APBUART_STATUS, &tmp);
     apbuart_flush (uart);
     event (uart_intr, arg, UART_FLUSH_TIME);
   }
@@ -1392,6 +1450,36 @@ static void
 apbuart0_reset (void)
 {
   uart_reset(&uarts[0]);
+}
+
+static void
+apbuart1_reset (void)
+{
+  uart_reset(&uarts[1]);
+}
+
+static void
+apbuart2_reset (void)
+{
+  uart_reset(&uarts[2]);
+}
+
+static void
+apbuart3_reset (void)
+{
+  uart_reset(&uarts[3]);
+}
+
+static void
+apbuart4_reset (void)
+{
+  uart_reset(&uarts[4]);
+}
+
+static void
+apbuart5_reset (void)
+{
+  uart_reset(&uarts[5]);
 }
 
 void
@@ -1497,6 +1585,26 @@ get_uart_by_irq (int irq)
 
 const struct grlib_ipcore apbuart0 = {
   apbuart0_init, apbuart0_reset, apbuart_read, apbuart_write, apbuart_add
+};
+
+const struct grlib_ipcore apbuart1 = {
+  apbuart1_init, apbuart1_reset, apbuart_read, apbuart_write, apbuart_add
+};
+
+const struct grlib_ipcore apbuart2 = {
+  apbuart2_init, apbuart2_reset, apbuart_read, apbuart_write, apbuart_add
+};
+
+const struct grlib_ipcore apbuart3 = {
+  apbuart3_init, apbuart3_reset, apbuart_read, apbuart_write, apbuart_add
+};
+
+const struct grlib_ipcore apbuart4 = {
+  apbuart4_init, apbuart4_reset, apbuart_read, apbuart_write, apbuart_add
+};
+
+const struct grlib_ipcore apbuart5 = {
+  apbuart5_init, apbuart5_reset, apbuart_read, apbuart_write, apbuart_add
 };
 
 /* ------------------- SDCTRL -----------------------*/

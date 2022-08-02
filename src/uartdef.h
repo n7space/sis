@@ -23,25 +23,6 @@
 #define APBUART4_IRQ 20
 #define APBUART5_IRQ 21
 
-#define APBUART_RXTX	0x00
-#define APBUART_STATUS  0x04
-#define APBUART_CTRL    0x08
-
-/* Size of UART buffers (bytes).  */
-#define UARTBUF	1024
-
-/* Number of simulator ticks between flushing the UARTS.  */
-/* For good performance, keep above 1000.  */
-#define UART_FLUSH_TIME	  5000
-
-/* New uart defines.  */
-#define UART_TX_TIME	1000
-#define UART_RX_TIME	1000
-#define UARTA_DR	0x1
-#define UARTA_SRE	0x2
-#define UARTA_HRE	0x4
-#define UARTA_OV	0x10
-
 typedef struct
 {
     FILE *file;
