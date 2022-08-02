@@ -938,208 +938,149 @@ const struct grlib_ipcore gptimer = {
 
 /* APBUART.  */
 
-#define APBUART_RXTX	0x00
-#define APBUART_STATUS  0x04
-#define APBUART_CTRL    0x08
-
-/* Size of UART buffers (bytes).  */
-#define UARTBUF	1024
-
-/* Number of simulator ticks between flushing the UARTS.  */
-/* For good performance, keep above 1000.  */
-#define UART_FLUSH_TIME	  5000
-
-/* New uart defines.  */
-#define UART_TX_TIME	1000
-#define UART_RX_TIME	1000
-#define UARTA_DR	0x1
-#define UARTA_SRE	0x2
-#define UARTA_HRE	0x4
-#define UARTA_OV	0x10
-
-/* File descriptor for input file.  */
-static int32 fd1, fd2;
-
-/* UART status register */
-static int32 Ucontrol;
-
-// static unsigned char uarts[0].in_stream.buffer[UARTBUF], bq[UARTBUF];
-// static int32 uarts[0].in_stream.buffer_size_cnt /*, uarts[0].in_stream.buffer_size_index*/ = 0;
-static int32 bnum, bind = 0;
-// static char uarts[0].out_stream.buffer[UARTBUF], wbufb[UARTBUF];
-// static unsigned uarts[0].out_stream.buffer_size_cnt;
-// static unsigned wnumb;
-// static FILE *uarts[0].in_stream.file; //, *uarts[0].out_stream.file;
-#ifdef HAVE_TERMIOS_H
-static struct termios ioc1, ioc2, iocold1, iocold2;
-#endif
 #ifndef O_NONBLOCK
 #define O_NONBLOCK 0
 #endif
 
-//static int uarts[0].device_open = 0;
-
-// static char uarts[0].out_stream.data;//, uarts[0].out_stream.holding_register;
-// static uint32 uarts[0].status_register;
-// static uint32 uarts[0].in_stream.data;
-
-static int /*uarts[0].in_stream.descriptor = -1,*/ ofd1 = -1;
-
 void
 apbuart_init_stdio (void)
 {
-  if (dumbio)
-    return;
-#ifdef HAVE_TERMIOS_H
-  if (uarts[0].in_stream.descriptor == 0 && uarts[0].device_open)
-    {
-      tcsetattr (0, TCSANOW, &ioc1);
-      tcflush (uarts[0].in_stream.descriptor, TCIFLUSH);
-    }
-#endif
+  uart_init_stdio(&uarts[0]);
 }
 
 void
 apbuart_restore_stdio (void)
 {
-  if (dumbio)
-    return;
+  uart_restore_stdio(&uarts[0]);
+}
+
+int
+uart_init_stdio(apbuart_type *uart)
+{
+  int result = 1;
+
+  if (uart != NULL) {
+    if (dumbio)
+    {
+      result = 0;
+    }
+    else
+    {
 #ifdef HAVE_TERMIOS_H
-  if (uarts[0].in_stream.descriptor == 0 && uarts[0].device_open && tty_setup)
-    tcsetattr (0, TCSANOW, &iocold1);
+      if (uart->in_stream.descriptor == 0 && uart->device_open)
+      {
+        tcsetattr (0, TCSANOW, &uart->io_ctrl);
+        tcflush (uart->in_stream.descriptor, TCIFLUSH);
+        result = 0;
+      }
 #endif
+    }
+  }
+
+  return result;
+}
+
+int
+uart_restore_stdio(apbuart_type *uart)
+{
+  int result = 1;
+
+  if (uart != NULL)
+  {
+    if (dumbio)
+    {
+      result = 0;
+    }
+    else
+    {
+#ifdef HAVE_TERMIOS_H
+      if (uart->in_stream.descriptor == 0 && uart->device_open && tty_setup)
+      tcsetattr (0, TCSANOW, &uart->io_ctrl_old);
+      result = 0;
+#endif
+    }
+  }
+
+  return result;
 }
 
 #define DO_STDIO_READ( _fd_, _buf_, _len_ )          \
 		( dumbio || nouartrx ? (0) : read( _fd_, _buf_, _len_ ) )
 
-// int
-// uart_init(apbuart_type *uart)
-// {
-//   int result = 0;
-
-//   uart->in_stream.file = stdin;
-//   uart->out_stream.file = stdout;
-
-//   if (strcmp (uart->device_path, ""))
-//   {
-//     if ((uart->device_descriptor = open (uart->device_path, O_RDWR | O_NONBLOCK)) < 0)
-// 	  {
-// 	    printf ("Warning, couldn't open output device %s\n", uart->device_path);
-//       result = 1;
-// 	  }
-//     else
-// 	  {
-// 	    if (sis_verbose)
-//       {
-//         printf ("serial port A on %s\n", uart->device_path);
-//       }
-// 	  uart->in_stream.file = uart->out_stream.file = fdopen (uart->device_descriptor, "r+");
-// 	  setbuf (uart->out_stream.file, NULL);
-// 	  uart->device_open = 1;
-// 	  }
-//   }
-
-//   if (uart->in_stream.file)
-//   {
-//     uart->in_stream.descriptor = fileno ( uart->in_stream.file);
-//   }
-    
-//   if (uart->in_stream.descriptor == 0)
-//   {
-//     if (sis_verbose)
-//     {
-//       printf ("serial port A on stdin/stdout\n");
-//     }
-	
-//     if (!dumbio)
-// 	    {
-// #ifdef HAVE_TERMIOS_H
-// 	      tcgetattr (uart->in_stream.descriptor, &uart->io_ctrl);
-// 	      if (tty_setup)
-// 	      {
-// 	        uart->io_ctrl_old = uart->io_ctrl;
-// 	        uart->io_ctrl.c_lflag &= ~(ICANON | ECHO);
-// 	        uart->io_ctrl.c_cc[VMIN] = 0;
-// 	        uart->io_ctrl.c_cc[VTIME] = 0;
-// 	      }
-// #endif
-// 	    }
-//     uart->device_open = 1;
-//   }
-
-//   if (uart->out_stream.file)
-//     {
-//       uart->out_stream.descriptor = fileno (uart->out_stream.file);
-//       if (!dumbio && tty_setup && uart->out_stream.descriptor == 1)
-//       {
-//         setbuf (uart->out_stream.file, NULL);
-//       }
-//     }
-
-//   uart->out_stream.buffer_size_cnt = 0;
-
-//   return result;
-// }
-
-static void
-apbuart_init (void)
+int
+uart_init(apbuart_type *uart)
 {
-  uarts[0].in_stream.file = stdin;
-  uarts[0].out_stream.file = stdout;
-  if (uart_dev1[0] != 0)
+  int result = 0;
+
+  uart->in_stream.file = stdin;
+  uart->out_stream.file = stdout;
+
+  if (strcmp (uart->device_path, ""))
+  {
+    if ((uart->device_descriptor = open (uart->device_path, O_RDWR | O_NONBLOCK)) < 0)
+	  {
+	    printf ("Warning, couldn't open output device %s\n", uart->device_path);
+      result = 1;
+	  }
+    else
+	  {
+	    if (sis_verbose)
+      {
+        printf ("serial port A on %s\n", uart->device_path);
+      }
+	  uart->in_stream.file = uart->out_stream.file = fdopen (uart->device_descriptor, "r+");
+	  setbuf (uart->out_stream.file, NULL);
+	  uart->device_open = 1;
+	  }
+  }
+
+  if (uart->in_stream.file)
+  {
+    uart->in_stream.descriptor = fileno ( uart->in_stream.file);
+  }
+    
+  if (uart->in_stream.descriptor == 0)
+  {
+    if (sis_verbose)
     {
-      if ((fd1 = open (uart_dev1, O_RDWR | O_NONBLOCK)) < 0)
-	{
-	  printf ("Warning, couldn't open output device %s\n", uart_dev1);
-	}
-      else
-	{
-	  if (sis_verbose)
-	    printf ("serial port A on %s\n", uart_dev1);
-	  uarts[0].in_stream.file = uarts[0].out_stream.file = fdopen (fd1, "r+");
-	  setbuf (uarts[0].out_stream.file, NULL);
-	  uarts[0].device_open = 1;
-	}
+      printf ("serial port A on stdin/stdout\n");
     }
-  if (uarts[0].in_stream.file)
-    uarts[0].in_stream.descriptor = fileno (uarts[0].in_stream.file);
-  if (uarts[0].in_stream.descriptor == 0)
-    {
-      if (sis_verbose)
-	printf ("serial port A on stdin/stdout\n");
-      if (!dumbio)
-	{
-#ifdef HAVE_TERMIOS_H
-	  tcgetattr (uarts[0].in_stream.descriptor, &ioc1);
-	  if (tty_setup)
+	
+    if (!dumbio)
 	    {
-	      iocold1 = ioc1;
-	      ioc1.c_lflag &= ~(ICANON | ECHO);
-	      ioc1.c_cc[VMIN] = 0;
-	      ioc1.c_cc[VTIME] = 0;
-	    }
+#ifdef HAVE_TERMIOS_H
+	      tcgetattr (uart->in_stream.descriptor, &uart->io_ctrl);
+	      if (tty_setup)
+	      {
+	        uart->io_ctrl_old = uart->io_ctrl;
+	        uart->io_ctrl.c_lflag &= ~(ICANON | ECHO);
+	        uart->io_ctrl.c_cc[VMIN] = 0;
+	        uart->io_ctrl.c_cc[VTIME] = 0;
+	      }
 #endif
-	}
-      uarts[0].device_open = 1;
-    }
+	    }
+    uart->device_open = 1;
+  }
 
-  if (uarts[0].out_stream.file)
+  if (uart->out_stream.file)
     {
-      ofd1 = fileno (uarts[0].out_stream.file);
-      if (!dumbio && tty_setup && ofd1 == 1)
-	setbuf (uarts[0].out_stream.file, NULL);
+      uart->out_stream.descriptor = fileno (uart->out_stream.file);
+      if (!dumbio && tty_setup && uart->out_stream.descriptor == 1)
+      {
+        setbuf (uart->out_stream.file, NULL);
+      }
     }
 
-  uarts[0].out_stream.buffer_size_cnt = 0;
+  uart->out_stream.buffer_size_cnt = 0;
+
+  return result;
 }
 
-
-// static void
-// apbuart0_init (void)
-// {
-//   uart_init(&uarts[0]);
-// }
+static void
+apbuart0_init (void)
+{
+  uart_init(&uarts[0]);
+}
 
 int
 uart_read (apbuart_type *uart, uint32 addr, uint32 *data)
@@ -1202,10 +1143,10 @@ uart_read (apbuart_type *uart, uint32 addr, uint32 *data)
     case 0x04:			/* UART status register  */
 #ifndef _WIN32
 #ifdef FAST_UART
-      Ucontrol = 0;
+      uart->control_register = 0;
       if (uart->in_stream.buffer_size_index < uart->in_stream.buffer_size_cnt)
 	    {
-	      Ucontrol |= 0x00000001;
+	      uart->control_register |= 0x00000001;
 	    }
       else
 	    {
@@ -1219,13 +1160,13 @@ uart_read (apbuart_type *uart, uint32 addr, uint32 *data)
         }
 	      if (uart->in_stream.buffer_size_cnt > 0)
 	      {
-	        Ucontrol |= 0x00000001;
+	        uart->control_register |= 0x00000001;
 	        uart->in_stream.buffer_size_index = 0;
 	        grlib_set_irq (uart->irq);
 	      }
 	    }
-      Ucontrol |= 0x00000006;
-      *data = Ucontrol;
+      uart->control_register |= 0x00000006;
+      *data = uart->control_register;
       result = 0;
 #else
       *data = uart->status_register;
@@ -1555,7 +1496,7 @@ get_uart_by_irq (int irq)
 }
 
 const struct grlib_ipcore apbuart0 = {
-  apbuart_init, apbuart0_reset, apbuart_read, apbuart_write, apbuart_add
+  apbuart0_init, apbuart0_reset, apbuart_read, apbuart_write, apbuart_add
 };
 
 /* ------------------- SDCTRL -----------------------*/

@@ -23,6 +23,25 @@
 #define APBUART4_IRQ 20
 #define APBUART5_IRQ 21
 
+#define APBUART_RXTX	0x00
+#define APBUART_STATUS  0x04
+#define APBUART_CTRL    0x08
+
+/* Size of UART buffers (bytes).  */
+#define UARTBUF	1024
+
+/* Number of simulator ticks between flushing the UARTS.  */
+/* For good performance, keep above 1000.  */
+#define UART_FLUSH_TIME	  5000
+
+/* New uart defines.  */
+#define UART_TX_TIME	1000
+#define UART_RX_TIME	1000
+#define UARTA_DR	0x1
+#define UARTA_SRE	0x2
+#define UARTA_HRE	0x4
+#define UARTA_OV	0x10
+
 typedef struct
 {
     FILE *file;
@@ -47,6 +66,7 @@ typedef struct
     int device_open;
     char device_path[128];
     uint32 status_register;
+    uint32 control_register;
 } apbuart_type;
 
 static apbuart_type uarts[APBUART_NUM];
@@ -56,6 +76,9 @@ int uart_reset (apbuart_type *uart);
 int uart_read (apbuart_type *uart, uint32 addr, uint32 * data);
 int uart_write (apbuart_type *uart, uint32 addr, uint32 * data, uint32 sz);
 int uart_add (apbuart_type *uart);
+
+int uart_init_stdio(apbuart_type *uart);
+int uart_restore_stdio(apbuart_type *uart);
 
 apbuart_type *get_uart_by_address (uint32 address);
 apbuart_type *get_uart_by_irq (int irq);
