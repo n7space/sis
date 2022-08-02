@@ -1344,9 +1344,12 @@ apbuart_write (uint32 addr, uint32 * data, uint32 sz)
 void
 apbuart_flush (apbuart_type *uart)
 {
-  while (uart->out_stream.buffer_size_cnt && uart->device_open)
-  { 
-    uart->out_stream.buffer_size_cnt -= fwrite (uart->out_stream.buffer, 1, uart->out_stream.buffer_size_cnt, uart->out_stream.file);
+  if (uart != NULL)
+  {
+    while (uart->out_stream.buffer_size_cnt && uart->device_open)
+    { 
+      uart->out_stream.buffer_size_cnt -= fwrite (uart->out_stream.buffer, 1, uart->out_stream.buffer_size_cnt, uart->out_stream.file);
+    }
   }
 }
 
@@ -1484,8 +1487,13 @@ apbuart5_reset (void)
 void
 apbuart_close_port (apbuart_type *uart)
 {
-  if (uart->device_open && uart->in_stream.file != stdin)
-    fclose (uarts->in_stream.file);
+  if (uart != NULL)
+  {
+    if (uart->device_open && uart->in_stream.file != stdin)
+    {
+      fclose (uarts->in_stream.file); 
+    }
+  }
 }
 
 int
