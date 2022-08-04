@@ -31,6 +31,8 @@
 #include <string.h>
 #include "grlib.h"
 
+#include "timer.h"
+
 
 /* APB PNP */
 
@@ -715,6 +717,8 @@ const struct grlib_ipcore irqmp = {
 #define GPTIMER_CTRL2 	0x28
 
 #define NGPTIMERS  2
+
+gp_timer_unit gptimer_unit;
 
 static uint32 gpt_irq;
 static uint32 gpt_scaler;

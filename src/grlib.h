@@ -18,7 +18,6 @@
  *
  */
 
-
 /* Definitions for AMBA PNP in Gaisler Research GRLIB SOC */
 
 /* Vendors */
