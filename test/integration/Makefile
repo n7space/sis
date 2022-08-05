@@ -1,6 +1,7 @@
 include ../../definitions.mk
 
 SIS_APP_DIR = ../../$(BUILD_DIR)/$(SRC_DIR)
+OUTPUT_FILE = $(SIS_APP_DIR)/system.output
 
 TESTS = init_test
 
@@ -17,6 +18,6 @@ check: ${TESTS}
 
 init_test:
 	echo "Run example RTEMS application..."
-	./$(SIS_APP_DIR)/$(SIS_NAME)-$(SIS_VERSION) -dumbio -r $(RTEMS_APP_DIR)
-	grep -q "Hello, world!" $(SIS_APP_DIR)/uart_file_80000100
+	./$(SIS_APP_DIR)/$(SIS_NAME)-$(SIS_VERSION) -dumbio -uart1 stdio -r $(RTEMS_APP_DIR) > $(OUTPUT_FILE)
+	grep -q "Hello, world!" $(OUTPUT_FILE)
 	rm -f $(OUTPUT_FILE)

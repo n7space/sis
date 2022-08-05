@@ -64,6 +64,8 @@
 #define ROM_MASKPP	((~ROM_MASK >> 20) & 0xFFF)
 #define RAM_MASKPP	((~RAM_MASK >> 20) & 0xFFF)
 
+#define APB_CORES_ADDRESS_MASK 0xffffff;
+
 extern int grlib_apbpp_add (uint32 id, uint32 addr);
 extern int grlib_ahbmpp_add (uint32 id);
 extern int grlib_ahbspp_add (uint32 id, uint32 addr1, uint32 addr2,
