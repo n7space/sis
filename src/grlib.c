@@ -1260,14 +1260,6 @@ uart_read (apbuart_type *uart, uint32_t addr, uint32_t *data)
 static int
 apbuart0_read (uint32 addr, uint32 * data)
 {
-  // int result = 1;
-
-  // apbuart_type *uart = get_uart_by_address(addr);
-  // if (uart != NULL)
-  // {
-  //   result = uart_read (uart, addr, data);
-  // }
-
   return uart_read (&uarts[0], addr, data);
 }
 
@@ -1371,14 +1363,6 @@ uart_write (apbuart_type *uart, uint32_t addr, uint32_t * data, uint32_t sz)
 static int
 apbuart0_write (uint32 addr, uint32 * data, uint32 sz)
 {
-  // int result = 1;
-
-  // apbuart_type *uart = get_uart_by_address(addr);
-  // if (uart != NULL)
-  // {
-  //   result = uart_write (uart, addr, data, sz);
-  // }
-
   return uart_write (&uarts[0], addr, data, sz);
 }
 
