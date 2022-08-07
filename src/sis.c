@@ -42,8 +42,6 @@
 /* Command history buffer length - MUST be binary */
 #define HIST_LEN	256
 
-apbuart_type uarts[APBUART_NUM];
-
 int
 main (argc, argv)
      int argc;
