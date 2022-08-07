@@ -1,7 +1,5 @@
 #include "uartdef.h"
 
-apbuart_type uarts[APBUART_NUM];
-
 apbuart_type *
 get_uart_by_address (uint32_t address)
 {
