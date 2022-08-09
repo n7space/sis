@@ -30,8 +30,8 @@
 #endif
 
 #include <rtems.h>
+#include <rtems/bspIo.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -87,15 +87,16 @@ static void Init( rtems_task_argument arg )
 
   uarts_init();
 
-  char *send_msg = "Data transmitted successfully via uart.\n";
+  char *send_msg = "Data transmission via uart successful.\n";
   size_t send_msg_size = strlen(send_msg);
-
-  char receive_msg[MAX_RECEIVE_MSG_SIZE];
-  size_t receive_msg_size = 0;
 
   for (size_t i = 0; i < UARTS_SIZE; i++)
   {
-    while (uarts[i]->status & UART_DR) {
+    char receive_msg[MAX_RECEIVE_MSG_SIZE];
+    size_t receive_msg_size = 0;
+
+    while (uarts[i]->status & UART_DR)
+    {
       if (receive_msg_size <= MAX_RECEIVE_MSG_SIZE)
       {
         char data = uarts[i]->data & DATA_MASK;
@@ -103,13 +104,13 @@ static void Init( rtems_task_argument arg )
       }
       else
       {
-        return;
+        break;
       }
     }
 
-    if (receive_msg_size == 0)
+    if (strlen(receive_msg) == 0)
     {
-      return;
+      continue;
     }
     
     for (size_t j = 0; j < send_msg_size; j++)
