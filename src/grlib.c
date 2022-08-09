@@ -149,7 +149,7 @@ grlib_ahbs_add (const struct grlib_ipcore *core, int irq,
   if (core->add)
     {
       ahbscores[ahbsi].start = addr;
-      ahbscores[ahbsi].end = addr + ~(mask << 20) + 1;
+      ahbscores[ahbsi].end = addr + ~(mask << 24) + 1;
       ahbscores[ahbsi].mask = ~(mask << 24);
       core->add (irq, addr, mask);
     }
@@ -1329,7 +1329,7 @@ uart_write (apbuart_type *uart, uint32_t addr, uint32_t * data, uint32_t sz)
       {
         uart->out_stream.data = c;
         uart->status_register &= ~APBUART_STATUS_REG_TRANSMITTER_SHIFT_REG_EMPTY;
-        event (uarta_tx, uart->irq, UART_TX_TIME);
+        event (uart_tx, uart->irq, UART_TX_TIME);
         result = 0;
       }
       else
@@ -1409,7 +1409,7 @@ apbuart_flush (apbuart_type *uart)
 }
 
 static void
-uarta_tx (int32 arg)
+uart_tx (int32 arg)
 {
   apbuart_type *uart = get_uart_by_irq(arg);
   if (uart != NULL)
@@ -1427,7 +1427,7 @@ uarta_tx (int32 arg)
     {
       uart->out_stream.data = uart->out_stream.holding_register;
       uart->status_register |= APBUART_STATUS_REG_TRANSMITTER_FIFO_EMPTY;
-      event (uarta_tx, uart->irq, UART_TX_TIME);
+      event (uart_tx, uart->irq, UART_TX_TIME);
     }
     grlib_set_irq (uart->irq);
   }
