@@ -87,7 +87,7 @@ static void Init( rtems_task_argument arg )
 
   uarts_init();
 
-  char *send_msg = "Data transmission via uart successful.\n";
+  const char *send_msg = "Data transmission via uart successful.\n";
   size_t send_msg_size = strlen(send_msg);
 
   for (size_t i = 0; i < UARTS_SIZE; i++)
