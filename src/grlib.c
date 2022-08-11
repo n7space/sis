@@ -706,6 +706,8 @@ const struct grlib_ipcore irqmp = {
 
 /* ------------------- GPTIMER -----------------------*/
 
+gp_timer_unit gptimer_unit;
+
 #define GPTIMER_SCALER  0x00
 #define GPTIMER_SCLOAD  0x04
 #define GPTIMER_CONFIG  0x08
@@ -778,15 +780,42 @@ gpt_add (int irq, uint32 addr, uint32 mask)
 static void
 gpt_reset (void)
 {
-  gpt_counter[0] = 0xffffffff;
-  gpt_reload[0] = 0xffffffff;
-  gpt_scaler = 0xffff;
-  gpt_ctrl[0] = 0;
-  gpt_ctrl[1] = 0;
+  gptimer_unit.scaler_register = SCALER_REGISTER_INIT_VALUE;
+  gptimer_unit.scaler_reload_register = SCALER_RELOAD_REGISTER_INIT_VALUE;
+  gptimer_unit.configuration_register = CONFIGURATION_REGISTER_INIT_VALUE;
+  
+  gptimer_unit.timers[0].counter_value_register = 0;
+  gptimer_unit.timers[0].reload_value_register = 0;
+  gptimer_unit.timers[0].control_register = 0;
+
+  gptimer_unit.timers[1].counter_value_register = 0;
+  gptimer_unit.timers[1].reload_value_register = 0;
+  gptimer_unit.timers[1].control_register = 0;
+
+  gptimer_unit.timers[2].counter_value_register = 0;
+  gptimer_unit.timers[2].reload_value_register = 0;
+  gptimer_unit.timers[2].control_register = 0;
+
+  gptimer_unit.timers[3].counter_value_register = GPTIMER4_COUNTER_VALUE_REGISTER_INIT_VALUE;
+  gptimer_unit.timers[3].reload_value_register = GPTIMER4_RELOAD_VALUE_REGISTER_INIT_VALUE;
+  gptimer_unit.timers[3].control_register = GPTIMER4_CONTROL_REGISTER_INIT_VALUE;
+
   remove_event (gpt_intr, -1);
-  gpt_scaler_start = now ();
+  gptimer_unit.scaler_start_time = now ();
   if (sis_verbose)
-    printf ("GPT started (period %d)\n\r", gpt_scaler + 1);
+  {
+    printf ("GPT started (period %d)\n\r", gptimer_unit.scaler_register + 1);
+  }
+
+  // gpt_counter[0] = 0xffffffff;
+  // gpt_reload[0] = 0xffffffff;
+  // gpt_scaler = 0xffff;
+  // gpt_ctrl[0] = 0;
+  // gpt_ctrl[1] = 0;
+  // remove_event (gpt_intr, -1);
+  // gpt_scaler_start = now ();
+  // if (sis_verbose)
+  //   printf ("GPT started (period %d)\n\r", gpt_scaler + 1);
 }
 
 static void
