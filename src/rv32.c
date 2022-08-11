@@ -100,14 +100,14 @@ static void
 sim_halt (void)
 {
 #ifdef FAST_UART
-  apbuart_flush ();
+  apbuart_flush (NULL);
 #endif
 }
 
 static void
 exit_sim (void)
 {
-  apbuart_close_port ();
+  apbuart_close_port (NULL);
 }
 
 /* Memory emulation.  */

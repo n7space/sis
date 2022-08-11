@@ -21,6 +21,8 @@
 
 /* Definitions for AMBA PNP in Gaisler Research GRLIB SOC */
 
+#include "uartdef.h"
+
 /* Vendors */
 
 #define VENDOR_GAISLER	1
@@ -62,6 +64,8 @@
 #define ROM_MASKPP	((~ROM_MASK >> 20) & 0xFFF)
 #define RAM_MASKPP	((~RAM_MASK >> 20) & 0xFFF)
 
+#define APB_CORES_ADDRESS_MASK 0xffffff;
+
 extern int grlib_apbpp_add (uint32 id, uint32 addr);
 extern int grlib_ahbmpp_add (uint32 id);
 extern int grlib_ahbspp_add (uint32 id, uint32 addr1, uint32 addr2,
@@ -102,8 +106,9 @@ extern void grlib_boot_init (void);
 extern void grlib_reset (void);
 extern void apbuart_init_stdio (void);
 extern void apbuart_restore_stdio (void);
-extern void apbuart_close_port (void);
-extern void apbuart_flush (void);
-extern const struct grlib_ipcore gptimer, irqmp, apbuart, apbmst,
+extern void apbuart_close_port (apbuart_type *uart);
+void apbuart_flush (apbuart_type *uart);
+extern const struct grlib_ipcore gptimer, irqmp,
+  apbuart0, apbuart1, apbuart2, apbuart3, apbuart4, apbuart5, apbmst,
   greth, l2c, leon3s, srctrl, ns16550, clint, plic, sdctrl, s5test;
 extern int irqmp_extirq;
