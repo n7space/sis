@@ -1022,8 +1022,10 @@ uart_restore_stdio(apbuart_type *uart)
     {
 #ifdef HAVE_TERMIOS_H
       if (uart->in_stream.descriptor == 0 && uart->device_open && tty_setup)
-      tcsetattr (0, TCSANOW, &uart->io_ctrl_old);
-      result = 0;
+      {
+        tcsetattr (0, TCSANOW, &uart->io_ctrl_old);
+        result = 0;
+      }
 #endif
     }
   }
@@ -1031,7 +1033,7 @@ uart_restore_stdio(apbuart_type *uart)
   return result;
 }
 
-#define DO_STDIO_READ( _fd_, _buf_, _len_ )          \
+#define DO_IO_READ( _fd_, _buf_, _len_ )          \
     ( dumbio || nouartrx ? (0) : read( _fd_, _buf_, _len_ ) )
 
 int
@@ -1043,30 +1045,30 @@ uart_init(apbuart_type *uart)
   uart->out_stream.descriptor = -1;
 
   if (strcmp (uart->device_path, "stdio") == 0)
-    {
-      uart->in_stream.file = stdin;
-      uart->out_stream.file = stdout;
-
-      strcpy(uart->device_path, "");
-    }
-
-  if (strcmp (uart->device_path, "") != 0)
   {
-    if ((uart->device_descriptor = open (uart->device_path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO)) < 0)
+    uart->in_stream.file = stdin;
+    uart->out_stream.file = stdout;
+  }
+  else
+  {
+    if (strcmp (uart->device_path, "") != 0)
     {
-      printf ("Warning, couldn't open output device %s\n", uart->device_path);
-    }
-    else
-    {
-      if (sis_verbose)
+      if ((uart->device_descriptor = open (uart->device_path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO)) < 0)
       {
-        printf ("serial port on %s\n", uart->device_path);
+        printf ("Warning, couldn't open output device %s\n", uart->device_path);
       }
-      uart->in_stream.file = fdopen (uart->device_descriptor, "r+");
-      uart->out_stream.file = uart->in_stream.file;
-      setbuf (uart->out_stream.file, NULL);
-      uart->device_open = 1;
-      result = 0;
+      else
+      {
+        if (sis_verbose)
+        {
+          printf ("serial port on %s\n", uart->device_path);
+        }
+        uart->in_stream.file = fdopen (uart->device_descriptor, "r+");
+        uart->out_stream.file = uart->in_stream.file;
+        setbuf (uart->out_stream.file, NULL);
+        uart->device_open = 1;
+        result = 0;
+      }
     }
   }
 
@@ -1173,7 +1175,7 @@ uart_read (apbuart_type *uart, uint32_t addr, uint32_t *data)
       {
         if (uart->device_open)
         {
-          uart->in_stream.buffer_size = DO_STDIO_READ (uart->in_stream.descriptor, uart->in_stream.buffer, APBUART_BUFFER_SIZE);
+          uart->in_stream.buffer_size = DO_IO_READ (uart->in_stream.descriptor, uart->in_stream.buffer, APBUART_BUFFER_SIZE);
         }
         else
         {
@@ -1219,7 +1221,7 @@ uart_read (apbuart_type *uart, uint32_t addr, uint32_t *data)
       {
         if (uart->device_open)
         {
-          uart->in_stream.buffer_size = DO_STDIO_READ (uart->in_stream.descriptor, uart->in_stream.buffer, APBUART_BUFFER_SIZE);
+          uart->in_stream.buffer_size = DO_IO_READ (uart->in_stream.descriptor, uart->in_stream.buffer, APBUART_BUFFER_SIZE);
         }
         else
         {
@@ -1445,7 +1447,7 @@ uart_rx (int32 arg)
 
     if (uart->device_open)
     {
-      rsize = DO_STDIO_READ (uart->in_stream.descriptor, &rxd, 1);
+      rsize = DO_IO_READ (uart->in_stream.descriptor, &rxd, 1);
     }
     else
     {

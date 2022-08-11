@@ -6,7 +6,8 @@ UARTS_TEST_DIR = ${RESOURCES_DIR}/build/rtems_uarts
 
 OUTPUT_FILE = $(SIS_APP_DIR)/system.output
 
-UART_FILES = uart1 uart2 uart3 uart4 uart5 uart6
+UART_FILES := uart1 uart2 uart3 uart4 uart5 uart6
+UART_FILES_RUN_PARAMS = $(subst :, ,$(join $(patsubst %,-%:,${UART_FILES}), ${UART_FILES}))
 UART_RECEIVE_MSG = Readme!
 UART_TRANSMIT_MSG = Data transmission via uart successful.
 
@@ -33,9 +34,9 @@ uarts_test:
 	echo "Run UART data transmission test..."
 	$(MAKE) -C $(RESOURCES_DIR) rtems_uarts
 	touch ${UART_FILES} && echo ${UART_RECEIVE_MSG} | tee ${UART_FILES}
-	./$(SIS_APP_DIR)/$(SIS_NAME)-$(SIS_VERSION) $(subst :, ,$(join $(patsubst %,-%:,${UART_FILES}), ${UART_FILES})) -r $(UARTS_TEST_DIR)
-	for i in ${UART_FILES} ; do \
-		grep -q "${UART_TRANSMIT_MSG}" $$i ; \
+	./$(SIS_APP_DIR)/$(SIS_NAME)-$(SIS_VERSION) ${UART_FILES_RUN_PARAMS} -r $(UARTS_TEST_DIR)
+	for uart_file in ${UART_FILES} ; do \
+		grep -q "${UART_TRANSMIT_MSG}" $$uart_file ; \
 	done
 	$(MAKE) -C $(RESOURCES_DIR) clean
 	rm -f ${UART_FILES}
