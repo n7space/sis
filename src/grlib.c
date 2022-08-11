@@ -706,8 +706,6 @@ const struct grlib_ipcore irqmp = {
 
 /* ------------------- GPTIMER -----------------------*/
 
-gp_timer_unit gptimer_unit;
-
 #define GPTIMER_SCALER  0x00
 #define GPTIMER_SCLOAD  0x04
 #define GPTIMER_CONFIG  0x08
@@ -720,7 +718,8 @@ gp_timer_unit gptimer_unit;
 
 #define NGPTIMERS  2
 
-gp_timer_unit gptimer_unit;
+gp_timer_apbctrl1 gptimer1;
+gp_timer_apbctrl2 gptimer2;
 
 static uint32 gpt_irq;
 static uint32 gpt_scaler;
@@ -780,31 +779,31 @@ gpt_add (int irq, uint32 addr, uint32 mask)
 static void
 gpt_reset (void)
 {
-  gptimer_unit.scaler_register = SCALER_REGISTER_INIT_VALUE;
-  gptimer_unit.scaler_reload_register = SCALER_RELOAD_REGISTER_INIT_VALUE;
-  gptimer_unit.configuration_register = CONFIGURATION_REGISTER_INIT_VALUE;
+  gptimer1.core.scaler_register = SCALER_REGISTER_INIT_VALUE;
+  gptimer1.core.scaler_reload_register = SCALER_RELOAD_REGISTER_INIT_VALUE;
+  gptimer1.core.configuration_register = CONFIGURATION_REGISTER_INIT_VALUE;
   
-  gptimer_unit.timers[0].counter_value_register = 0;
-  gptimer_unit.timers[0].reload_value_register = 0;
-  gptimer_unit.timers[0].control_register = 0;
+  gptimer1.timers[0].counter_value_register = 0;
+  gptimer1.timers[0].reload_value_register = 0;
+  gptimer1.timers[0].control_register = 0;
 
-  gptimer_unit.timers[1].counter_value_register = 0;
-  gptimer_unit.timers[1].reload_value_register = 0;
-  gptimer_unit.timers[1].control_register = 0;
+  gptimer1.timers[1].counter_value_register = 0;
+  gptimer1.timers[1].reload_value_register = 0;
+  gptimer1.timers[1].control_register = 0;
 
-  gptimer_unit.timers[2].counter_value_register = 0;
-  gptimer_unit.timers[2].reload_value_register = 0;
-  gptimer_unit.timers[2].control_register = 0;
+  gptimer1.timers[2].counter_value_register = 0;
+  gptimer1.timers[2].reload_value_register = 0;
+  gptimer1.timers[2].control_register = 0;
 
-  gptimer_unit.timers[3].counter_value_register = GPTIMER4_COUNTER_VALUE_REGISTER_INIT_VALUE;
-  gptimer_unit.timers[3].reload_value_register = GPTIMER4_RELOAD_VALUE_REGISTER_INIT_VALUE;
-  gptimer_unit.timers[3].control_register = GPTIMER4_CONTROL_REGISTER_INIT_VALUE;
+  gptimer1.timers[3].counter_value_register = GPTIMER4_COUNTER_VALUE_REGISTER_INIT_VALUE;
+  gptimer1.timers[3].reload_value_register = GPTIMER4_RELOAD_VALUE_REGISTER_INIT_VALUE;
+  gptimer1.timers[3].control_register = GPTIMER4_CONTROL_REGISTER_INIT_VALUE;
 
   remove_event (gpt_intr, -1);
-  gptimer_unit.scaler_start_time = now ();
+  gptimer1.core.scaler_start_time = now ();
   if (sis_verbose)
   {
-    printf ("GPT started (period %d)\n\r", gptimer_unit.scaler_register + 1);
+    printf ("GPT started (period %d)\n\r", gptimer1.core.scaler_register + 1);
   }
 
   // gpt_counter[0] = 0xffffffff;
@@ -869,58 +868,68 @@ gpt_counter_read (int i)
     return gpt_counter[i];
 }
 
-static uint32
-gpt_scaler_read ()
-{
-  return gpt_scaler - ((now () - gpt_scaler_start) % (gpt_scaler + 1));
-}
-
 static int
 gpt_read (uint32 addr, uint32 * data)
 {
-  int i;
+  gptimer_scaler_update (now (), &gptimer1.core);
 
-  switch (addr & 0xff)
+  uint32_t address_masked = addr & GPTIMER_REGISTERS_MASK;
+  switch (address_masked & GPTIMER_OFFSET_MASK)
+  {
+    case CORE_OFFSET:
     {
-    case GPTIMER_SCALER:	/* 0x00 */
-      *data = gpt_scaler_read ();
+      *data = gptimer_read_core_register(&gptimer1.core, address_masked);
       break;
-
-    case GPTIMER_SCLOAD:	/* 0x04 */
-      *data = gpt_scaler;
-      break;
-
-    case GPTIMER_CONFIG:	/* 0x08 */
-      *data = 0x100 | (gpt_irq << 3) | NGPTIMERS;
-      break;
-
-    case GPTIMER_TIMER1:	/* 0x10 */
-      *data = gpt_counter_read (0);
-      break;
-
-    case GPTIMER_RELOAD1:	/* 0x14 */
-      *data = gpt_reload[0];
-      break;
-
-    case GPTIMER_CTRL1:	/* 0x18 */
-      *data = gpt_ctrl[0];
-      break;
-
-    case GPTIMER_TIMER2:	/* 0x20 */
-      *data = gpt_counter_read (1);
-      break;
-
-    case GPTIMER_RELOAD2:	/* 0x24 */
-      *data = gpt_reload[1];
-      break;
-
-    case GPTIMER_CTRL2:	/* 0x28 */
-      *data = gpt_ctrl[1];
-      break;
-
-    default:
-      *data = 0;
     }
+    case GPTIMER1_OFFSET:
+    {
+      *data = gptimer_read_timer_register(&gptimer1.timers[0], address_masked);
+      break;
+    }
+    case GPTIMER2_OFFSET:
+    {
+      *data = gptimer_read_timer_register(&gptimer1.timers[1], address_masked);
+      break;
+    }
+    case GPTIMER3_OFFSET:
+    {
+      *data = gptimer_read_timer_register(&gptimer1.timers[2], address_masked);
+      break;
+    }
+    case GPTIMER4_OFFSET:
+    {
+      *data = gptimer_read_timer_register(&gptimer1.timers[3], address_masked);
+      break;
+    }
+    default:
+    {
+      *data = 0;
+    } 
+  }
+
+    // case GPTIMER_TIMER1:	/* 0x10 */
+    //   *data = gpt_counter_read (0);
+    //   break;
+
+    // case GPTIMER_RELOAD1:	/* 0x14 */
+    //   *data = gpt_reload[0];
+    //   break;
+
+    // case GPTIMER_CTRL1:	/* 0x18 */
+    //   *data = gpt_ctrl[0];
+    //   break;
+
+    // case GPTIMER_TIMER2:	/* 0x20 */
+    //   *data = gpt_counter_read (1);
+    //   break;
+
+    // case GPTIMER_RELOAD2:	/* 0x24 */
+    //   *data = gpt_reload[1];
+    //   break;
+
+    // case GPTIMER_CTRL2:	/* 0x28 */
+    //   *data = gpt_ctrl[1];
+    //   break;
 }
 
 static int
