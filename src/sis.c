@@ -28,6 +28,8 @@
 #include <inttypes.h>
 #include <libgen.h>
 
+#include "uartdef.h"
+
 #if HAVE_READLINE
 #include "readline/readline.h"
 #include "readline/history.h"
@@ -115,16 +117,48 @@ main (argc, argv)
 	    rom8 = 1;
 	  else if (strcmp (argv[stat], "-uben") == 0)
 	    uben = 1;
-	  else if (strcmp (argv[stat], "-uart1") == 0)
-	    {
-	      if ((stat + 1) < argc)
-		strcpy (uart_dev1, argv[++stat]);
-	    }
-	  else if (strcmp (argv[stat], "-uart2") == 0)
-	    {
-	      if ((stat + 1) < argc)
-		strcpy (uart_dev2, argv[++stat]);
-	    }
+		else if (strcmp (argv[stat], "-uart1") == 0)
+		{
+			if ((stat + 1) < argc)
+			{
+				strcpy (uarts[0].device_path, argv[++stat]);	
+			}
+		}
+		else if (strcmp (argv[stat], "-uart2") == 0)
+		{
+			if ((stat + 1) < argc)
+			{
+				strcpy (uarts[1].device_path, argv[++stat]);	
+			}
+		}
+		else if (strcmp (argv[stat], "-uart3") == 0)
+		{
+			if ((stat + 1) < argc)
+			{
+				strcpy (uarts[2].device_path, argv[++stat]);	
+			}
+		}
+		else if (strcmp (argv[stat], "-uart4") == 0)
+		{
+			if ((stat + 1) < argc)
+			{
+				strcpy (uarts[3].device_path, argv[++stat]);	
+			}
+		}
+		else if (strcmp (argv[stat], "-uart5") == 0)
+		{
+			if ((stat + 1) < argc)
+			{
+				strcpy (uarts[4].device_path, argv[++stat]);	
+			}
+		}
+		else if (strcmp (argv[stat], "-uart6") == 0)
+		{
+			if ((stat + 1) < argc)
+			{
+				strcpy (uarts[5].device_path, argv[++stat]);	
+			}
+		}
 	  else if (strcmp (argv[stat], "-freq") == 0)
 	    {
 	      if ((stat + 1) < argc)

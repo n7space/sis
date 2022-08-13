@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stddef.h>
 
 #pragma once
 
@@ -41,7 +42,7 @@
     (5) CH - Chain: Chain with preceding timer. If set for timer n, timer n will be decremented each time when timer (n-1) underflows.
     (6) DH - Debug Halt: Value of GPTI.DHALT signal which is used to freeze counters (e.g. when a system is in debug mode). Read-only.
 */
-enum gptimer_control_register {GPT_EN = 0, GPT_RS, GPT_LD, GPT_IE, GPT_IP, GPT_CH, GPT_DH};
+typedef enum {GPT_EN = 0, GPT_RS, GPT_LD, GPT_IE, GPT_IP, GPT_CH, GPT_DH} gptimer_control_register;
 
 typedef struct
 {
@@ -58,7 +59,7 @@ typedef struct
     (8)     SI - Separate interrupts. Reads ‘1’ to indicate the timer unit generates separate interrupts for each timer.
     (9)     DF - Disable timer freeze. If set the timer unit can not be freezed, otherwise timers will halt when the processor enters debug mode.
 */
-enum gptimer_configuration_register {GPT_TIMERS = 0, GPT_IRQ = 3, GPT_SI = 8, GPT_DF = 9};
+typedef enum {GPT_TIMERS = 0, GPT_IRQ = 3, GPT_SI = 8, GPT_DF = 9} gptimer_configuration_register;
 
 typedef struct
 {
@@ -84,7 +85,16 @@ typedef struct
 extern gp_timer_apbctrl1 gptimer1;
 extern gp_timer_apbctrl2 gptimer2;
 
+void gptimer_apbctrl1_update();
+void gptimer_apbctrl2_update();
 void gptimer_scaler_update (uint32_t timestamp, gp_timer_core *core);
+void gptimer_timer_update(gp_timer *timer);
+void gptimer_decrement(gp_timer *timer);
+
 
 uint32_t gptimer_read_core_register(gp_timer_core *core, uint32_t address);
 uint32_t gptimer_read_timer_register(gp_timer *timer, uint32_t address);
+
+uint32_t gptimer_get_flag(uint32_t gpt_register, uint32_t flag);
+void gptimer_set_flag(uint32_t *gpt_register, uint32_t flag);
+void gptimer_reset_flag(uint32_t *gpt_register, uint32_t flag);
