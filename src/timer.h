@@ -3,35 +3,45 @@
 
 #pragma once
 
+#define GPTIMER_APBCTRL1_ADDRESS     0x80000300
+#define GPTIMER_APBCTRL2_ADDRESS     0x80100600
+
 #define CORE_OFFSET 0x00
 #define GPTIMER1_OFFSET 0x10
 #define GPTIMER2_OFFSET 0x20
 #define GPTIMER3_OFFSET 0x30
 #define GPTIMER4_OFFSET 0x40
 
-#define GPTIMER_TIMER_COUNTER_VALUE_REGISTER_ADDRESS 0x0
-#define GPTIMER_TIMER_RELOAD_VALUE_REGISTER_ADDRESS 0x4
-#define GPTIMER_TIMER_CONTROL_REGISTER_ADDRESS 0x8
-#define GPTIMER_TIMER_LATCH_REGISTER_ADDRESS 0xC
+#define GPTIMER_SCALER_VALUE_REGISTER_ADDRESS 0x00
+#define GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS 0x04
+#define GPTIMER_CONFIGURATION_REGISTER_ADDRESS 0x08
 
-#define SCALER_REGISTER_INIT_VALUE 0xFFFF
-#define SCALER_RELOAD_REGISTER_INIT_VALUE 0xFFFF
-#define CONFIGURATION_REGISTER_INIT_VALUE 0x0044
+#define GPTIMER_TIMER_COUNTER_VALUE_REGISTER_ADDRESS 0x00
+#define GPTIMER_TIMER_RELOAD_VALUE_REGISTER_ADDRESS 0x04
+#define GPTIMER_TIMER_CONTROL_REGISTER_ADDRESS 0x08
+#define GPTIMER_TIMER_LATCH_REGISTER_ADDRESS 0x0C
+
+#define GPTIMER_SCALER_REGISTER_INIT_VALUE 0xFFFF
+#define GPTIMER_SCALER_RELOAD_REGISTER_INIT_VALUE 0xFFFF
+#define GPTIMER_CONFIGURATION_REGISTER_INIT_VALUE 0x0044
 
 #define GPTIMER4_COUNTER_VALUE_REGISTER_INIT_VALUE 0xFFFF
 #define GPTIMER4_RELOAD_VALUE_REGISTER_INIT_VALUE 0xFFFF
 #define GPTIMER4_CONTROL_REGISTER_INIT_VALUE 0x0009
 
+#define GPTIMER_ADDRESS_MASK 0xFFFF
 #define GPTIMER_REGISTERS_MASK 0xFF
 #define GPTIMER_OFFSET_MASK 0xF0
 #define GPTIMER_TIMERS_REGISTERS_MASK 0x0F
-
-#define GPTIMER_SCALER_VALUE_REGISTER_ADDRESS 0x00
-#define GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS 0x04
-#define GPTIMER_CONFIGURATION_REGISTER_ADDRESS 0x08
+#define GPTIMER_FLAG_MASK 0x01
+#define GPTIMER_SCALER_REGISTER_WRITE_MASK 0xFFFF
+#define GPTIMER_CONFIGURATION_REGISTER_WRITE_MASK 0x180
+#define GPTIMER_CONTROL_REGISTER_WRITE_MASK 0x2F
 
 #define GPTIMER_APBCTRL1_SIZE 4
 #define GPTIMER_APBCTRL2_SIZE 2
+
+#define GPTIMER_INTERRUPT_BASE_NR 8
 
 /* Control Register definition, taken from GR712RC documentation:
     (0) EN - Enable: Enable the timer.
@@ -50,6 +60,8 @@ typedef struct
     uint32_t reload_value_register;
     uint32_t control_register;
     uint32_t latch_register;
+    uint32_t *timer_chain_underflow_ptr;
+    uint32_t timer_underflow;
 } gp_timer;
 
 /*
@@ -63,7 +75,6 @@ typedef enum {GPT_TIMERS = 0, GPT_IRQ = 3, GPT_SI = 8, GPT_DF = 9} gptimer_confi
 
 typedef struct
 {
-    uint64_t scaler_start_time;
     uint32_t scaler_register;
     uint32_t scaler_reload_register;
     uint32_t configuration_register;
@@ -87,13 +98,16 @@ extern gp_timer_apbctrl2 gptimer2;
 
 void gptimer_apbctrl1_update();
 void gptimer_apbctrl2_update();
-void gptimer_scaler_update (uint32_t timestamp, gp_timer_core *core);
 void gptimer_timer_update(gp_timer *timer);
 void gptimer_decrement(gp_timer *timer);
-
+void gptimer_apbctrl1_timer_reset();
+void gptimer_apbctrl2_timer_reset();
 
 uint32_t gptimer_read_core_register(gp_timer_core *core, uint32_t address);
+void gptimer_write_core_register(gp_timer_core *core, uint32_t address, uint32_t * data);
+
 uint32_t gptimer_read_timer_register(gp_timer *timer, uint32_t address);
+void gptimer_write_timer_register(gp_timer *timer, uint32_t address, uint32_t * data);
 
 uint32_t gptimer_get_flag(uint32_t gpt_register, uint32_t flag);
 void gptimer_set_flag(uint32_t *gpt_register, uint32_t flag);
