@@ -15,15 +15,21 @@
 #define GPTIMER_SCALER_VALUE_REGISTER_ADDRESS 0x00
 #define GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS 0x04
 #define GPTIMER_CONFIGURATION_REGISTER_ADDRESS 0x08
+#define GPTIMER_LATCH_CONFIGURATION_REGISTER_ADDRESS 0x0C
 
 #define GPTIMER_TIMER_COUNTER_VALUE_REGISTER_ADDRESS 0x00
 #define GPTIMER_TIMER_RELOAD_VALUE_REGISTER_ADDRESS 0x04
 #define GPTIMER_TIMER_CONTROL_REGISTER_ADDRESS 0x08
 #define GPTIMER_TIMER_LATCH_REGISTER_ADDRESS 0x0C
 
-#define GPTIMER_SCALER_REGISTER_INIT_VALUE 0xFFFF
-#define GPTIMER_SCALER_RELOAD_REGISTER_INIT_VALUE 0xFFFF
-#define GPTIMER_CONFIGURATION_REGISTER_INIT_VALUE 0x0044
+#define GPTIMER_APBCTRL1_SCALER_REGISTER_INIT_VALUE 0xFFFF
+#define GPTIMER_APBCTRL1_SCALER_RELOAD_REGISTER_INIT_VALUE 0xFFFF
+#define GPTIMER_APBCTRL1_CONFIGURATION_REGISTER_INIT_VALUE 0x0044
+
+#define GPTIMER_APBCTRL2_SCALER_REGISTER_INIT_VALUE 0xFF
+#define GPTIMER_APBCTRL2_SCALER_RELOAD_REGISTER_INIT_VALUE 0xFF
+#define GPTIMER_APBCTRL2_CONFIGURATION_REGISTER_INIT_VALUE 0x3A
+#define GPTIMER_APBCTRL2_LATCH_CONFIGURATION_REGISTER_INIT_VALUE 0x00
 
 #define GPTIMER4_COUNTER_VALUE_REGISTER_INIT_VALUE 0xFFFF
 #define GPTIMER4_RELOAD_VALUE_REGISTER_INIT_VALUE 0xFFFF
@@ -34,14 +40,17 @@
 #define GPTIMER_OFFSET_MASK 0xF0
 #define GPTIMER_TIMERS_REGISTERS_MASK 0x0F
 #define GPTIMER_FLAG_MASK 0x01
-#define GPTIMER_SCALER_REGISTER_WRITE_MASK 0xFFFF
-#define GPTIMER_CONFIGURATION_REGISTER_WRITE_MASK 0x180
+#define GPTIMER_APBCTRL1_SCALER_REGISTER_WRITE_MASK 0xFFFF
+#define GPTIMER_APBCTRL2_SCALER_REGISTER_WRITE_MASK 0xFF
+#define GPTIMER_APBCTRL1_CONFIGURATION_REGISTER_WRITE_MASK 0x180
+#define GPTIMER_APBCTRL2_CONFIGURATION_REGISTER_WRITE_MASK 0x500
 #define GPTIMER_CONTROL_REGISTER_WRITE_MASK 0x2F
 
 #define GPTIMER_APBCTRL1_SIZE 4
 #define GPTIMER_APBCTRL2_SIZE 2
 
-#define GPTIMER_INTERRUPT_BASE_NR 8
+#define GPTIMER_APBCTRL1_INTERRUPT_BASE_NR 8
+#define GPTIMER_APBCTRL2_INTERRUPT_BASE_NR 7
 
 /* Control Register definition, taken from GR712RC documentation:
     (0) EN - Enable: Enable the timer.
@@ -70,8 +79,10 @@ typedef struct
     (3 - 7) IRQ - Interrupt ID of first timer. Set to 8. Read-only.
     (8)     SI - Separate interrupts. Reads ‘1’ to indicate the timer unit generates separate interrupts for each timer.
     (9)     DF - Disable timer freeze. If set the timer unit can not be freezed, otherwise timers will halt when the processor enters debug mode.
+    (11)    EL - Enable latching. If set, on the next matching interrupt, the latches will be loaded with the corresponding timer values.
+                 The bit is then automatically cleared, not to load a timer value until set again.
 */
-typedef enum {GPT_TIMERS = 0, GPT_IRQ = 3, GPT_SI = 8, GPT_DF = 9} gptimer_configuration_register;
+typedef enum {GPT_TIMERS = 0, GPT_IRQ = 3, GPT_SI = 8, GPT_DF = 9, GPT_EL = 11} gptimer_configuration_register;
 
 typedef struct
 {
@@ -96,15 +107,15 @@ typedef struct
 extern gp_timer_apbctrl1 gptimer1;
 extern gp_timer_apbctrl2 gptimer2;
 
-void gptimer_apbctrl1_update();
-void gptimer_apbctrl2_update();
+void gptimer_update(gp_timer_core *core, gp_timer *timers, uint32_t timers_size);
 void gptimer_timer_update(gp_timer *timer);
 void gptimer_decrement(gp_timer *timer);
 void gptimer_apbctrl1_timer_reset();
 void gptimer_apbctrl2_timer_reset();
 
 uint32_t gptimer_read_core_register(gp_timer_core *core, uint32_t address);
-void gptimer_write_core_register(gp_timer_core *core, uint32_t address, uint32_t * data);
+void gptimer_apbctrl1_write_core_register(uint32_t address, uint32_t * data);
+void gptimer_apbctrl2_write_core_register(uint32_t address, uint32_t * data);
 
 uint32_t gptimer_read_timer_register(gp_timer *timer, uint32_t address);
 void gptimer_write_timer_register(gp_timer *timer, uint32_t address, uint32_t * data);

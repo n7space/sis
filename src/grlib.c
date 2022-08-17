@@ -714,16 +714,16 @@ gptimer_apbctrl1_intr (int32 arg)
   // unused parameter
   (void)(arg);
 
-  gptimer_apbctrl1_update();
+  gptimer_update (&gptimer1.core, gptimer1.timers, GPTIMER_APBCTRL1_SIZE);
   uint32_t separate_irq_flag = gptimer_get_flag (gptimer1.core.configuration_register, GPT_SI);
 
   for (int i = 0; i < GPTIMER_APBCTRL1_SIZE; i++)
   {
     if (gptimer_get_flag (gptimer1.timers[i].control_register, GPT_IP))
     {
-      int32_t irq_flag = separate_irq_flag ? GPTIMER_INTERRUPT_BASE_NR + i : GPTIMER_INTERRUPT_BASE_NR;
+      int32_t irq_flag = separate_irq_flag ? GPTIMER_APBCTRL1_INTERRUPT_BASE_NR + i : GPTIMER_APBCTRL1_INTERRUPT_BASE_NR;
       grlib_set_irq (irq_flag);
-      gptimer_reset_flag(&gptimer1.timers[i].control_register, GPT_IP);
+      gptimer_reset_flag (&gptimer1.timers[i].control_register, GPT_IP);
     }
   }
 
@@ -736,16 +736,41 @@ gptimer_apbctrl2_intr (int32 arg)
   // unused parameter
   (void)(arg);
 
-  // TODO gptimer_apbctrl2_update();
-  uint32_t separate_irq_flag = gptimer_get_flag (gptimer1.core.configuration_register, GPT_SI);
+  gptimer_update (&gptimer2.core, gptimer2.timers, GPTIMER_APBCTRL2_SIZE);
 
-  for (int i = 0; i < GPTIMER_APBCTRL1_SIZE; i++)
+  uint32_t timers_latched = 0;
+  uint32_t latch_configuration_register = gptimer_read_core_register (&gptimer2.core, GPTIMER_LATCH_CONFIGURATION_REGISTER_ADDRESS);
+  
+  uint32_t irq_pending = 0;
+  uint32_t irq_force = 0;
+  irqmp_read (IRQMP_IPR, &irq_pending);
+  irqmp_read (IRQMP_IFR, &irq_force);
+  uint32_t irq_vector = irq_pending | irq_force;
+
+  if (gptimer_get_flag (gptimer2.core.configuration_register, GPT_EL))
   {
-    if (gptimer_get_flag (gptimer1.timers[i].control_register, GPT_IP))
+    for (int i = 0; i < 32; i++)
     {
-      int32_t irq_flag = separate_irq_flag ? GPTIMER_INTERRUPT_BASE_NR + i : GPTIMER_INTERRUPT_BASE_NR;
-      grlib_set_irq (irq_flag);
-      gptimer_reset_flag(&gptimer1.timers[i].control_register, GPT_IP);
+      if (((irq_vector >> i) & (latch_configuration_register >> i)) & GPTIMER_FLAG_MASK)
+      {
+        timers_latched = 1;
+        gptimer_reset_flag (&gptimer2.core.configuration_register, GPT_EL);
+        break;
+      }
+    }
+  }
+
+  for (int i = 0; i < GPTIMER_APBCTRL2_SIZE; i++)
+  {
+    if (gptimer_get_flag (gptimer2.timers[i].control_register, GPT_IP))
+    {
+      grlib_set_irq (GPTIMER_APBCTRL2_INTERRUPT_BASE_NR);
+      gptimer_reset_flag (&gptimer2.timers[i].control_register, GPT_IP);
+    }
+    
+    if (timers_latched && gptimer_get_flag (gptimer2.timers[i].control_register, GPT_EN))
+    {
+      gptimer_write_timer_register (&gptimer2.timers[i], GPTIMER_TIMER_LATCH_REGISTER_ADDRESS, NULL);
     }
   }
 
@@ -755,13 +780,13 @@ gptimer_apbctrl2_intr (int32 arg)
 static void
 gptimer_apbctrl1_init (void)
 {
-  gptimer_apbctrl1_timer_reset();
+  gptimer_apbctrl1_timer_reset ();
 }
 
 static void
 gptimer_apbctrl2_init (void)
 {
-  gptimer_apbctrl2_timer_reset();
+  gptimer_apbctrl2_timer_reset ();
 }
 
 static void
@@ -788,7 +813,7 @@ gptimer_apbctrl2_add (int irq, uint32 addr, uint32 mask)
 static void
 gptimer_apbctrl1_reset (void)
 {
-  gptimer_apbctrl1_timer_reset();
+  gptimer_apbctrl1_timer_reset ();
 
   remove_event (gptimer_apbctrl1_intr, -1);
   event (gptimer_apbctrl1_intr, 0, 1);
@@ -802,7 +827,7 @@ gptimer_apbctrl1_reset (void)
 static void
 gptimer_apbctrl2_reset (void)
 {
-  gptimer_apbctrl2_timer_reset();
+  gptimer_apbctrl2_timer_reset ();
 
   remove_event (gptimer_apbctrl2_intr, -1);
   event (gptimer_apbctrl2_intr, 0, 1);
@@ -821,27 +846,27 @@ gptimer_read (gp_timer_core *core, gp_timer *timers, uint32 addr, uint32 * data)
   {
     case CORE_OFFSET:
     {
-      *data = gptimer_read_core_register(core, address_masked);
+      *data = gptimer_read_core_register (core, address_masked);
       break;
     }
     case GPTIMER1_OFFSET:
     {
-      *data = gptimer_read_timer_register(&timers[0], address_masked);
+      *data = gptimer_read_timer_register (&timers[0], address_masked);
       break;
     }
     case GPTIMER2_OFFSET:
     {
-      *data = gptimer_read_timer_register(&timers[1], address_masked);
+      *data = gptimer_read_timer_register (&timers[1], address_masked);
       break;
     }
     case GPTIMER3_OFFSET:
     {
-      *data = gptimer_read_timer_register(&timers[2], address_masked);
+      *data = gptimer_read_timer_register (&timers[2], address_masked);
       break;
     }
     case GPTIMER4_OFFSET:
     {
-      *data = gptimer_read_timer_register(&timers[3], address_masked);
+      *data = gptimer_read_timer_register (&timers[3], address_masked);
       break;
     }
     default:
@@ -864,34 +889,28 @@ gptimer_apbctrl2_read (uint32 addr, uint32 * data)
 }
 
 static int
-gptimer_write (gp_timer_core *core, gp_timer *timers, uint32 addr, uint32 * data)
+gptimer_timer_write (gp_timer *timers, uint32 addr, uint32 * data)
 {
-  uint32_t address_masked = addr & GPTIMER_REGISTERS_MASK;
-  switch (address_masked & GPTIMER_OFFSET_MASK)
+  switch (addr & GPTIMER_OFFSET_MASK)
   {
-    case CORE_OFFSET:
-    {
-      gptimer_write_core_register(&gptimer1.core, address_masked, data);
-      break;
-    }
     case GPTIMER1_OFFSET:
     {
-      gptimer_write_timer_register(&gptimer1.timers[0], address_masked, data);
+      gptimer_write_timer_register (&timers[0], addr, data);
       break;
     }
     case GPTIMER2_OFFSET:
     {
-      gptimer_write_timer_register(&gptimer1.timers[1], address_masked, data);
+      gptimer_write_timer_register (&timers[1], addr, data);
       break;
     }
     case GPTIMER3_OFFSET:
     {
-      gptimer_write_timer_register(&gptimer1.timers[2], address_masked, data);
+      gptimer_write_timer_register (&timers[2], addr, data);
       break;
     }
     case GPTIMER4_OFFSET:
     {
-      gptimer_write_timer_register(&gptimer1.timers[3], address_masked, data);
+      gptimer_write_timer_register (&timers[3], addr, data);
       break;
     }
     default:
@@ -904,13 +923,27 @@ gptimer_write (gp_timer_core *core, gp_timer *timers, uint32 addr, uint32 * data
 static int
 gptimer_apbctrl1_write (uint32 addr, uint32 * data, uint32 sz)
 {
-  gptimer_write (&gptimer1.core, gptimer1.timers, addr, data);
+  if ((addr & GPTIMER_REGISTERS_MASK) == CORE_OFFSET)
+  {
+    gptimer_apbctrl1_write_core_register (addr, data);
+  }
+  else
+  {
+    gptimer_timer_write (gptimer1.timers, addr, data);
+  }
 }
 
 static int
 gptimer_apbctrl2_write (uint32 addr, uint32 * data, uint32 sz)
 {
-  gptimer_write (&gptimer2.core, gptimer2.timers, addr, data);
+  if ((addr & GPTIMER_REGISTERS_MASK) == CORE_OFFSET)
+  {
+    gptimer_apbctrl2_write_core_register (addr, data);
+  }
+  else
+  {
+    gptimer_timer_write (gptimer2.timers, addr, data);
+  }
 }
 
 const struct grlib_ipcore gptimer_apbctrl1 = {

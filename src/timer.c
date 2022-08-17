@@ -1,33 +1,17 @@
 #include "timer.h"
 
 void
-gptimer_apbctrl1_update()
+gptimer_update(gp_timer_core *core, gp_timer *timers, uint32_t timers_size)
 {
-  if (gptimer1.core.scaler_register > 0)
+  if (core->scaler_register > 0)
   {
-    gptimer1.core.scaler_register--;
+    core->scaler_register--;
   }
   else {
-    gptimer1.core.scaler_register = gptimer1.core.scaler_reload_register;
-    for (size_t i = 0; i < GPTIMER_APBCTRL1_SIZE; i++)
+    core->scaler_register = core->scaler_reload_register;
+    for (size_t i = 0; i < timers_size; i++)
     {
-      gptimer_timer_update(&gptimer1.timers[i]);
-    }
-  }
-}
-
-void
-gptimer_apbctrl2_update()
-{
-  if (gptimer1.core.scaler_register > 0)
-  {
-    gptimer1.core.scaler_register--;
-  }
-  else {
-    gptimer1.core.scaler_register = gptimer1.core.scaler_reload_register;
-    for (size_t i = 0; i < GPTIMER_APBCTRL2_SIZE; i++)
-    {
-      gptimer_timer_update(&gptimer1.timers[i]);
+      gptimer_timer_update(&timers[i]);
     }
   }
 }
@@ -86,9 +70,9 @@ gptimer_decrement(gp_timer *timer)
 void
 gptimer_apbctrl1_timer_reset()
 {
-  gptimer1.core.scaler_register = GPTIMER_SCALER_REGISTER_INIT_VALUE;
-  gptimer1.core.scaler_reload_register = GPTIMER_SCALER_RELOAD_REGISTER_INIT_VALUE;
-  gptimer1.core.configuration_register = GPTIMER_CONFIGURATION_REGISTER_INIT_VALUE;
+  gptimer1.core.scaler_register = GPTIMER_APBCTRL1_SCALER_REGISTER_INIT_VALUE;
+  gptimer1.core.scaler_reload_register = GPTIMER_APBCTRL1_SCALER_RELOAD_REGISTER_INIT_VALUE;
+  gptimer1.core.configuration_register = GPTIMER_APBCTRL1_CONFIGURATION_REGISTER_INIT_VALUE;
   
   gptimer1.timers[0].counter_value_register = 0;
   gptimer1.timers[0].reload_value_register = 0;
@@ -118,7 +102,24 @@ gptimer_apbctrl1_timer_reset()
 void
 gptimer_apbctrl2_timer_reset()
 {
-  // TODO
+  gptimer2.core.scaler_register = GPTIMER_APBCTRL2_SCALER_REGISTER_INIT_VALUE;
+  gptimer2.core.scaler_reload_register = GPTIMER_APBCTRL2_SCALER_RELOAD_REGISTER_INIT_VALUE;
+  gptimer2.core.configuration_register = GPTIMER_APBCTRL2_CONFIGURATION_REGISTER_INIT_VALUE;
+  gptimer2.core.timer_latch_configuration_register = GPTIMER_APBCTRL2_LATCH_CONFIGURATION_REGISTER_INIT_VALUE;
+  
+  gptimer2.timers[0].counter_value_register = 0;
+  gptimer2.timers[0].reload_value_register = 0;
+  gptimer2.timers[0].control_register = 0;
+  gptimer2.timers[0].latch_register = 0;
+  gptimer2.timers[0].timer_underflow = 0;
+  gptimer2.timers[0].timer_chain_underflow_ptr = NULL;
+
+  gptimer2.timers[1].counter_value_register = 0;
+  gptimer2.timers[1].reload_value_register = 0;
+  gptimer2.timers[1].control_register = 0;
+  gptimer2.timers[1].latch_register = 0;
+  gptimer2.timers[1].timer_underflow = 0;
+  gptimer2.timers[1].timer_chain_underflow_ptr = &gptimer2.timers[0].timer_underflow;
 }
 
 uint32_t
@@ -153,7 +154,7 @@ gptimer_read_core_register(gp_timer_core *core, uint32_t address)
 }
 
 void
-gptimer_write_core_register(gp_timer_core *core, uint32_t address, uint32_t * data)
+gptimer_apbctrl1_write_core_register(uint32_t address, uint32_t * data)
 {
   switch (address)
   {
@@ -163,15 +164,49 @@ gptimer_write_core_register(gp_timer_core *core, uint32_t address, uint32_t * da
     }
     case GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS:
     {
-      if (core->scaler_reload_register != (*data) & GPTIMER_SCALER_REGISTER_WRITE_MASK)
+      if (gptimer1.core.scaler_reload_register != (*data) & GPTIMER_APBCTRL1_SCALER_REGISTER_WRITE_MASK)
       {
-        core->scaler_reload_register = (*data) & GPTIMER_SCALER_REGISTER_WRITE_MASK;
+        gptimer1.core.scaler_reload_register = (*data) & GPTIMER_APBCTRL1_SCALER_REGISTER_WRITE_MASK;
       }
       break;
     }
     case GPTIMER_CONFIGURATION_REGISTER_ADDRESS:
     {
-      core->configuration_register = (*data) & GPTIMER_CONFIGURATION_REGISTER_WRITE_MASK + GPTIMER_CONFIGURATION_REGISTER_INIT_VALUE;
+      gptimer1.core.configuration_register = (*data) & GPTIMER_APBCTRL1_CONFIGURATION_REGISTER_WRITE_MASK + GPTIMER_APBCTRL1_CONFIGURATION_REGISTER_INIT_VALUE;
+      break;
+    }
+    default:
+    {
+      break;
+    }
+  }
+}
+
+void
+gptimer_apbctrl2_write_core_register(uint32_t address, uint32_t * data)
+{
+  switch (address)
+  {
+    case GPTIMER_SCALER_VALUE_REGISTER_ADDRESS:
+    {
+      break;
+    }
+    case GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS:
+    {
+      if (gptimer2.core.scaler_reload_register != (*data) & GPTIMER_APBCTRL2_SCALER_REGISTER_WRITE_MASK)
+      {
+        gptimer2.core.scaler_reload_register = (*data) & GPTIMER_APBCTRL2_SCALER_REGISTER_WRITE_MASK;
+      }
+      break;
+    }
+    case GPTIMER_CONFIGURATION_REGISTER_ADDRESS:
+    {
+      gptimer2.core.configuration_register = (*data) & GPTIMER_APBCTRL2_CONFIGURATION_REGISTER_WRITE_MASK + GPTIMER_APBCTRL2_CONFIGURATION_REGISTER_INIT_VALUE;
+      break;
+    }
+    case GPTIMER_LATCH_CONFIGURATION_REGISTER_ADDRESS:
+    {
+      gptimer2.core.timer_latch_configuration_register = *data;
       break;
     }
     default:
