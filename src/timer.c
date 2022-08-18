@@ -269,7 +269,7 @@ gptimer_write_timer_register(gp_timer *timer, uint32_t address, uint32_t * data)
     }
     case GPTIMER_TIMER_CONTROL_REGISTER_ADDRESS:
     {
-      timer->counter_value_register = (*data) & GPTIMER_CONTROL_REGISTER_WRITE_MASK;
+      timer->control_register = (*data) & GPTIMER_CONTROL_REGISTER_WRITE_MASK;
       break;
     }
     case GPTIMER_TIMER_LATCH_REGISTER_ADDRESS:

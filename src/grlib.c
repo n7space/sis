@@ -923,7 +923,7 @@ gptimer_timer_write (gp_timer *timers, uint32 addr, uint32 * data)
 static int
 gptimer_apbctrl1_write (uint32 addr, uint32 * data, uint32 sz)
 {
-  if ((addr & GPTIMER_REGISTERS_MASK) == CORE_OFFSET)
+  if ((addr & GPTIMER_OFFSET_MASK) == CORE_OFFSET)
   {
     gptimer_apbctrl1_write_core_register (addr, data);
   }
@@ -936,7 +936,7 @@ gptimer_apbctrl1_write (uint32 addr, uint32 * data, uint32 sz)
 static int
 gptimer_apbctrl2_write (uint32 addr, uint32 * data, uint32 sz)
 {
-  if ((addr & GPTIMER_REGISTERS_MASK) == CORE_OFFSET)
+  if ((addr & GPTIMER_OFFSET_MASK) == CORE_OFFSET)
   {
     gptimer_apbctrl2_write_core_register (addr, data);
   }
