@@ -59,15 +59,17 @@
 #define TIMER2_CORE_ADDRESS 0x80100600U
 #define TIMER_BASE_ADDRESS 0x10U
 #define TIMER_SIZE 0x10U
-#define TIMEOUT 100000
-#define TIMER1_SCALER_RELOAD_VALUE 0x1FFU
-#define TIMER2_SCALER_RELOAD_VALUE 0xFFU
+#define TIMER1_SCALER_RELOAD_VALUE 0x3U
+#define TIMER2_SCALER_RELOAD_VALUE 0x2U
 #define TIMER_COUNTER_UNDERFLOW_VALUE -1U
-#define TIMER_COUNTER_START_VALUE 0xFFU
-#define TIMER_ENABLE 0x01
+#define TIMER_COUNTER_START_VALUE 0xFFFFFFFU
+#define TIMER_ENABLE 0x01U
 
 #define TIMER1_SIZE 4
 #define TIMER2_SIZE 2
+
+#define TIMEOUT 1000000000
+#define ACCEPTABLE_DIFFERENCE 0.05f
 
 typedef volatile struct
 {
@@ -111,9 +113,9 @@ void sendMsg (const char *msg)
   }
 }
 
-void checkTimersWorking (volatile TimerUnit *timers, int timersSize, struct TimerStatus *timerStatus, int timestamp)
+void checkTimersWorking (volatile TimerUnit *timers, int timersSize, struct TimerStatus *timerStatus, uint32_t timestamp)
 {
-  if (timerStatus->expirationTime == 0){
+  if (timerStatus->expirationTime == 0) {
     timerStatus->expiredTimerCount = 0;
     for (int i = 0; i < timersSize; i++) {
       if (timers[i]->timerCounter == TIMER_COUNTER_UNDERFLOW_VALUE) {
@@ -150,12 +152,13 @@ static void Init( rtems_task_argument arg )
 {
   (void) arg;
 
-  timerInit ();
-
   struct TimerStatus timer1Status = {.expirationTime = 0, .expiredTimerCount = 0};
   struct TimerStatus timer2Status = {.expirationTime = 0, .expiredTimerCount = 0};
 
-  int timeout = 0;
+  uint32_t timeout = 0;
+
+  timerInit ();
+
   while (((timer1Status.expiredTimerCount != TIMER1_SIZE) || (timer2Status.expiredTimerCount != TIMER2_SIZE)) && (timeout != TIMEOUT)) {
     checkTimersWorking (timer1.timers, TIMER1_SIZE, &timer1Status, timeout);
     checkTimersWorking (timer2.timers, TIMER2_SIZE, &timer2Status, timeout);
@@ -164,9 +167,9 @@ static void Init( rtems_task_argument arg )
 
   bool timersEndsInProperOrder = false;
   float scalerDifferenceFactor = (float) TIMER1_SCALER_RELOAD_VALUE / (float) TIMER2_SCALER_RELOAD_VALUE;
-  float differenceFactor = (float) timer1Status.expirationTime / (float) timer2Status.expirationTime;
+  float expirationDifferenceFactor = (float) timer1Status.expirationTime / (float) timer2Status.expirationTime;
 
-  if (fabs(differenceFactor) > scalerDifferenceFactor) {
+  if (fabs(scalerDifferenceFactor - expirationDifferenceFactor) < scalerDifferenceFactor * ACCEPTABLE_DIFFERENCE) {
     timersEndsInProperOrder = true;
   }
 
