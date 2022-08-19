@@ -19,6 +19,7 @@
  */
 
 #include "riscv.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <inttypes.h>
 #ifdef HAVE_TERMIOS_H
@@ -738,7 +739,7 @@ gptimer_apbctrl2_intr (int32 arg)
 
   gptimer_update (&gptimer2.core, gptimer2.timers, GPTIMER_APBCTRL2_SIZE);
 
-  uint32_t timers_latched = 0;
+  bool timers_latched = false;
   uint32_t latch_configuration_register = gptimer_read_core_register (&gptimer2.core, GPTIMER_LATCH_CONFIGURATION_REGISTER_ADDRESS);
   
   uint32_t irq_pending = 0;
@@ -753,7 +754,7 @@ gptimer_apbctrl2_intr (int32 arg)
     {
       if (((irq_vector >> i) & (latch_configuration_register >> i)) & GPTIMER_FLAG_MASK)
       {
-        timers_latched = 1;
+        timers_latched = true;
         gptimer_reset_flag (&gptimer2.core.configuration_register, GPT_EL);
         break;
       }

@@ -4,6 +4,7 @@
 #include "config.h"
 #endif
 
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,7 +47,7 @@
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
-#define CONFIGURE_INIT_TASK_ATTRIBUTES RTEMS_DEFAULT_ATTRIBUTES
+#define CONFIGURE_INIT_TASK_ATTRIBUTES (RTEMS_DEFAULT_ATTRIBUTES | RTEMS_FLOATING_POINT)
 
 #define CONFIGURE_INIT_TASK_INITIAL_MODES (RTEMS_DEFAULT_MODES | RTEMS_INTERRUPT_LEVEL(0))
 
@@ -59,11 +60,14 @@
 #define TIMER_BASE_ADDRESS 0x10U
 #define TIMER_SIZE 0x10U
 #define TIMEOUT 100000
-#define TIMER_COUNTER_UNDERFLOW_VALUE 0xFFFFFFFFU
+#define TIMER1_SCALER_RELOAD_VALUE 0x1FFU
+#define TIMER2_SCALER_RELOAD_VALUE 0xFFU
+#define TIMER_COUNTER_UNDERFLOW_VALUE -1U
+#define TIMER_COUNTER_START_VALUE 0xFFU
+#define TIMER_ENABLE 0x01
 
 #define TIMER1_SIZE 4
 #define TIMER2_SIZE 2
-#define ALL_TIMERS_SIZE (TIMER1_SIZE + TIMER2_SIZE)
 
 typedef volatile struct
 {
@@ -101,20 +105,38 @@ void sendMsg (const char *msg)
   }
 }
 
-static void timerInit()
+void checkTimersWorking (volatile TimerUnit *timers, int timersSize, int *timersUnderflowedArray, int timestamp)
+{
+  if (timersUnderflowedArray[1] == 0){
+    timersUnderflowedArray[0] = 0;
+    for (int i = 0; i < timersSize; i++) {
+      if (timers[i]->timerCounter == TIMER_COUNTER_UNDERFLOW_VALUE) {
+        timersUnderflowedArray[0]++;
+      }
+    }
+
+    if (timersUnderflowedArray[0] == timersSize) {
+      timersUnderflowedArray[1] = timestamp;
+    }
+  }
+}
+
+static void timerInit ()
 {
   timer1.core = (CoreUnit) TIMER1_CORE_ADDRESS;
+  timer1.core->reloadScaler = TIMER1_SCALER_RELOAD_VALUE;
   for (size_t i = 0; i < TIMER1_SIZE; i++) {
     timer1.timers[i] = (TimerUnit) (TIMER1_CORE_ADDRESS + TIMER_BASE_ADDRESS + (i * TIMER_SIZE));
-    timer1.timers[i]->timerCounter = 0xFF;
-    timer1.timers[i]->timerControl = 0x01;
+    timer1.timers[i]->timerCounter = TIMER_COUNTER_START_VALUE;
+    timer1.timers[i]->timerControl = TIMER_ENABLE;
   }
 
   timer2.core = (CoreUnit) TIMER2_CORE_ADDRESS;
+  timer2.core->reloadScaler = TIMER2_SCALER_RELOAD_VALUE;
   for (size_t i = 0; i < TIMER2_SIZE; i++) {
     timer2.timers[i] = (TimerUnit) (TIMER2_CORE_ADDRESS + TIMER_BASE_ADDRESS + (i * TIMER_SIZE));
-    timer2.timers[i]->timerCounter = 0xFF;
-    timer2.timers[i]->timerControl = 0x01;
+    timer2.timers[i]->timerCounter = TIMER_COUNTER_START_VALUE;
+    timer2.timers[i]->timerControl = TIMER_ENABLE;
   }
 }
 
@@ -122,28 +144,26 @@ static void Init( rtems_task_argument arg )
 {
   (void) arg;
 
-  timerInit();
+  timerInit ();
 
-  int timersUnderflowed = 0;
+  int timers1Underflowed[2] = {0, 0};
+  int timers2Underflowed[2] = {0, 0};
   int timeout = 0;
-  while ((timersUnderflowed != ALL_TIMERS_SIZE) && (timeout != TIMEOUT)) {
-    timersUnderflowed = 0;
-    for (size_t i = 0; i < TIMER1_SIZE; i++) {
-      if (timer1.timers[i]->timerCounter == TIMER_COUNTER_UNDERFLOW_VALUE) {
-        timersUnderflowed++;
-      }
-    }
-
-    for (size_t i = 0; i < TIMER2_SIZE; i++) {
-      if (timer2.timers[i]->timerCounter == TIMER_COUNTER_UNDERFLOW_VALUE) {
-        timersUnderflowed++;
-      }
-    }
-
+  while (((timers1Underflowed[0] != TIMER1_SIZE) || (timers2Underflowed[0] != TIMER2_SIZE)) && (timeout != TIMEOUT)) {
+    checkTimersWorking (timer1.timers, TIMER1_SIZE, timers1Underflowed, timeout);
+    checkTimersWorking (timer2.timers, TIMER2_SIZE, timers2Underflowed, timeout);
     timeout++;
   }
 
-  if (timersUnderflowed == ALL_TIMERS_SIZE) {
+  bool timersEndsInProperOrder = false;
+  float scalerDifferenceFactor = (float) TIMER1_SCALER_RELOAD_VALUE / (float) TIMER2_SCALER_RELOAD_VALUE;
+  float differenceFactor = (float) timers1Underflowed[1] / (float) timers2Underflowed[1];
+
+  if (differenceFactor > scalerDifferenceFactor) {
+    timersEndsInProperOrder = true;
+  }
+
+  if ((timers1Underflowed[0] == TIMER1_SIZE) && (timers2Underflowed[0] == TIMER2_SIZE) && timersEndsInProperOrder) {
     sendMsg("Success\n");
   } else {
     sendMsg("Failed\n");

@@ -30,7 +30,7 @@ gptimer_timer_update(gp_timer *timer)
     {
       if (*timer->timer_chain_underflow_ptr > 0)
       {
-        *timer->timer_chain_underflow_ptr = 0;
+        *timer->timer_chain_underflow_ptr = false;
         gptimer_decrement(timer);
       }
     }
@@ -49,7 +49,7 @@ gptimer_decrement(gp_timer *timer)
   }
   else
   {
-    timer->timer_underflow = 1;
+    timer->timer_underflow = true;
 
     if (gptimer_get_flag(timer->control_register, GPT_RS))
     {
@@ -77,25 +77,25 @@ gptimer_apbctrl1_timer_reset()
   gptimer1.timers[0].counter_value_register = 0;
   gptimer1.timers[0].reload_value_register = 0;
   gptimer1.timers[0].control_register = 0;
-  gptimer1.timers[0].timer_underflow = 0;
+  gptimer1.timers[0].timer_underflow = false;
   gptimer1.timers[0].timer_chain_underflow_ptr = NULL;
 
   gptimer1.timers[1].counter_value_register = 0;
   gptimer1.timers[1].reload_value_register = 0;
   gptimer1.timers[1].control_register = 0;
-  gptimer1.timers[1].timer_underflow = 0;
+  gptimer1.timers[1].timer_underflow = false;
   gptimer1.timers[1].timer_chain_underflow_ptr = &gptimer1.timers[0].timer_underflow;
 
   gptimer1.timers[2].counter_value_register = 0;
   gptimer1.timers[2].reload_value_register = 0;
   gptimer1.timers[2].control_register = 0;
-  gptimer1.timers[2].timer_underflow = 0;
+  gptimer1.timers[2].timer_underflow = false;
   gptimer1.timers[2].timer_chain_underflow_ptr = &gptimer1.timers[1].timer_underflow;
 
   gptimer1.timers[3].counter_value_register = GPTIMER4_COUNTER_VALUE_REGISTER_INIT_VALUE;
   gptimer1.timers[3].reload_value_register = GPTIMER4_RELOAD_VALUE_REGISTER_INIT_VALUE;
   gptimer1.timers[3].control_register = GPTIMER4_CONTROL_REGISTER_INIT_VALUE;
-  gptimer1.timers[3].timer_underflow = 0;
+  gptimer1.timers[3].timer_underflow = false;
   gptimer1.timers[3].timer_chain_underflow_ptr = &gptimer1.timers[2].timer_underflow;
 }
 
@@ -111,14 +111,14 @@ gptimer_apbctrl2_timer_reset()
   gptimer2.timers[0].reload_value_register = 0;
   gptimer2.timers[0].control_register = 0;
   gptimer2.timers[0].latch_register = 0;
-  gptimer2.timers[0].timer_underflow = 0;
+  gptimer2.timers[0].timer_underflow = false;
   gptimer2.timers[0].timer_chain_underflow_ptr = NULL;
 
   gptimer2.timers[1].counter_value_register = 0;
   gptimer2.timers[1].reload_value_register = 0;
   gptimer2.timers[1].control_register = 0;
   gptimer2.timers[1].latch_register = 0;
-  gptimer2.timers[1].timer_underflow = 0;
+  gptimer2.timers[1].timer_underflow = false;
   gptimer2.timers[1].timer_chain_underflow_ptr = &gptimer2.timers[0].timer_underflow;
 }
 

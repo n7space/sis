@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -69,8 +70,8 @@ typedef struct
     uint32_t reload_value_register;
     uint32_t control_register;
     uint32_t latch_register;
-    uint32_t *timer_chain_underflow_ptr;
-    uint32_t timer_underflow;
+    bool *timer_chain_underflow_ptr;
+    bool timer_underflow;
 } gp_timer;
 
 /*
