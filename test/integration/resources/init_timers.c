@@ -95,6 +95,12 @@ typedef volatile struct
   TimerUnit timers[TIMER2_SIZE];
 } Timer2Register;
 
+struct TimerStatus
+{
+  int expiredTimerCount;
+  int expirationTime;
+};
+
 Timer1Register timer1;
 Timer2Register timer2;
 
@@ -105,18 +111,18 @@ void sendMsg (const char *msg)
   }
 }
 
-void checkTimersWorking (volatile TimerUnit *timers, int timersSize, int *timersUnderflowedArray, int timestamp)
+void checkTimersWorking (volatile TimerUnit *timers, int timersSize, struct TimerStatus *timerStatus, int timestamp)
 {
-  if (timersUnderflowedArray[1] == 0){
-    timersUnderflowedArray[0] = 0;
+  if (timerStatus->expirationTime == 0){
+    timerStatus->expiredTimerCount = 0;
     for (int i = 0; i < timersSize; i++) {
       if (timers[i]->timerCounter == TIMER_COUNTER_UNDERFLOW_VALUE) {
-        timersUnderflowedArray[0]++;
+        timerStatus->expiredTimerCount++;
       }
     }
 
-    if (timersUnderflowedArray[0] == timersSize) {
-      timersUnderflowedArray[1] = timestamp;
+    if (timerStatus->expiredTimerCount == timersSize) {
+      timerStatus->expirationTime = timestamp;
     }
   }
 }
@@ -146,24 +152,25 @@ static void Init( rtems_task_argument arg )
 
   timerInit ();
 
-  int timers1Underflowed[2] = {0, 0};
-  int timers2Underflowed[2] = {0, 0};
+  struct TimerStatus timer1Status = {.expirationTime = 0, .expiredTimerCount = 0};
+  struct TimerStatus timer2Status = {.expirationTime = 0, .expiredTimerCount = 0};
+
   int timeout = 0;
-  while (((timers1Underflowed[0] != TIMER1_SIZE) || (timers2Underflowed[0] != TIMER2_SIZE)) && (timeout != TIMEOUT)) {
-    checkTimersWorking (timer1.timers, TIMER1_SIZE, timers1Underflowed, timeout);
-    checkTimersWorking (timer2.timers, TIMER2_SIZE, timers2Underflowed, timeout);
+  while (((timer1Status.expiredTimerCount != TIMER1_SIZE) || (timer2Status.expiredTimerCount != TIMER2_SIZE)) && (timeout != TIMEOUT)) {
+    checkTimersWorking (timer1.timers, TIMER1_SIZE, &timer1Status, timeout);
+    checkTimersWorking (timer2.timers, TIMER2_SIZE, &timer2Status, timeout);
     timeout++;
   }
 
   bool timersEndsInProperOrder = false;
   float scalerDifferenceFactor = (float) TIMER1_SCALER_RELOAD_VALUE / (float) TIMER2_SCALER_RELOAD_VALUE;
-  float differenceFactor = (float) timers1Underflowed[1] / (float) timers2Underflowed[1];
+  float differenceFactor = (float) timer1Status.expirationTime / (float) timer2Status.expirationTime;
 
-  if (differenceFactor > scalerDifferenceFactor) {
+  if (fabs(differenceFactor) > scalerDifferenceFactor) {
     timersEndsInProperOrder = true;
   }
 
-  if ((timers1Underflowed[0] == TIMER1_SIZE) && (timers2Underflowed[0] == TIMER2_SIZE) && timersEndsInProperOrder) {
+  if ((timer1Status.expiredTimerCount == TIMER1_SIZE) && (timer2Status.expiredTimerCount == TIMER2_SIZE) && timersEndsInProperOrder) {
     sendMsg("Success\n");
   } else {
     sendMsg("Failed\n");
