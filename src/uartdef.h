@@ -13,12 +13,16 @@
 #define APBUART_BUFFER_SIZE 1024
 #define APB_START 0x80000000
 
+#define APBUART_FIFO_STATUS_MASK 0x3F
 #define APBUART_ADDR_MASK 0xFFFF
 #define APBUART_REGISTER_TYPE_MASK 0xFF
+#define APBUART_FLAG_MASK 0x01
 
 #define APBUART_DATA_REGISTER_ADDRESS 0x00
 #define APBUART_STATUS_REGISTER_ADDRESS 0x04
 #define APBUART_CONTROL_REGISTER_ADDRESS 0x08
+#define APBUART_SCALER_REGISTER_ADDRESS 0x0C
+#define APBUART_FIFO_DEBUG_REGISTER_ADDRESS 0x10
 
 #define APBUART0_START_ADDRESS 0x80000100
 #define APBUART1_START_ADDRESS 0x80100100
@@ -27,21 +31,48 @@
 #define APBUART4_START_ADDRESS 0x80100400
 #define APBUART5_START_ADDRESS 0x80100500
 
-#define APBUART_STATUS_REG_DATA_READY 0x01
-#define APBUART_STATUS_REG_TRANSMITTER_SHIFT_REG_EMPTY 0x02
-#define APBUART_STATUS_REG_TRANSMITTER_FIFO_EMPTY 0x04
-#define APBUART_STATUS_REG_OVERRUN 0x10
-
-#define APBUART_CONTROL_REG_RECEIVER_ENABLE 0x01
-#define APBUART_CONTROL_REG_TRANSMITTER_ENABLE 0x02
-#define APBUART_CONTROL_REG_RECEIVER_IRQ_ENABLE 0x04
-
 #define APBUART0_IRQ 2
 #define APBUART1_IRQ 17
 #define APBUART2_IRQ 18
 #define APBUART3_IRQ 19
 #define APBUART4_IRQ 20
 #define APBUART5_IRQ 21
+
+/* Status Register definition, taken from GR712RC documentation:
+    (0)       DR - Data ready: Indicates that new data is available in the receiver holding register.
+    (1)       TS - Transmitter shift register empty: Indicates that the transmitter shift register is empty.
+    (2)       TE - Transmitter FIFO empty: Indicates that the transmitter FIFO is empty.
+    (3)       BR - Break received: Indicates that a BREAK has been received.
+    (4)       OV - Overrun: Indicates that one or more character have been lost due to overrun.
+    (5)       PE - Parity error: Indicates that a parity error was detected.
+    (6)       FE - Framing error: Indicates that a framing error was detected.
+    (7)       TH - Transmitter FIFO half-full: Indicates that the FIFO is less than half-full.
+    (8)       RH - Receiver FIFO half-full: Indicates that at least half of the FIFO is holding data.
+    (9)       TF - Transmitter FIFO full: Indicates that the Transmitter FIFO is full.
+    (10)      RF - Receiver FIFO full: Indicates that the Receiver FIFO is full.
+    (20 - 25) TCNT - Transmitter FIFO count: Shows the number of data frames in the transmitter FIFO.
+    (26 - 31) RCNT - Receiver FIFO count: Shows the number of data frames in the receiver FIFO.
+*/
+typedef enum {APBUART_DR = 0, APBUART_TS, APBUART_TE, APBUART_BR, APBUART_OV, APBUART_PE, APBUART_FE, APBUART_TH, 
+              APBUART_RH, APBUART_TF, APBUART_RF, APBUART_TCNT, APBUART_RCNT} apbuart_status_register;
+
+/* Control Register definition, taken from GR712RC documentation:
+    (0)     RE - Receiver enable: If set, enables the receiver.
+    (1)     TE - Transmitter enable: If set, enables the transmitter.
+    (2)     RI - Receiver interrupt enable: If set, interrupts are generated when a frame is received.
+    (3)     TI - Transmitter interrupt enable: If set, interrupts are generated when a frame is transmitted.
+    (4)     PS - Parity select: Selects parity polarity (0 = even parity, 1 = odd parity) (when implemented).
+    (5)     PE - Parity enable: If set, enables parity generation and checking (when implemented).
+    (7)     LB - Loop back: If set, loop back mode will be enabled.
+    (9)     TF - Transmitter FIFO interrupt enable: When set, Transmitter FIFO level interrupts are enabled.
+    (10)    RF - Receiver FIFO interrupt enable: When set, Receiver FIFO level interrupts are enabled.
+    (11)    DB - FIFO debug mode enable: When set, it is possible to read and write the FIFO debug register.
+    (31)    FA - FIFOs available: Set to 1, read-only. Receiver and transmitter FIFOs are available.
+*/
+typedef enum {APBUART_RE = 0, APBUART_CTRL_TE, APBUART_RI, APBUART_TI, APBUART_PS, APBUART_CTRL_PE, APBUART_LB = 7,
+              APBUART_CRTL_TF = 9, APBUART_CTRL_RF, APBUART_DB, APBUART_FA = 31} apbuart_control_register;
+
+typedef enum {APBUART_FIFO_TRANSMITTER = 0, APBUART_FIFO_RECEIVER} apbuart_fifo_direction;
 
 typedef struct
 {
@@ -56,18 +87,36 @@ typedef struct
 
 typedef struct
 {
-    int irq;
-    uint32_t address;
-    uint32_t mask;
+    io_stream in;
+    io_stream out;
+} fast_uart_io;
+
+
+typedef struct 
+{
     struct termios io_ctrl;
     struct termios io_ctrl_old;
-    io_stream in_stream;
-    io_stream out_stream;
+} termios_io;
+
+typedef struct
+{
     int32_t device_descriptor;
     int device_open;
     char device_path[DEVICE_PATH_SIZE];
+} uart_device;
+
+typedef struct
+{
+    int irq;
+    uint32_t address;
+    termios_io termios;
+    fast_uart_io fast_uart;
+    uart_device device;
+    uint32_t data_register;
     uint32_t status_register;
     uint32_t control_register;
+    uint32_t scaler_register;
+    uint32_t fifo_debug_register;
 } apbuart_type;
 
 int uart_init (apbuart_type *uart);
@@ -80,6 +129,12 @@ int uart_init_stdio(apbuart_type *uart);
 int uart_restore_stdio(apbuart_type *uart);
 
 apbuart_type *get_uart_by_address (uint32_t address);
-apbuart_type *get_uart_by_irq (int irq);
+apbuart_type *get_uart_by_irq (uint8_t irq);
+
+uint32_t apbuart_get_flag(uint32_t apbuart_register, uint32_t flag);
+void apbuart_set_flag(uint32_t *apbuart_register, uint32_t flag);
+void apbuart_reset_flag(uint32_t *apbuart_register, uint32_t flag);
+uint32_t apbuart_get_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag);
+void apbuart_set_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag, uint32_t value);
 
 extern apbuart_type uarts[APBUART_NUM];

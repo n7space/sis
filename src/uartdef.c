@@ -35,7 +35,7 @@ get_uart_by_address (uint32_t address)
 }
 
 apbuart_type *
-get_uart_by_irq (int irq)
+get_uart_by_irq (uint8_t irq)
 {
   apbuart_type *result;
 
@@ -64,4 +64,68 @@ get_uart_by_irq (int irq)
   }
 
   return result;
+}
+
+uint32_t
+apbuart_get_flag(uint32_t apbuart_register, uint32_t flag)
+{
+  return (apbuart_register >> flag) & APBUART_FLAG_MASK;
+}
+
+void
+apbuart_set_flag(uint32_t *apbuart_register, uint32_t flag)
+{
+  *apbuart_register |= (APBUART_FLAG_MASK << flag);
+}
+
+void
+apbuart_reset_flag(uint32_t *apbuart_register, uint32_t flag)
+{
+  *apbuart_register &= ~(APBUART_FLAG_MASK << flag);
+}
+
+uint32_t
+apbuart_get_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag)
+{
+  uint32_t result = 0;
+
+  switch (flag)
+  {
+    case APBUART_FIFO_TRANSMITTER:
+    {
+      result = (apbuart_status_register >> APBUART_TCNT) & APBUART_FIFO_STATUS_MASK;
+      break;
+    }
+    case APBUART_FIFO_RECEIVER:
+    {
+      result = (apbuart_status_register >> APBUART_RCNT) & APBUART_FIFO_STATUS_MASK;
+      break;
+    }
+    default:
+    {}
+  }
+
+  return result;
+}
+
+void
+apbuart_set_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag, uint32_t value)
+{
+  switch (flag)
+  {
+    case APBUART_FIFO_TRANSMITTER:
+    {
+      apbuart_status_register &= (uint32_t) ~(APBUART_FIFO_STATUS_MASK << APBUART_TCNT);
+      apbuart_status_register |= ((value & APBUART_FIFO_STATUS_MASK) << APBUART_TCNT);
+      break;
+    }
+    case APBUART_FIFO_RECEIVER:
+    {
+      apbuart_status_register &= (uint32_t) ~(APBUART_FIFO_STATUS_MASK << APBUART_RCNT);
+      apbuart_status_register |= ((value & APBUART_FIFO_STATUS_MASK) << APBUART_RCNT);
+      break;
+    }
+    default:
+    {}
+  }
 }

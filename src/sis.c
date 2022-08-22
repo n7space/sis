@@ -121,42 +121,42 @@ main (argc, argv)
 		{
 			if ((stat + 1) < argc)
 			{
-				strcpy (uarts[0].device_path, argv[++stat]);	
+				strcpy (uarts[0].device.device_path, argv[++stat]);	
 			}
 		}
 		else if (strcmp (argv[stat], "-uart2") == 0)
 		{
 			if ((stat + 1) < argc)
 			{
-				strcpy (uarts[1].device_path, argv[++stat]);	
+				strcpy (uarts[1].device.device_path, argv[++stat]);	
 			}
 		}
 		else if (strcmp (argv[stat], "-uart3") == 0)
 		{
 			if ((stat + 1) < argc)
 			{
-				strcpy (uarts[2].device_path, argv[++stat]);	
+				strcpy (uarts[2].device.device_path, argv[++stat]);	
 			}
 		}
 		else if (strcmp (argv[stat], "-uart4") == 0)
 		{
 			if ((stat + 1) < argc)
 			{
-				strcpy (uarts[3].device_path, argv[++stat]);	
+				strcpy (uarts[3].device.device_path, argv[++stat]);	
 			}
 		}
 		else if (strcmp (argv[stat], "-uart5") == 0)
 		{
 			if ((stat + 1) < argc)
 			{
-				strcpy (uarts[4].device_path, argv[++stat]);	
+				strcpy (uarts[4].device.device_path, argv[++stat]);	
 			}
 		}
 		else if (strcmp (argv[stat], "-uart6") == 0)
 		{
 			if ((stat + 1) < argc)
 			{
-				strcpy (uarts[5].device_path, argv[++stat]);	
+				strcpy (uarts[5].device.device_path, argv[++stat]);	
 			}
 		}
 	  else if (strcmp (argv[stat], "-freq") == 0)
