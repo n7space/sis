@@ -3,6 +3,7 @@ include ../../definitions.mk
 SIS_APP_DIR = ../../$(BUILD_DIR)/$(SRC_DIR)
 RESOURCES_DIR = resources
 UARTS_TEST_DIR = ${RESOURCES_DIR}/build/rtems_uarts
+TIMERS_TEST_DIR = ${RESOURCES_DIR}/build/rtems_timers
 
 OUTPUT_FILE = $(SIS_APP_DIR)/system.output
 
@@ -11,7 +12,7 @@ UART_FILES_RUN_PARAMS = $(subst :, ,$(join $(patsubst %,-%:,${UART_FILES}), ${UA
 UART_RECEIVE_MSG = Readme!
 UART_TRANSMIT_MSG = Data transmission via uart successful.
 
-TESTS = init_test uarts_test
+TESTS = init_test uarts_test timers_test
 
 check: ${TESTS}
 
@@ -41,4 +42,10 @@ uarts_test:
 	$(MAKE) -C $(RESOURCES_DIR) clean
 	rm -f ${UART_FILES}
 
-
+timers_test:
+	echo "Run Timers test..."
+	$(MAKE) -C $(RESOURCES_DIR) rtems_timers
+	./$(SIS_APP_DIR)/$(SIS_NAME)-$(SIS_VERSION) -dumbio -uart1 stdio -r $(TIMERS_TEST_DIR) > $(OUTPUT_FILE)
+	grep -q "Success" $(OUTPUT_FILE)
+	$(MAKE) -C $(RESOURCES_DIR) clean
+	rm -f $(OUTPUT_FILE)

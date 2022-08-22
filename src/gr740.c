@@ -67,7 +67,7 @@ init_sim (void)
 
   grlib_apb_add (&apbuart0, 3, APBSTART + 0x00000, 0xFFF);
   grlib_apb_add (&irqmp, 0, APBSTART + 0x04000, 0xFFF);
-  grlib_apb_add (&gptimer, 1, APBSTART + 0x08000, 0xFFF);
+  grlib_apb_add (&gptimer_apbctrl1, 1, APBSTART + 0x08000, 0xFFF);
   grlib_apb_add (&greth, 6, APBSTART + 0x40000, 0xFFF);
 
   grlib_init ();

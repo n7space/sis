@@ -20,12 +20,17 @@ CFLAGS = $(DEPFLAGS) $(WARNFLAGS) $(ABI_FLAGS) $(OPTFLAGS)
 CCLINK = $(CC) $(CFLAGS) -Wl,-Map,${BUILD_DIR}/$(basename $@).map
 
 SRC_UARTS = init_uarts.c
+SRC_TIMERS = init_timers.c
 OBJECTS_UARTS = $(patsubst %.c,$(BUILD_DIR)/%.o, $(SRC_UARTS))
+OBJECTS_TIMERS = $(patsubst %.c,$(BUILD_DIR)/%.o, $(SRC_TIMERS))
 
-all: rtems_uarts
+all: rtems_uarts rtems_timers
 
 rtems_uarts: $(OBJECTS_UARTS)
 	$(CCLINK) $(OBJECTS_UARTS) ${LDFLAGS} -o ${BUILD_DIR}/$@
+
+rtems_timers: $(OBJECTS_TIMERS)
+	$(CCLINK) $(OBJECTS_TIMERS) ${LDFLAGS} -o ${BUILD_DIR}/$@
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)

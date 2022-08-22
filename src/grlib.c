@@ -19,6 +19,7 @@
  */
 
 #include "riscv.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <inttypes.h>
 #ifdef HAVE_TERMIOS_H
@@ -30,6 +31,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include "grlib.h"
+
+#include "timer.h"
 
 /* APB PNP */
 
@@ -703,236 +706,253 @@ const struct grlib_ipcore irqmp = {
 
 /* ------------------- GPTIMER -----------------------*/
 
-#define GPTIMER_SCALER  0x00
-#define GPTIMER_SCLOAD  0x04
-#define GPTIMER_CONFIG  0x08
-#define GPTIMER_TIMER1 	0x10
-#define GPTIMER_RELOAD1	0x14
-#define GPTIMER_CTRL1 	0x18
-#define GPTIMER_TIMER2 	0x20
-#define GPTIMER_RELOAD2	0x24
-#define GPTIMER_CTRL2 	0x28
-
-#define NGPTIMERS  2
-
-static uint32 gpt_irq;
-static uint32 gpt_scaler;
-static uint64 gpt_scaler_start;
-static uint32 gpt_counter[NGPTIMERS];
-static uint32 gpt_reload[NGPTIMERS];
-static uint64 gpt_counter_start[NGPTIMERS];
-static uint32 gpt_ctrl[NGPTIMERS];
-
-static void gpt_intr (int32 arg);
+gp_timer_apbctrl1 gptimer1;
+gp_timer_apbctrl2 gptimer2;
 
 static void
-gpt_add_intr (int i)
+gptimer_apbctrl1_intr (int32 arg)
 {
-  if (gpt_ctrl[i] & 1)
+  // unused parameter
+  (void)(arg);
+
+  gptimer_update (&gptimer1.core, gptimer1.timers, GPTIMER_APBCTRL1_SIZE);
+  uint32_t separate_irq_flag = gptimer_get_flag (gptimer1.core.configuration_register, GPT_SI);
+
+  for (int i = 0; i < GPTIMER_APBCTRL1_SIZE; i++)
+  {
+    if (gptimer_get_flag (gptimer1.timers[i].control_register, GPT_IP))
     {
-      event (gpt_intr, i,
-	     (uint64) (gpt_scaler + 1) * (uint64) ((uint64) gpt_counter[i] +
-						   (uint64) 1));
-      gpt_counter_start[i] = now ();
+      int32_t irq_flag = separate_irq_flag ? GPTIMER_APBCTRL1_INTERRUPT_BASE_NR + i : GPTIMER_APBCTRL1_INTERRUPT_BASE_NR;
+      grlib_set_irq (irq_flag);
+      gptimer_reset_flag (&gptimer1.timers[i].control_register, GPT_IP);
     }
+  }
+
+  event (gptimer_apbctrl1_intr, 0, 1);
 }
 
 static void
-gpt_intr (int32 i)
+gptimer_apbctrl2_intr (int32 arg)
 {
-  gpt_counter[i] = -1;
-  if (gpt_ctrl[i] & 1)
+  // unused parameter
+  (void)(arg);
+
+  gptimer_update (&gptimer2.core, gptimer2.timers, GPTIMER_APBCTRL2_SIZE);
+
+  bool timers_latched = false;
+  uint32_t latch_configuration_register = gptimer_read_core_register (&gptimer2.core, GPTIMER_LATCH_CONFIGURATION_REGISTER_ADDRESS);
+  
+  uint32_t irq_pending = 0;
+  uint32_t irq_force = 0;
+  irqmp_read (IRQMP_IPR, &irq_pending);
+  irqmp_read (IRQMP_IFR, &irq_force);
+  uint32_t irq_vector = irq_pending | irq_force;
+
+  if (gptimer_get_flag (gptimer2.core.configuration_register, GPT_EL))
+  {
+    for (int i = 0; i < 32; i++)
     {
-      if (gpt_ctrl[i] & 2)
-	{
-	  gpt_counter[i] = gpt_reload[i];
-	}
-      if (gpt_ctrl[i] & 8)
-	{
-	  grlib_set_irq (gpt_irq + i);
-	}
-      gpt_add_intr (i);
+      if (((irq_vector >> i) & (latch_configuration_register >> i)) & GPTIMER_FLAG_MASK)
+      {
+        timers_latched = true;
+        gptimer_reset_flag (&gptimer2.core.configuration_register, GPT_EL);
+        break;
+      }
     }
+  }
+
+  for (int i = 0; i < GPTIMER_APBCTRL2_SIZE; i++)
+  {
+    if (gptimer_get_flag (gptimer2.timers[i].control_register, GPT_IP))
+    {
+      grlib_set_irq (GPTIMER_APBCTRL2_INTERRUPT_BASE_NR);
+      gptimer_reset_flag (&gptimer2.timers[i].control_register, GPT_IP);
+    }
+    
+    if (timers_latched && gptimer_get_flag (gptimer2.timers[i].control_register, GPT_EN))
+    {
+      gptimer_write_timer_register (&gptimer2.timers[i], GPTIMER_TIMER_LATCH_REGISTER_ADDRESS, NULL);
+    }
+  }
+
+  event (gptimer_apbctrl2_intr, 0, 1);
 }
 
 static void
-gpt_init (void)
+gptimer_apbctrl1_init (void)
 {
+  gptimer_apbctrl1_timer_reset ();
 }
 
 static void
-gpt_add (int irq, uint32 addr, uint32 mask)
+gptimer_apbctrl2_init (void)
+{
+  gptimer_apbctrl2_timer_reset ();
+}
+
+static void
+gptimer_add (int irq, uint32 addr, uint32 mask)
 {
   grlib_apbpp_add (GRLIB_PP_ID (VENDOR_GAISLER, GAISLER_GPTIMER, 0, irq),
 		   GRLIB_PP_APBADDR (addr, mask));
-  gpt_irq = irq;
   if (sis_verbose)
     printf (" GPTIMER timer unit                 0x%08x   %d\n", addr, irq);
 }
 
 static void
-gpt_reset (void)
+gptimer_apbctrl1_add (int irq, uint32 addr, uint32 mask)
 {
-  gpt_counter[0] = 0xffffffff;
-  gpt_reload[0] = 0xffffffff;
-  gpt_scaler = 0xffff;
-  gpt_ctrl[0] = 0;
-  gpt_ctrl[1] = 0;
-  remove_event (gpt_intr, -1);
-  gpt_scaler_start = now ();
+  gptimer_add (irq, addr, mask);
+}
+
+static void
+gptimer_apbctrl2_add (int irq, uint32 addr, uint32 mask)
+{
+  gptimer_add (irq, addr, mask);
+}
+
+static void
+gptimer_apbctrl1_reset (void)
+{
+  gptimer_apbctrl1_timer_reset ();
+
+  remove_event (gptimer_apbctrl1_intr, -1);
+  event (gptimer_apbctrl1_intr, 0, 1);
+
   if (sis_verbose)
-    printf ("GPT started (period %d)\n\r", gpt_scaler + 1);
+  {
+    printf ("GPT started (period %d)\n\r", gptimer1.core.scaler_register);
+  }
 }
 
 static void
-gpt_add_intr_all ()
+gptimer_apbctrl2_reset (void)
 {
-  int i;
+  gptimer_apbctrl2_timer_reset ();
 
-  for (i = 0; i < NGPTIMERS; i++)
-    {
-      gpt_add_intr (i);
-    }
-}
+  remove_event (gptimer_apbctrl2_intr, -1);
+  event (gptimer_apbctrl2_intr, 0, 1);
 
-static void
-gpt_scaler_set (uint32 val)
-{
-  /* Mask for 16-bit scaler. */
-  if (gpt_scaler != (val & 0x0ffff))
-    {
-      gpt_scaler = val & 0x0ffff;
-      remove_event (gpt_intr, -1);
-      gpt_scaler_start = now ();
-      gpt_add_intr_all ();
-    }
-}
-
-static void
-gpt_ctrl_write (uint32 val, int i)
-{
-  if (val & 4)
-    {
-      /* Reload.  */
-      gpt_counter[i] = gpt_reload[i];
-    }
-  if (val & 1)
-    {
-      gpt_ctrl[i] = val & 0xb;
-      remove_event (gpt_intr, i);
-      gpt_add_intr (i);
-    }
-  gpt_ctrl[i] = val & 0xb;
-}
-
-static uint32
-gpt_counter_read (int i)
-{
-  if (gpt_ctrl[i] & 1)
-    return gpt_counter[i] -
-      ((now () - gpt_counter_start[i]) / (gpt_scaler + 1));
-  else
-    return gpt_counter[i];
-}
-
-static uint32
-gpt_scaler_read ()
-{
-  return gpt_scaler - ((now () - gpt_scaler_start) % (gpt_scaler + 1));
+  if (sis_verbose)
+  {
+    printf ("GPT started (period %d)\n\r", gptimer2.core.scaler_register);
+  }
 }
 
 static int
-gpt_read (uint32 addr, uint32 * data)
+gptimer_read (gp_timer_core *core, gp_timer *timers, uint32 addr, uint32 * data)
 {
-  int i;
-
-  switch (addr & 0xff)
+  uint32_t address_masked = addr & GPTIMER_REGISTERS_MASK;
+  switch (address_masked & GPTIMER_OFFSET_MASK)
+  {
+    case CORE_OFFSET:
     {
-    case GPTIMER_SCALER:	/* 0x00 */
-      *data = gpt_scaler_read ();
+      *data = gptimer_read_core_register (core, address_masked);
       break;
-
-    case GPTIMER_SCLOAD:	/* 0x04 */
-      *data = gpt_scaler;
+    }
+    case GPTIMER1_OFFSET:
+    {
+      *data = gptimer_read_timer_register (&timers[0], address_masked);
       break;
-
-    case GPTIMER_CONFIG:	/* 0x08 */
-      *data = 0x100 | (gpt_irq << 3) | NGPTIMERS;
+    }
+    case GPTIMER2_OFFSET:
+    {
+      *data = gptimer_read_timer_register (&timers[1], address_masked);
       break;
-
-    case GPTIMER_TIMER1:	/* 0x10 */
-      *data = gpt_counter_read (0);
+    }
+    case GPTIMER3_OFFSET:
+    {
+      *data = gptimer_read_timer_register (&timers[2], address_masked);
       break;
-
-    case GPTIMER_RELOAD1:	/* 0x14 */
-      *data = gpt_reload[0];
+    }
+    case GPTIMER4_OFFSET:
+    {
+      *data = gptimer_read_timer_register (&timers[3], address_masked);
       break;
-
-    case GPTIMER_CTRL1:	/* 0x18 */
-      *data = gpt_ctrl[0];
-      break;
-
-    case GPTIMER_TIMER2:	/* 0x20 */
-      *data = gpt_counter_read (1);
-      break;
-
-    case GPTIMER_RELOAD2:	/* 0x24 */
-      *data = gpt_reload[1];
-      break;
-
-    case GPTIMER_CTRL2:	/* 0x28 */
-      *data = gpt_ctrl[1];
-      break;
-
+    }
     default:
+    {
       *data = 0;
-    }
+    } 
+  }
+}
+
+static int 
+gptimer_apbctrl1_read (uint32 addr, uint32 * data)
+{
+  gptimer_read (&gptimer1.core, gptimer1.timers, addr, data);
+}
+
+static int 
+gptimer_apbctrl2_read (uint32 addr, uint32 * data)
+{
+  gptimer_read (&gptimer2.core, gptimer2.timers, addr, data);
 }
 
 static int
-gpt_write (uint32 addr, uint32 * data, uint32 sz)
+gptimer_timer_write (gp_timer *timers, uint32 addr, uint32 * data)
 {
-  int i;
-
-  switch (addr & 0xff)
+  switch (addr & GPTIMER_OFFSET_MASK)
+  {
+    case GPTIMER1_OFFSET:
     {
-    case GPTIMER_SCLOAD:	/* 0x04 */
-      gpt_scaler_set (*data);
+      gptimer_write_timer_register (&timers[0], addr, data);
       break;
-
-    case GPTIMER_TIMER1:	/* 0x10 */
-      gpt_counter[0] = *data;
-      remove_event (gpt_intr, 0);
-      gpt_add_intr (0);
-      break;
-
-    case GPTIMER_RELOAD1:	/* 0x14 */
-      gpt_reload[0] = *data;
-      break;
-
-    case GPTIMER_CTRL1:	/* 0x18 */
-      gpt_ctrl_write (*data, 0);
-      break;
-
-    case GPTIMER_TIMER2:	/* 0x20 */
-      gpt_counter[1] = *data;
-      remove_event (gpt_intr, 1);
-      gpt_add_intr (1);
-      break;
-
-    case GPTIMER_RELOAD2:	/* 0x24 */
-      gpt_reload[1] = *data;
-      break;
-
-    case GPTIMER_CTRL2:	/* 0x28 */
-      gpt_ctrl_write (*data, 1);
-      break;
-
     }
+    case GPTIMER2_OFFSET:
+    {
+      gptimer_write_timer_register (&timers[1], addr, data);
+      break;
+    }
+    case GPTIMER3_OFFSET:
+    {
+      gptimer_write_timer_register (&timers[2], addr, data);
+      break;
+    }
+    case GPTIMER4_OFFSET:
+    {
+      gptimer_write_timer_register (&timers[3], addr, data);
+      break;
+    }
+    default:
+    {
+      *data = 0;
+    } 
+  }
 }
 
-const struct grlib_ipcore gptimer = {
-  gpt_init, gpt_reset, gpt_read, gpt_write, gpt_add
+static int
+gptimer_apbctrl1_write (uint32 addr, uint32 * data, uint32 sz)
+{
+  if ((addr & GPTIMER_OFFSET_MASK) == CORE_OFFSET)
+  {
+    gptimer_apbctrl1_write_core_register (addr, data);
+  }
+  else
+  {
+    gptimer_timer_write (gptimer1.timers, addr, data);
+  }
+}
+
+static int
+gptimer_apbctrl2_write (uint32 addr, uint32 * data, uint32 sz)
+{
+  if ((addr & GPTIMER_OFFSET_MASK) == CORE_OFFSET)
+  {
+    gptimer_apbctrl2_write_core_register (addr, data);
+  }
+  else
+  {
+    gptimer_timer_write (gptimer2.timers, addr, data);
+  }
+}
+
+const struct grlib_ipcore gptimer_apbctrl1 = {
+  gptimer_apbctrl1_init, gptimer_apbctrl1_reset, gptimer_apbctrl1_read, gptimer_apbctrl1_write, gptimer_apbctrl1_add
+};
+
+const struct grlib_ipcore gptimer_apbctrl2 = {
+  gptimer_apbctrl2_init, gptimer_apbctrl2_reset, gptimer_apbctrl2_read, gptimer_apbctrl2_write, gptimer_apbctrl2_add
 };
 
 /* APBUART.  */
@@ -1703,12 +1723,13 @@ grlib_boot_init (void)
 {
   uint32 tmp;
   tmp = ebase.freq - 1;
-  gpt_write (GPTIMER_SCLOAD, &tmp, 2);
+
+  gptimer_apbctrl1_write (GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS, &tmp, 2);
   tmp = -1;
-  gpt_write (GPTIMER_TIMER1, &tmp, 2);
-  gpt_write (GPTIMER_RELOAD1, &tmp, 2);
+  gptimer_apbctrl1_write (GPTIMER1_OFFSET | GPTIMER_TIMER_COUNTER_VALUE_REGISTER_ADDRESS, &tmp, 2);
+  gptimer_apbctrl1_write (GPTIMER1_OFFSET | GPTIMER_TIMER_RELOAD_VALUE_REGISTER_ADDRESS, &tmp, 2);
   tmp = 7;
-  gpt_write (GPTIMER_CTRL1, &tmp, 2);
+  gptimer_apbctrl1_write (GPTIMER1_OFFSET | GPTIMER_TIMER_CONTROL_REGISTER_ADDRESS, &tmp, 2);
 }
 
 /* ------------------- ns16550 -----------------------*/
