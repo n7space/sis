@@ -69,6 +69,9 @@ init_sim (void)
   /* Use extended interrupt line of GR712RC */
   irqmp_extirq = 12;
 
+  uart_dumbio = dumbio;
+  uart_nouartrx = nouartrx;
+
   for (i = 0; i < ncpu; i++)
     grlib_ahbm_add (&leon3s, 0);
 

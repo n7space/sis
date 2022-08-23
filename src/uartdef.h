@@ -89,7 +89,7 @@ typedef struct
 {
     io_stream in;
     io_stream out;
-} fast_uart_io;
+} uart_io;
 
 
 typedef struct 
@@ -110,7 +110,7 @@ typedef struct
     int irq;
     uint32_t address;
     termios_io termios;
-    fast_uart_io fast_uart;
+    uart_io uart_io;
     uart_device device;
     uint32_t data_register;
     uint32_t status_register;
@@ -137,4 +137,10 @@ void apbuart_reset_flag(uint32_t *apbuart_register, uint32_t flag);
 uint32_t apbuart_get_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag);
 void apbuart_set_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag, uint32_t value);
 
+size_t apbuart_read_byte(int read_descriptor, void *data_buffer, size_t data_size);
+size_t apbuart_read_event(apbuart_type *uart);
+size_t apbuart_fast_read_event(apbuart_type *uart);
+
 extern apbuart_type uarts[APBUART_NUM];
+extern int uart_dumbio;
+extern int uart_nouartrx;
