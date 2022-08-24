@@ -12,8 +12,7 @@ UART_FILES_RUN_PARAMS = $(subst :, ,$(join $(patsubst %,-%:,${UART_FILES}), ${UA
 UART_RECEIVE_MSG = Readme!
 UART_TRANSMIT_MSG = Data transmission via uart successful.
 
-TESTS = init_test uarts_test
-# TESTS = init_test uarts_test timers_test
+TESTS = init_test uarts_test timers_test
 
 check: ${TESTS}
 

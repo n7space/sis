@@ -1171,22 +1171,6 @@ apbuart5_init (void)
 }
 
 static void
-fast_uart_rx_event (int32 arg)
-{
-  apbuart_type *uart = get_uart_by_irq (arg);
-
-  if (uart != NULL)
-  {
-    if (apbuart_fast_read_event (uart) && apbuart_get_flag (uart->control_register, APBUART_RI))
-    {
-      grlib_set_irq (uart->irq);
-    }
-
-    event (fast_uart_rx_event, uart->irq, UART_RX_TIME);
-  }
-}
-
-static void
 uart_rx_event (int32 arg)
 {
   apbuart_type *uart = get_uart_by_irq (arg);
@@ -1199,6 +1183,22 @@ uart_rx_event (int32 arg)
     }
 
     event (uart_rx_event, uart->irq, UART_RX_TIME);
+  }
+}
+
+static void
+fast_uart_rx_event (int32 arg)
+{
+  apbuart_type *uart = get_uart_by_irq (arg);
+
+  if (uart != NULL)
+  {
+    if (apbuart_fast_read_event (uart) && apbuart_get_flag (uart->control_register, APBUART_RI))
+    {
+      grlib_set_irq (uart->irq);
+    }
+
+    event (fast_uart_rx_event, uart->irq, UART_RX_TIME);
   }
 }
 
@@ -1273,28 +1273,35 @@ apbuart5_read (uint32 addr, uint32 * data)
   return uart_read (&uarts[5], addr, data);
 }
 
-static void
-uart_tx (int32 arg)
+static void 
+uart_tx_event (int32_t arg)
 {
   apbuart_type *uart = get_uart_by_irq(arg);
+
   if (uart != NULL)
   {
-    while (uart->device.device_open)
+    if (apbuart_write_event (uart) && apbuart_get_flag (uart->control_register, APBUART_TI))
     {
-      while (fwrite (&uart->uart_io.out.data, 1, 1, uart->uart_io.out.file) != 1)
-      continue;
+      grlib_set_irq (uart->irq);
     }
-    if (apbuart_get_flag(uart->status_register, APBUART_TE))
+
+    event (uart_tx_event, uart->irq, UART_TX_TIME);
+  }  
+}
+
+static void
+fast_uart_tx_event (int32 arg)
+{
+  apbuart_type *uart = get_uart_by_irq (arg);
+
+  if (uart != NULL)
+  {
+    if (apbuart_fast_write_event (uart) && apbuart_get_flag (uart->control_register, APBUART_TI))
     {
-      apbuart_set_flag(&uart->status_register, APBUART_TS);
+      grlib_set_irq (uart->irq);
     }
-    else
-    {
-      uart->uart_io.out.data = uart->uart_io.out.holding_register;
-      apbuart_set_flag(&uart->status_register, APBUART_TE);
-      event (uart_tx, uart->irq, UART_TX_TIME);
-    }
-    grlib_set_irq (uart->irq);
+
+    event (fast_uart_tx_event, uart->irq, UART_FLUSH_TIME);
   }
 }
 
@@ -1302,63 +1309,41 @@ int
 uart_write (apbuart_type *uart, uint32_t addr, uint32_t * data, uint32_t sz)
 {
   int result = 1;
-  unsigned char c;
-
-  c = (unsigned char) *data;
 
   switch (addr & APBUART_REGISTER_TYPE_MASK)
   {
     case APBUART_DATA_REGISTER_ADDRESS:
+    {
 #ifdef FAST_UART
-      if (uart->device.device_open)
+      if (apbuart_fast_write_to_uart_buffer (uart, data) && apbuart_get_flag (uart->control_register, APBUART_TI))
       {
-        if (uart->uart_io.out.buffer_size < APBUART_BUFFER_SIZE)
-        {
-          uart->uart_io.out.buffer[uart->uart_io.out.buffer_size++] = c;
-          result = 0;
-        }
-        else
-        {
-          while (uart->uart_io.out.buffer_size)
-          {
-            uart->uart_io.out.buffer_size -= fwrite (uart->uart_io.out.buffer, 1, uart->uart_io.out.buffer_size, uart->uart_io.out.file);
-          }
-          uart->uart_io.out.buffer[uart->uart_io.out.buffer_size++] = c;
-          result = 0;
-        }
-      }
-      grlib_set_irq (uart->irq);
+        grlib_set_irq (uart->irq);
+      }    
 #else
-      if (apbuart_get_flag(uart->status_register, APBUART_TS))
-      {
-        uart->uart_io.out.data = c;
-        apbuart_reset_flag(&uart->status_register, APBUART_TS);
-        event (uart_tx, uart->irq, UART_TX_TIME);
-        result = 0;
-      }
-      else
-      {
-        uart->uart_io.out.holding_register = c;
-        apbuart_reset_flag(&uart->status_register, APBUART_TE);
-        result = 0;
-      }
+      uart->uart_io.out.buffer[0] = (unsigned char) *data;
+      uart->uart_io.out.buffer_size = 1;
+      apbuart_reset_flag(&uart->status_register, APBUART_TS);
 #endif
+      result = 0;
       break;
-
+    }
     case APBUART_STATUS_REGISTER_ADDRESS:
-#ifndef FAST_UART
-      apbuart_reset_flag(&uart->status_register, APBUART_DR);
-      result = 0;
-#endif
+    {
       break;
+    }
     case APBUART_CONTROL_REGISTER_ADDRESS:
+    {
+      uart->control_register = (*data & APBUART_CONTROL_REGISTER_WRITE_MASK);
       result = 0;
       break;
+    }
     default:
+    {
       if (sis_verbose)
       {
         printf ("Write to unimplemented UART register (%x)\n", uart->address);
       }
+    }
   }
 
   return result;
@@ -1413,28 +1398,15 @@ apbuart_flush (apbuart_type *uart)
 }
 
 static void
-fast_uart_event (int32 arg)
-{
-  apbuart_type *uart = get_uart_by_irq (arg);
-  if (uart != NULL)
-  {
-    uint32 tmp;
-    /* Check for UART interrupts every 1000 clk.  */
-    // uart_read (uart, uart->address | APBUART_STATUS, &tmp);
-    apbuart_flush (uart);
-    event (fast_uart_event, arg, UART_FLUSH_TIME);
-  }
-}
-
-static void
 uart_event_start (int uart_irq)
 {
 #ifdef FAST_UART
   event (fast_uart_rx_event, uart_irq, UART_RX_TIME);
-  event (fast_uart_event, uart_irq, UART_FLUSH_TIME);
+  event (fast_uart_tx_event, uart_irq, UART_FLUSH_TIME);
 #else
 #ifndef _WIN32
   event (uart_rx_event, uart_irq, UART_RX_TIME);
+  event (uart_tx_event, uart_irq, UART_TX_TIME);
 #endif
 #endif
 }

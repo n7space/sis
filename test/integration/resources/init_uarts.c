@@ -29,7 +29,7 @@
 #define UART4_BASE_ADDRESS 0x80100400
 #define UART5_BASE_ADDRESS 0x80100500
 
-#define UART_TE 0x04
+#define UART_TS 0x02
 #define UART_DR 0x01
 #define DATA_MASK 0xFF
 
@@ -56,6 +56,11 @@ static void uarts_init()
   uarts[3] = (UartRegister) UART3_BASE_ADDRESS;
   uarts[4] = (UartRegister) UART4_BASE_ADDRESS;
   uarts[5] = (UartRegister) UART5_BASE_ADDRESS;
+
+  for (size_t i = 0; i < UARTS_SIZE; i++)
+  {
+    uarts[i]->control = 0x0F;
+  }
 }
 
 static void Init( rtems_task_argument arg )
@@ -99,7 +104,7 @@ static void Init( rtems_task_argument arg )
         int transmit_delay = 0;
         while (transmit_delay < WAIT_FOR_UART_DELAY)
         {
-          if (uarts[i]->status & UART_TE)
+          if (uarts[i]->status & UART_TS)
           {
             uarts[i]->data = send_msg[j];
             break;

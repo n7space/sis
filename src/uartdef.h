@@ -17,6 +17,7 @@
 #define APBUART_ADDR_MASK 0xFFFF
 #define APBUART_REGISTER_TYPE_MASK 0xFF
 #define APBUART_FLAG_MASK 0x01
+#define APBUART_CONTROL_REGISTER_WRITE_MASK 0xEBF
 
 #define APBUART_DATA_REGISTER_ADDRESS 0x00
 #define APBUART_STATUS_REGISTER_ADDRESS 0x04
@@ -137,9 +138,14 @@ void apbuart_reset_flag(uint32_t *apbuart_register, uint32_t flag);
 uint32_t apbuart_get_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag);
 void apbuart_set_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag, uint32_t value);
 
-size_t apbuart_read_byte(int read_descriptor, void *data_buffer, size_t data_size);
+size_t apbuart_read_data(int read_descriptor, void *data_buffer, size_t data_size);
 size_t apbuart_read_event(apbuart_type *uart);
 size_t apbuart_fast_read_event(apbuart_type *uart);
+
+size_t apbuart_write_data(int write_descriptor, void *data_buffer, size_t data_size);
+size_t apbuart_write_event(apbuart_type *uart);
+size_t apbuart_fast_write_event(apbuart_type *uart);
+size_t apbuart_fast_write_to_uart_buffer(apbuart_type *uart, uint32_t *data);
 
 extern apbuart_type uarts[APBUART_NUM];
 extern int uart_dumbio;
