@@ -33,6 +33,7 @@
 #include "grlib.h"
 
 #include "timer.h"
+#include "uart.h"
 
 /* APB PNP */
 
@@ -957,22 +958,6 @@ const struct grlib_ipcore gptimer_apbctrl2 = {
 
 /* APBUART.  */
 
-#define APBUART_RXTX	0x00
-#define APBUART_STATUS  0x04
-#define APBUART_CTRL    0x08
-
-/* Size of UART buffers (bytes).  */
-#define UARTBUF	1024
-
-/* Number of simulator ticks between flushing the UARTS.  */
-/* For good performance, keep above 1000.  */
-#define UART_FLUSH_TIME	  5000
-
-/* New uart defines.  */
-#define UART_TX_TIME	1000
-#define UART_RX_TIME	1000
-#define APBUART_STATUS_REG_OVERRUN	0x10
-
 #ifndef O_NONBLOCK
 #define O_NONBLOCK 0
 #endif
@@ -980,6 +965,8 @@ const struct grlib_ipcore gptimer_apbctrl2 = {
 apbuart_type uarts[APBUART_NUM];
 int uart_dumbio;
 int uart_nouartrx;
+int uart_sis_verbose;
+int uart_tty_setup;
 
 void
 apbuart_init_stdio (void)
@@ -1001,137 +988,6 @@ apbuart_restore_stdio (void)
   uart_restore_stdio(&uarts[3]);
   uart_restore_stdio(&uarts[4]);
   uart_restore_stdio(&uarts[5]);
-}
-
-int
-uart_init_stdio(apbuart_type *uart)
-{
-  int result = 1;
-
-  if (uart != NULL) {
-    if (dumbio)
-    {
-      result = 0;
-    }
-    else
-    {
-#ifdef HAVE_TERMIOS_H
-      if (uart->uart_io.in.descriptor == 0 && uart->device.device_open)
-      {
-        tcsetattr (0, TCSANOW, &uart->termios.io_ctrl);
-        tcflush (uart->uart_io.in.descriptor, TCIFLUSH);
-        result = 0;
-      }
-#endif
-    }
-  }
-
-  return result;
-}
-
-int
-uart_restore_stdio(apbuart_type *uart)
-{
-  int result = 1;
-
-  if (uart != NULL)
-  {
-    if (dumbio)
-    {
-      result = 0;
-    }
-    else
-    {
-#ifdef HAVE_TERMIOS_H
-      if (uart->uart_io.in.descriptor == 0 && uart->device.device_open && tty_setup)
-      {
-        tcsetattr (0, TCSANOW, &uart->termios.io_ctrl_old);
-        result = 0;
-      }
-#endif
-    }
-  }
-
-  return result;
-}
-
-int
-uart_init(apbuart_type *uart)
-{
-  int result = 1;
-
-  uart->uart_io.in.descriptor = -1;
-  uart->uart_io.out.descriptor = -1;
-
-  if (strcmp (uart->device.device_path, "stdio") == 0)
-  {
-    uart->uart_io.in.file = stdin;
-    uart->uart_io.out.file = stdout;
-  }
-  else
-  {
-    if (strcmp (uart->device.device_path, "") != 0)
-    {
-      if ((uart->device.device_descriptor = open (uart->device.device_path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO)) < 0)
-      {
-        printf ("Warning, couldn't open output device %s\n", uart->device.device_path);
-      }
-      else
-      {
-        if (sis_verbose)
-        {
-          printf ("serial port on %s\n", uart->device.device_path);
-        }
-        uart->uart_io.in.file = fdopen (uart->device.device_descriptor, "r+");
-        uart->uart_io.out.file = uart->uart_io.in.file;
-        setbuf (uart->uart_io.out.file, NULL);
-        uart->device.device_open = 1;
-        result = 0;
-      }
-    }
-  }
-
-  if (uart->uart_io.in.file)
-  {
-    uart->uart_io.in.descriptor = fileno ( uart->uart_io.in.file);
-  }
-    
-  if (uart->uart_io.in.descriptor == 0)
-  {
-    if (sis_verbose)
-    {
-      printf ("serial port %x on stdin/stdout\n", uart->address);
-    }
-
-    if (!dumbio)
-      {
-#ifdef HAVE_TERMIOS_H
-        tcgetattr (uart->uart_io.in.descriptor, &uart->termios.io_ctrl);
-        if (tty_setup)
-        {
-          uart->termios.io_ctrl_old = uart->termios.io_ctrl;
-          uart->termios.io_ctrl.c_lflag &= ~(ICANON | ECHO);
-          uart->termios.io_ctrl.c_cc[VMIN] = 0;
-          uart->termios.io_ctrl.c_cc[VTIME] = 0;
-        }
-#endif
-      }
-    uart->device.device_open = 1;
-    result = 0;
-  }
-
-  if (uart->uart_io.out.file)
-    {
-      uart->uart_io.out.descriptor = fileno (uart->uart_io.out.file);
-      if (!dumbio && tty_setup && uart->uart_io.out.descriptor == 1)
-      {
-        setbuf (uart->uart_io.out.file, NULL);
-      }
-    }
-
-  uart->uart_io.out.buffer_size = 0;
-
-  return result;
 }
 
 static void
@@ -1385,18 +1241,6 @@ apbuart5_write (uint32 addr, uint32 * data, uint32 sz)
   return uart_write (&uarts[5], addr, data, sz);
 }
 
-void
-apbuart_flush (apbuart_type *uart)
-{
-  if (uart != NULL)
-  {
-    while (uart->uart_io.out.buffer_size && uart->device.device_open)
-    { 
-      uart->uart_io.out.buffer_size -= fwrite (uart->uart_io.out.buffer, 1, uart->uart_io.out.buffer_size, uart->uart_io.out.file);
-    }
-  }
-}
-
 static void
 uart_event_start (int uart_irq)
 {
@@ -1453,18 +1297,6 @@ apbuart5_reset (void)
   uart_event_start (uarts[5].irq);
 }
 
-void
-apbuart_close_port (apbuart_type *uart)
-{
-  if (uart != NULL)
-  {
-    if (uart->device.device_open && uart->uart_io.out.file != stdin)
-    {
-      fclose (uarts->uart_io.out.file); 
-    }
-  }
-}
-
 int
 uart_add (apbuart_type *uart)
 {
@@ -1485,7 +1317,7 @@ apbuart_add (int irq, uint32 addr, uint32 mask)
 
   if (uart != NULL)
   {
-    if (strcmp (uart->device.device_path, "") != 0)
+    if (strcmp (uart->uart_io.device.device_path, "") != 0)
     {
       uart->address = addr;
       uart->irq = irq;

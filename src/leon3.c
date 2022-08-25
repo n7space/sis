@@ -38,8 +38,8 @@
 #include <unistd.h>
 #include "sis.h"
 #include "grlib.h"
-#include "uartdef.h"
 #include "timer.h"
+#include "uart.h"
 
 /* APB registers */
 #define APBSTART	        0x80000000
@@ -71,6 +71,8 @@ init_sim (void)
 
   uart_dumbio = dumbio;
   uart_nouartrx = nouartrx;
+  uart_sis_verbose = sis_verbose;
+  uart_tty_setup = tty_setup;
 
   for (i = 0; i < ncpu; i++)
     grlib_ahbm_add (&leon3s, 0);
@@ -114,12 +116,12 @@ static void
 sim_halt (void)
 {
 #ifdef FAST_UART
-  apbuart_flush (&uarts[0]);
-  apbuart_flush (&uarts[1]);
-  apbuart_flush (&uarts[2]);
-  apbuart_flush (&uarts[3]);
-  apbuart_flush (&uarts[4]);
-  apbuart_flush (&uarts[5]);
+  apbuart_write_data(uarts[0].uart_io.out.descriptor, uarts[0].uart_io.out.buffer, uarts[0].uart_io.out.buffer_size);
+  apbuart_write_data(uarts[1].uart_io.out.descriptor, uarts[1].uart_io.out.buffer, uarts[1].uart_io.out.buffer_size);
+  apbuart_write_data(uarts[2].uart_io.out.descriptor, uarts[2].uart_io.out.buffer, uarts[2].uart_io.out.buffer_size);
+  apbuart_write_data(uarts[3].uart_io.out.descriptor, uarts[3].uart_io.out.buffer, uarts[3].uart_io.out.buffer_size);
+  apbuart_write_data(uarts[4].uart_io.out.descriptor, uarts[4].uart_io.out.buffer, uarts[4].uart_io.out.buffer_size);
+  apbuart_write_data(uarts[5].uart_io.out.descriptor, uarts[5].uart_io.out.buffer, uarts[5].uart_io.out.buffer_size);
 #endif
 }
 

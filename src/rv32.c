@@ -99,15 +99,11 @@ error_mode (uint32 pc)
 static void
 sim_halt (void)
 {
-#ifdef FAST_UART
-  apbuart_flush (NULL);
-#endif
 }
 
 static void
 exit_sim (void)
 {
-  apbuart_close_port (NULL);
 }
 
 /* Memory emulation.  */

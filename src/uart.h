@@ -13,17 +13,14 @@
 #define APBUART_BUFFER_SIZE 1024
 #define APB_START 0x80000000
 
-#define APBUART_FIFO_STATUS_MASK 0x3F
-#define APBUART_ADDR_MASK 0xFFFF
-#define APBUART_REGISTER_TYPE_MASK 0xFF
 #define APBUART_FLAG_MASK 0x01
+#define APBUART_REGISTER_TYPE_MASK 0xFF
+#define APBUART_ADDR_MASK 0xFFFF
 #define APBUART_CONTROL_REGISTER_WRITE_MASK 0xEBF
 
 #define APBUART_DATA_REGISTER_ADDRESS 0x00
 #define APBUART_STATUS_REGISTER_ADDRESS 0x04
 #define APBUART_CONTROL_REGISTER_ADDRESS 0x08
-#define APBUART_SCALER_REGISTER_ADDRESS 0x0C
-#define APBUART_FIFO_DEBUG_REGISTER_ADDRESS 0x10
 
 #define APBUART0_START_ADDRESS 0x80000100
 #define APBUART1_START_ADDRESS 0x80100100
@@ -38,6 +35,14 @@
 #define APBUART3_IRQ 19
 #define APBUART4_IRQ 20
 #define APBUART5_IRQ 21
+
+/* Number of simulator ticks between flushing the UARTS.  */
+/* For good performance, keep above 1000.  */
+#define UART_FLUSH_TIME	  5000
+
+/* New uart defines.  */
+#define UART_TX_TIME	1000
+#define UART_RX_TIME	1000
 
 /* Status Register definition, taken from GR712RC documentation:
     (0)       DR - Data ready: Indicates that new data is available in the receiver holding register.
@@ -73,8 +78,12 @@ typedef enum {APBUART_DR = 0, APBUART_TS, APBUART_TE, APBUART_BR, APBUART_OV, AP
 typedef enum {APBUART_RE = 0, APBUART_CTRL_TE, APBUART_RI, APBUART_TI, APBUART_PS, APBUART_CTRL_PE, APBUART_LB = 7,
               APBUART_CRTL_TF = 9, APBUART_CTRL_RF, APBUART_DB, APBUART_FA = 31} apbuart_control_register;
 
-typedef enum {APBUART_FIFO_TRANSMITTER = 0, APBUART_FIFO_RECEIVER} apbuart_fifo_direction;
-
+typedef struct
+{
+    int32_t device_descriptor;
+    int device_open;
+    char device_path[DEVICE_PATH_SIZE];
+} uart_device;
 typedef struct
 {
     FILE *file;
@@ -82,16 +91,7 @@ typedef struct
     char buffer[APBUART_BUFFER_SIZE];
     int buffer_size;
     int buffer_index;
-    char holding_register;
-    char data;
 } io_stream;
-
-typedef struct
-{
-    io_stream in;
-    io_stream out;
-} uart_io;
-
 
 typedef struct 
 {
@@ -101,23 +101,19 @@ typedef struct
 
 typedef struct
 {
-    int32_t device_descriptor;
-    int device_open;
-    char device_path[DEVICE_PATH_SIZE];
-} uart_device;
+    io_stream in;
+    io_stream out;
+    uart_device device;
+    termios_io termios;
+} uart_io;
 
 typedef struct
 {
     int irq;
     uint32_t address;
-    termios_io termios;
     uart_io uart_io;
-    uart_device device;
-    uint32_t data_register;
     uint32_t status_register;
     uint32_t control_register;
-    uint32_t scaler_register;
-    uint32_t fifo_debug_register;
 } apbuart_type;
 
 int uart_init (apbuart_type *uart);
@@ -129,14 +125,7 @@ int uart_add (apbuart_type *uart);
 int uart_init_stdio(apbuart_type *uart);
 int uart_restore_stdio(apbuart_type *uart);
 
-apbuart_type *get_uart_by_address (uint32_t address);
-apbuart_type *get_uart_by_irq (uint8_t irq);
-
-uint32_t apbuart_get_flag(uint32_t apbuart_register, uint32_t flag);
-void apbuart_set_flag(uint32_t *apbuart_register, uint32_t flag);
-void apbuart_reset_flag(uint32_t *apbuart_register, uint32_t flag);
-uint32_t apbuart_get_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag);
-void apbuart_set_fifo_count(uint32_t apbuart_status_register, apbuart_fifo_direction flag, uint32_t value);
+void apbuart_close_port (apbuart_type *uart);
 
 size_t apbuart_read_data(int read_descriptor, void *data_buffer, size_t data_size);
 size_t apbuart_read_event(apbuart_type *uart);
@@ -147,6 +136,15 @@ size_t apbuart_write_event(apbuart_type *uart);
 size_t apbuart_fast_write_event(apbuart_type *uart);
 size_t apbuart_fast_write_to_uart_buffer(apbuart_type *uart, uint32_t *data);
 
+apbuart_type *get_uart_by_address (uint32_t address);
+apbuart_type *get_uart_by_irq (uint8_t irq);
+
+uint32_t apbuart_get_flag(uint32_t apbuart_register, uint32_t flag);
+void apbuart_set_flag(uint32_t *apbuart_register, uint32_t flag);
+void apbuart_reset_flag(uint32_t *apbuart_register, uint32_t flag);
+
 extern apbuart_type uarts[APBUART_NUM];
 extern int uart_dumbio;
 extern int uart_nouartrx;
+extern int uart_sis_verbose;
+extern int uart_tty_setup;
