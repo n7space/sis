@@ -33,6 +33,11 @@
 #define UART_DR 0x01
 #define DATA_MASK 0xFF
 
+#define UART_RE 0x01
+#define UART_TE 0x02
+#define UART_RI 0x04
+#define UART_TI 0x08
+
 #define MAX_RECEIVE_MSG_SIZE 20
 
 #define WAIT_FOR_UART_DELAY 10000
@@ -59,7 +64,7 @@ static void uarts_init()
 
   for (size_t i = 0; i < UARTS_SIZE; i++)
   {
-    uarts[i]->control = 0x0F;
+    uarts[i]->control = (uint32_t) (UART_RE | UART_TE | UART_RI | UART_TI); 
   }
 }
 
