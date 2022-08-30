@@ -94,22 +94,22 @@ uart_init_stdio(apbuart_type *uart)
 {
   int result = 1;
 
-  if (uart != NULL) {
-    if (uart_dumbio)
+  assert (uart);
+
+  if (uart_dumbio)
+  {
+    result = 0;
+  }
+  else
+  {
+#ifdef HAVE_TERMIOS_H
+    if (uart->uart_io.in.descriptor == 0 && uart->uart_io.device.device_open)
     {
+      tcsetattr (0, TCSANOW, &uart->uart_io.termios.io_ctrl);
+      tcflush (uart->uart_io.in.descriptor, TCIFLUSH);
       result = 0;
     }
-    else
-    {
-#ifdef HAVE_TERMIOS_H
-      if (uart->uart_io.in.descriptor == 0 && uart->uart_io.device.device_open)
-      {
-        tcsetattr (0, TCSANOW, &uart->uart_io.termios.io_ctrl);
-        tcflush (uart->uart_io.in.descriptor, TCIFLUSH);
-        result = 0;
-      }
 #endif
-    }
   }
 
   return result;
@@ -120,22 +120,21 @@ uart_restore_stdio(apbuart_type *uart)
 {
   int result = 1;
 
-  if (uart != NULL)
+  assert (uart);
+
+  if (uart_dumbio)
   {
-    if (uart_dumbio)
+    result = 0;
+  }
+  else
+  {
+#ifdef HAVE_TERMIOS_H
+    if (uart->uart_io.in.descriptor == 0 && uart->uart_io.device.device_open && tty_setup)
     {
+      tcsetattr (0, TCSANOW, &uart->uart_io.termios.io_ctrl_old);
       result = 0;
     }
-    else
-    {
-#ifdef HAVE_TERMIOS_H
-      if (uart->uart_io.in.descriptor == 0 && uart->uart_io.device.device_open && tty_setup)
-      {
-        tcsetattr (0, TCSANOW, &uart->uart_io.termios.io_ctrl_old);
-        result = 0;
-      }
 #endif
-    }
   }
 
   return result;
@@ -144,12 +143,11 @@ uart_restore_stdio(apbuart_type *uart)
 void
 apbuart_close_port (apbuart_type *uart)
 {
-  if (uart != NULL)
+  assert (uart);
+
+  if (uart->uart_io.device.device_open && uart->uart_io.out.file != stdin)
   {
-    if (uart->uart_io.device.device_open && uart->uart_io.out.file != stdin)
-    {
-      fclose (uarts->uart_io.out.file); 
-    }
+    fclose (uarts->uart_io.out.file); 
   }
 }
 
@@ -171,21 +169,20 @@ apbuart_read_event(apbuart_type *uart)
 {
   size_t result = 0;
 
-  if (uart != NULL)
-  {
-    if (uart->uart_io.device.device_open && apbuart_get_flag(uart->control_register, APBUART_RE))
-    {
-      result = apbuart_read_data (uart->uart_io.in.descriptor, uart->uart_io.in.buffer, 1);
-    }
+  assert (uart);
 
-    if (result > 0)
+  if (uart->uart_io.device.device_open && apbuart_get_flag(uart->control_register, APBUART_RE))
+  {
+    result = apbuart_read_data (uart->uart_io.in.descriptor, uart->uart_io.in.buffer, 1);
+  }
+
+  if (result > 0)
+  {
+    if (apbuart_get_flag(uart->status_register, APBUART_DR))
     {
-      if (apbuart_get_flag(uart->status_register, APBUART_DR))
-      {
-        apbuart_set_flag(&uart->status_register, APBUART_OV);
-      }
-      apbuart_set_flag(&uart->status_register, APBUART_DR);
+      apbuart_set_flag(&uart->status_register, APBUART_OV);
     }
+    apbuart_set_flag(&uart->status_register, APBUART_DR);
   }
 
   return result;
@@ -196,9 +193,11 @@ apbuart_fast_read_event(apbuart_type *uart)
 {
   size_t result = 0;
 
+  assert (uart);
+
   if (uart->uart_io.device.device_open)
   {
-    if (uart != NULL && !apbuart_get_flag(uart->status_register, APBUART_DR))
+    if (!apbuart_get_flag(uart->status_register, APBUART_DR))
     {
       if (uart->uart_io.in.buffer_index < uart->uart_io.in.buffer_size - 1)
       {
@@ -236,28 +235,27 @@ size_t apbuart_write_event(apbuart_type *uart)
 {
   size_t result = 0;
 
-  if (uart != NULL)
+  assert (uart);
+
+  if (uart->uart_io.device.device_open && apbuart_get_flag(uart->control_register, APBUART_TE))
   {
-    if (uart->uart_io.device.device_open && apbuart_get_flag(uart->control_register, APBUART_TE))
+    if (uart->uart_io.out.buffer_size > 0)
     {
-      if (uart->uart_io.out.buffer_size > 0)
+      off_t descriptor_offset;
+      if (apbuart_get_flag (uart->control_register, APBUART_LB))
       {
-        off_t descriptor_offset;
-        if (apbuart_get_flag (uart->control_register, APBUART_LB))
-        {
-          descriptor_offset = lseek (uart->uart_io.out.descriptor, 0, SEEK_CUR);
-        }
-
-        result = apbuart_write_data (uart->uart_io.out.descriptor, uart->uart_io.out.buffer, 1);
-        uart->uart_io.out.buffer_size = 0;
-
-        if (result != 0 && apbuart_get_flag (uart->control_register, APBUART_LB))
-        {
-          lseek (uart->uart_io.in.descriptor, descriptor_offset, SEEK_SET);
-        }
-
-        apbuart_set_flag(&uart->status_register, APBUART_TS);
+        descriptor_offset = lseek (uart->uart_io.out.descriptor, 0, SEEK_CUR);
       }
+
+      result = apbuart_write_data (uart->uart_io.out.descriptor, uart->uart_io.out.buffer, 1);
+      uart->uart_io.out.buffer_size = 0;
+
+      if (result != 0 && apbuart_get_flag (uart->control_register, APBUART_LB))
+      {
+        lseek (uart->uart_io.in.descriptor, descriptor_offset, SEEK_SET);
+      }
+
+      apbuart_set_flag(&uart->status_register, APBUART_TS);
     }
   }
 
@@ -267,35 +265,33 @@ size_t apbuart_write_event(apbuart_type *uart)
 size_t apbuart_fast_write_event(apbuart_type *uart)
 {
   size_t result = 0;
+  assert (uart);
 
-  if (uart != NULL)
+  if (uart->uart_io.device.device_open)
   {
-    if (uart->uart_io.device.device_open)
+    off_t descriptor_offset;
+    if (apbuart_get_flag (uart->control_register, APBUART_LB))
     {
-      off_t descriptor_offset;
-      if (apbuart_get_flag (uart->control_register, APBUART_LB))
-      {
-        descriptor_offset = lseek (uart->uart_io.out.descriptor, 0, SEEK_CUR);
-      }
-
-      while (uart->uart_io.out.buffer_index < uart->uart_io.out.buffer_size)
-      {
-        result += apbuart_write_data (uart->uart_io.out.descriptor, &uart->uart_io.out.buffer[uart->uart_io.out.buffer_index++], 1);
-      }
-
-      if (result != 0 && apbuart_get_flag (uart->control_register, APBUART_LB))
-      {
-        lseek (uart->uart_io.in.descriptor, descriptor_offset, SEEK_SET);
-      }
-      
-      if (result == 0)
-      {
-        apbuart_set_flag(&uart->status_register, APBUART_TS);
-      }
-
-      uart->uart_io.out.buffer_size = 0;
-      uart->uart_io.out.buffer_index = 0;
+      descriptor_offset = lseek (uart->uart_io.out.descriptor, 0, SEEK_CUR);
     }
+
+    while (uart->uart_io.out.buffer_index < uart->uart_io.out.buffer_size)
+    {
+      result += apbuart_write_data (uart->uart_io.out.descriptor, &uart->uart_io.out.buffer[uart->uart_io.out.buffer_index++], 1);
+    }
+
+    if (result != 0 && apbuart_get_flag (uart->control_register, APBUART_LB))
+    {
+      lseek (uart->uart_io.in.descriptor, descriptor_offset, SEEK_SET);
+    }
+    
+    if (result == 0)
+    {
+      apbuart_set_flag(&uart->status_register, APBUART_TS);
+    }
+
+    uart->uart_io.out.buffer_size = 0;
+    uart->uart_io.out.buffer_index = 0;
   }
 
   return result;

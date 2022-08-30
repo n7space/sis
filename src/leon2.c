@@ -77,11 +77,11 @@
 /* New uart defines.  */
 #define UART_TX_TIME	1000
 #define UART_RX_TIME	1000
-#define UART_DR 0x01
-#define UARTA_DR	0x1
-#define UARTA_SRE	0x2
-#define UARTA_HRE	0x4
-#define UARTA_OR	0x10
+#define UART_DR       0x01
+#define UARTA_DR	    0x1
+#define UARTA_SRE	    0x2
+#define UARTA_HRE	    0x4
+#define UARTA_OR	    0x10
 
 /* IRQCTRL registers.  */
 

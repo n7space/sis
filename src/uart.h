@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,11 +37,8 @@
 #define APBUART4_IRQ 20
 #define APBUART5_IRQ 21
 
-/* Number of simulator ticks between flushing the UARTS.  */
-/* For good performance, keep above 1000.  */
-#define UART_FLUSH_TIME	  5000
 
-/* New uart defines.  */
+#define UART_FLUSH_TIME	  5000
 #define UART_TX_TIME	1000
 #define UART_RX_TIME	1000
 
@@ -60,7 +58,7 @@
     (26 - 31) RCNT - Receiver FIFO count: Shows the number of data frames in the receiver FIFO.
 */
 typedef enum {APBUART_DR = 0, APBUART_TS, APBUART_TE, APBUART_BR, APBUART_OV, APBUART_PE, APBUART_FE, APBUART_TH, 
-              APBUART_RH, APBUART_TF, APBUART_RF, APBUART_TCNT, APBUART_RCNT} apbuart_status_register;
+              APBUART_RH, APBUART_TF, APBUART_RF, APBUART_TCNT, APBUART_RCNT} apbuart_status_register_flags;
 
 /* Control Register definition, taken from GR712RC documentation:
     (0)     RE - Receiver enable: If set, enables the receiver.
@@ -76,7 +74,7 @@ typedef enum {APBUART_DR = 0, APBUART_TS, APBUART_TE, APBUART_BR, APBUART_OV, AP
     (31)    FA - FIFOs available: Set to 1, read-only. Receiver and transmitter FIFOs are available.
 */
 typedef enum {APBUART_RE = 0, APBUART_CTRL_TE, APBUART_RI, APBUART_TI, APBUART_PS, APBUART_CTRL_PE, APBUART_LB = 7,
-              APBUART_CRTL_TF = 9, APBUART_CTRL_RF, APBUART_DB, APBUART_FA = 31} apbuart_control_register;
+              APBUART_CRTL_TF = 9, APBUART_CTRL_RF, APBUART_DB, APBUART_FA = 31} apbuart_control_register_flags;
 
 typedef struct
 {
@@ -84,6 +82,7 @@ typedef struct
     int device_open;
     char device_path[DEVICE_PATH_SIZE];
 } uart_device;
+
 typedef struct
 {
     FILE *file;

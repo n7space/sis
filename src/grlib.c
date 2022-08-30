@@ -18,6 +18,7 @@
  *
  */
 
+#include <assert.h>
 #include "riscv.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -1030,32 +1031,29 @@ static void
 uart_rx_event (int32 arg)
 {
   apbuart_type *uart = get_uart_by_irq (arg);
+  assert(uart);
 
-  if (uart != NULL)
+  if (apbuart_read_event (uart) && apbuart_get_flag (uart->control_register, APBUART_RI))
   {
-    if (apbuart_read_event (uart) && apbuart_get_flag (uart->control_register, APBUART_RI))
-    {
-      grlib_set_irq (uart->irq);
-    }
-
-    event (uart_rx_event, uart->irq, UART_RX_TIME);
+    grlib_set_irq (uart->irq);
   }
+
+  event (uart_rx_event, uart->irq, UART_RX_TIME);
 }
 
 static void
 fast_uart_rx_event (int32 arg)
 {
   apbuart_type *uart = get_uart_by_irq (arg);
+  assert(uart);
 
-  if (uart != NULL)
+  if (apbuart_fast_read_event (uart) && apbuart_get_flag (uart->control_register, APBUART_RI))
   {
-    if (apbuart_fast_read_event (uart) && apbuart_get_flag (uart->control_register, APBUART_RI))
-    {
-      grlib_set_irq (uart->irq);
-    }
-
-    event (fast_uart_rx_event, uart->irq, UART_RX_TIME);
+    grlib_set_irq (uart->irq);
   }
+
+  event (fast_uart_rx_event, uart->irq, UART_RX_TIME);
+
 }
 
 int
@@ -1133,32 +1131,28 @@ static void
 uart_tx_event (int32_t arg)
 {
   apbuart_type *uart = get_uart_by_irq(arg);
+  assert(uart);
 
-  if (uart != NULL)
+  if (apbuart_write_event (uart) && apbuart_get_flag (uart->control_register, APBUART_TI))
   {
-    if (apbuart_write_event (uart) && apbuart_get_flag (uart->control_register, APBUART_TI))
-    {
-      grlib_set_irq (uart->irq);
-    }
+    grlib_set_irq (uart->irq);
+  }
 
-    event (uart_tx_event, uart->irq, UART_TX_TIME);
-  }  
+  event (uart_tx_event, uart->irq, UART_TX_TIME);
 }
 
 static void
 fast_uart_tx_event (int32 arg)
 {
   apbuart_type *uart = get_uart_by_irq (arg);
+  assert(uart);
 
-  if (uart != NULL)
+  if (apbuart_fast_write_event (uart) && apbuart_get_flag (uart->control_register, APBUART_TI))
   {
-    if (apbuart_fast_write_event (uart) && apbuart_get_flag (uart->control_register, APBUART_TI))
-    {
-      grlib_set_irq (uart->irq);
-    }
-
-    event (fast_uart_tx_event, uart->irq, UART_FLUSH_TIME);
+    grlib_set_irq (uart->irq);
   }
+
+  event (fast_uart_tx_event, uart->irq, UART_FLUSH_TIME);
 }
 
 int
@@ -1259,42 +1253,60 @@ static void
 apbuart0_reset (void)
 {
   uart_reset(&uarts[0]);
-  uart_event_start (uarts[0].irq);
+  if (uarts[0].irq != 0)
+  {
+    uart_event_start (uarts[0].irq);
+  }
 }
 
 static void
 apbuart1_reset (void)
 {
   uart_reset(&uarts[1]);
-  uart_event_start (uarts[1].irq);
+  if (uarts[1].irq != 0)
+  {
+    uart_event_start (uarts[1].irq);
+  }
 }
 
 static void
 apbuart2_reset (void)
 {
   uart_reset(&uarts[2]);
-  uart_event_start (uarts[2].irq);
+  if (uarts[2].irq != 0)
+  {
+    uart_event_start (uarts[2].irq);
+  }
 }
 
 static void
 apbuart3_reset (void)
 {
   uart_reset(&uarts[3]);
-  uart_event_start (uarts[3].irq);
+  if (uarts[3].irq != 0)
+  {
+    uart_event_start (uarts[3].irq);
+  }
 }
 
 static void
 apbuart4_reset (void)
 {
   uart_reset(&uarts[4]);
-  uart_event_start (uarts[4].irq);
+  if (uarts[4].irq != 0)
+  {
+    uart_event_start (uarts[4].irq);
+  }
 }
 
 static void
 apbuart5_reset (void)
 {
   uart_reset(&uarts[5]);
-  uart_event_start (uarts[5].irq);
+  if (uarts[5].irq != 0)
+  {
+    uart_event_start (uarts[5].irq);
+  }
 }
 
 int
@@ -1314,16 +1326,14 @@ static void
 apbuart_add (int irq, uint32 addr, uint32 mask)
 {
   apbuart_type *uart = get_uart_by_address (addr);
+  assert(uart);
 
-  if (uart != NULL)
+  if (strcmp (uart->uart_io.device.device_path, "") != 0)
   {
-    if (strcmp (uart->uart_io.device.device_path, "") != 0)
-    {
-      uart->address = addr;
-      uart->irq = irq;
+    uart->address = addr;
+    uart->irq = irq;
 
-      uart_add (uart);
-    }
+    uart_add (uart);
   }
 }
 

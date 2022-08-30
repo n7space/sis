@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include "sis.h"
 #include "grlib.h"
+#include "uart.h"
 
 /* APB registers */
 #define APBSTART	0xFF900000
@@ -95,11 +96,15 @@ error_mode (uint32 pc)
 static void
 sim_halt (void)
 {
+#ifdef FAST_UART
+  apbuart_write_data(uarts[0].uart_io.out.descriptor, uarts[0].uart_io.out.buffer, uarts[0].uart_io.out.buffer_size);
+#endif
 }
 
 static void
 exit_sim (void)
 {
+  apbuart_close_port (&uarts[0]);
 }
 
 /* Memory emulation.  */
