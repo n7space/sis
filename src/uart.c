@@ -199,7 +199,7 @@ apbuart_fast_read_event(apbuart_type *uart)
   {
     if (!apbuart_get_flag(uart->status_register, APBUART_DR))
     {
-      if (uart->uart_io.in.buffer_index < uart->uart_io.in.buffer_size - 1)
+      if (uart->uart_io.in.buffer_index < uart->uart_io.in.buffer_size)
       {
         uart->uart_io.in.buffer_index++;
         result = sizeof (uart->uart_io.in.buffer[uart->uart_io.in.buffer_index]);
@@ -208,11 +208,9 @@ apbuart_fast_read_event(apbuart_type *uart)
       else
       {
         uart->uart_io.in.buffer_index = 0;
-        uart->uart_io.in.buffer_size = uart->uart_io.device.device_open
-          ? apbuart_read_data (uart->uart_io.in.descriptor, uart->uart_io.in.buffer, APBUART_BUFFER_SIZE)
-          : 0;
+        uart->uart_io.in.buffer_size =  apbuart_read_data (uart->uart_io.in.descriptor, uart->uart_io.in.buffer, APBUART_BUFFER_SIZE);
 
-        if (uart->uart_io.in.buffer_index < uart->uart_io.in.buffer_size - 1)
+        if (uart->uart_io.in.buffer_index < uart->uart_io.in.buffer_size)
         {
           result = sizeof (uart->uart_io.in.buffer[uart->uart_io.in.buffer_index]);
           apbuart_set_flag(&uart->status_register, APBUART_DR);
@@ -244,6 +242,7 @@ size_t apbuart_write_event(apbuart_type *uart)
       off_t descriptor_offset;
       if (apbuart_get_flag (uart->control_register, APBUART_LB))
       {
+        // saving the write descriptor offset before writing the data to the file to set the read descriptor with that offset
         descriptor_offset = lseek (uart->uart_io.out.descriptor, 0, SEEK_CUR);
       }
 
@@ -252,6 +251,7 @@ size_t apbuart_write_event(apbuart_type *uart)
 
       if (result != 0 && apbuart_get_flag (uart->control_register, APBUART_LB))
       {
+        // setting the read descriptor offset to the start of the written data
         lseek (uart->uart_io.in.descriptor, descriptor_offset, SEEK_SET);
       }
 

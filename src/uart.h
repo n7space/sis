@@ -42,7 +42,7 @@
 #define UART_TX_TIME	1000
 #define UART_RX_TIME	1000
 
-/* Status Register definition, taken from GR712RC documentation:
+/* Status Register flags definition, taken from GR712RC documentation:
     (0)       DR - Data ready: Indicates that new data is available in the receiver holding register.
     (1)       TS - Transmitter shift register empty: Indicates that the transmitter shift register is empty.
     (2)       TE - Transmitter FIFO empty: Indicates that the transmitter FIFO is empty.
@@ -60,7 +60,7 @@
 typedef enum {APBUART_DR = 0, APBUART_TS, APBUART_TE, APBUART_BR, APBUART_OV, APBUART_PE, APBUART_FE, APBUART_TH, 
               APBUART_RH, APBUART_TF, APBUART_RF, APBUART_TCNT, APBUART_RCNT} apbuart_status_register_flags;
 
-/* Control Register definition, taken from GR712RC documentation:
+/* Control Register flags definition, taken from GR712RC documentation:
     (0)     RE - Receiver enable: If set, enables the receiver.
     (1)     TE - Transmitter enable: If set, enables the transmitter.
     (2)     RI - Receiver interrupt enable: If set, interrupts are generated when a frame is received.
