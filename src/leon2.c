@@ -48,39 +48,40 @@
 
 /* LEON2 APB register addresses */
 
-#define IRQCTRL_IPR	0x094
-#define IRQCTRL_IMR	0x090
-#define IRQCTRL_ICR	0x09C
-#define IRQCTRL_IFR	0x098
+#define IRQCTRL_IPR   0x094
+#define IRQCTRL_IMR   0x090
+#define IRQCTRL_ICR   0x09C
+#define IRQCTRL_IFR   0x098
 #define TIMER_SCALER	0x060
 #define TIMER_SCLOAD	0x064
 #define LEON2_CONFIG	0x024
 #define TIMER_TIMER1	0x040
 #define TIMER_RELOAD1	0x044
-#define TIMER_CTRL1	0x048
+#define TIMER_CTRL1   0x048
 #define TIMER_TIMER2	0x050
 #define TIMER_RELOAD2	0x054
-#define TIMER_CTRL2	0x058
-#define CACHE_CTRL	0x014
-#define POWER_DOWN	0x018
+#define TIMER_CTRL2   0x058
+#define CACHE_CTRL    0x014
+#define POWER_DOWN    0x018
 
-#define APBUART_RXTX	0x070
-#define APBUART_STATUS	0x074
+#define APBUART_RXTX    0x070
+#define APBUART_STATUS  0x074
 
 /* Size of UART buffers (bytes).  */
 #define UARTBUF	1024
 
 /* Number of simulator ticks between flushing the UARTS.  */
 /* For good performance, keep above 1000.  */
-#define UART_FLUSH_TIME	  3000
+#define UART_FLUSH_TIME 3000
 
 /* New uart defines.  */
-#define UART_TX_TIME	1000
-#define UART_RX_TIME	1000
-#define UARTA_DR	0x1
-#define UARTA_SRE	0x2
-#define UARTA_HRE	0x4
-#define UARTA_OR	0x10
+#define UART_TX_TIME  1000
+#define UART_RX_TIME  1000
+#define UART_DR       0x01
+#define UARTA_DR      0x1
+#define UARTA_SRE     0x2
+#define UARTA_HRE     0x4
+#define UARTA_OR      0x10
 
 /* IRQCTRL registers.  */
 

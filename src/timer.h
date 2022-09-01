@@ -53,7 +53,7 @@
 #define GPTIMER_APBCTRL1_INTERRUPT_BASE_NR 8
 #define GPTIMER_APBCTRL2_INTERRUPT_BASE_NR 7
 
-/* Control Register definition, taken from GR712RC documentation:
+/* Control Register flags definition, taken from GR712RC documentation:
     (0) EN - Enable: Enable the timer.
     (1) RS - Restart: If set, the timer counter value register is reloaded with the value of the reload register when the timer underflows.
     (2) LD - Load: Load value from the timer reload register to the timer counter value register.
@@ -75,7 +75,7 @@ typedef struct
 } gp_timer;
 
 /*
-    Configuration Register definition, taken from GR712RC documentation:
+    Configuration Register flags definition, taken from GR712RC documentation:
     (0 - 2) TIMERS - Number of implemented timers. Set to 4. Read-only
     (3 - 7) IRQ - Interrupt ID of first timer. Set to 8. Read-only.
     (8)     SI - Separate interrupts. Reads ‘1’ to indicate the timer unit generates separate interrupts for each timer.

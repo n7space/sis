@@ -38,6 +38,7 @@
 #include "riscv.h"
 #include "grlib.h"
 #include "rv32dtb.h"
+#include "uart.h"
 
 #define PLIC_START	0x0C000000
 #define PLIC_MASK  	0xFFC
@@ -100,14 +101,14 @@ static void
 sim_halt (void)
 {
 #ifdef FAST_UART
-  apbuart_flush (NULL);
+  apbuart_write_data(uarts[0].uart_io.out.descriptor, uarts[0].uart_io.out.buffer, uarts[0].uart_io.out.buffer_size);
 #endif
 }
 
 static void
 exit_sim (void)
 {
-  apbuart_close_port (NULL);
+  apbuart_close_port (&uarts[0]);
 }
 
 /* Memory emulation.  */
