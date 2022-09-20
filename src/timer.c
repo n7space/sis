@@ -235,7 +235,7 @@ gptimer_read_timer_register(gp_timer *timer, uint32_t address)
     }
     case GPTIMER_TIMER_CONTROL_REGISTER_ADDRESS:
     {
-      result = timer->counter_value_register;
+      result = timer->control_register;
       break;
     }
     case GPTIMER_TIMER_LATCH_REGISTER_ADDRESS:
