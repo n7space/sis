@@ -160,6 +160,7 @@ gptimer_apbctrl1_write_core_register(uint32_t address, uint32_t * data)
   {
     case GPTIMER_SCALER_VALUE_REGISTER_ADDRESS:
     {
+      gptimer1.core.scaler_register = (*data) & GPTIMER_APBCTRL1_SCALER_REGISTER_WRITE_MASK;
       break;
     }
     case GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS:
@@ -189,6 +190,7 @@ gptimer_apbctrl2_write_core_register(uint32_t address, uint32_t * data)
   {
     case GPTIMER_SCALER_VALUE_REGISTER_ADDRESS:
     {
+      gptimer2.core.scaler_register = (*data) & GPTIMER_APBCTRL2_SCALER_REGISTER_WRITE_MASK;
       break;
     }
     case GPTIMER_SCALER_RELOAD_VALUE_REGISTER_ADDRESS:
