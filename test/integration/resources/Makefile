@@ -21,16 +21,21 @@ CCLINK = $(CC) $(CFLAGS) -Wl,-Map,${BUILD_DIR}/$(basename $@).map
 
 SRC_UARTS = init_uarts.c
 SRC_TIMERS = init_timers.c
+SRC_UART_BIDIRECTIONAL = init_uart_bidirectional.c
 OBJECTS_UARTS = $(patsubst %.c,$(BUILD_DIR)/%.o, $(SRC_UARTS))
 OBJECTS_TIMERS = $(patsubst %.c,$(BUILD_DIR)/%.o, $(SRC_TIMERS))
+OBJECTS_UART_BIDIRECTIONAL = $(patsubst %.c,$(BUILD_DIR)/%.o, $(SRC_UART_BIDIRECTIONAL))
 
-all: rtems_uarts rtems_timers
+all: rtems_uarts rtems_timers rtems_uart_bidirectional
 
 rtems_uarts: $(OBJECTS_UARTS)
 	$(CCLINK) $(OBJECTS_UARTS) ${LDFLAGS} -o ${BUILD_DIR}/$@
 
 rtems_timers: $(OBJECTS_TIMERS)
 	$(CCLINK) $(OBJECTS_TIMERS) ${LDFLAGS} -o ${BUILD_DIR}/$@
+
+rtems_uart_bidirectional: $(OBJECTS_UART_BIDIRECTIONAL)
+	$(CCLINK) $(OBJECTS_UART_BIDIRECTIONAL) ${LDFLAGS} -o ${BUILD_DIR}/$@
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
