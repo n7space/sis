@@ -392,12 +392,13 @@ sim_remove_swbreakpoint (uint32 addr, int len)
       /* write back saved opcode */
       ms->sis_memory_write (addr, (char *) &ebase.bpsave[i], len);
       if (sis_verbose > 1)
-	printf ("sim_remove_swbreakpoint: remove breakpoint %d at 0x%08x\n",
+        printf ("sim_remove_swbreakpoint: remove breakpoint %d at 0x%08x\n",
 		i, addr);
       /* shift down remaining breakpoints */
       for (; i < ebase.bptnum; i++)
 	{
-	  ebase.bpts[i] = ebase.bpts[i + 1];
+          ebase.bpts[i] = ebase.bpts[i + 1];
+          ebase.bpsave[i] = ebase.bpsave[i + 1];
 	}
       ebase.bptnum -= 1;
       return 1;
