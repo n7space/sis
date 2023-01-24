@@ -1066,9 +1066,6 @@ uart_read (apbuart_type *uart, uint32_t addr, uint32_t *data)
     case APBUART_DATA_REGISTER_ADDRESS:
       apbuart_reset_flag(&uart->status_register, APBUART_DR);
       *data = uart->uart_io.in.buffer[uart->uart_io.in.buffer_index];
-#ifdef FAST_UART
-      fast_uart_rx_event (uart->irq);
-#endif
       result = 0;
       break;
 
