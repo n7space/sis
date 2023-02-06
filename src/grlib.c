@@ -1188,7 +1188,7 @@ uart_write (apbuart_type *uart, uint32_t addr, uint32_t * data, uint32_t sz)
     {
       if (sis_verbose)
       {
-        printf ("Write to unimplemented UART register (%x)\n", uart->address);
+        printf ("Write to unimplemented UART register (%x) [%" PRIu32 "]\n", uart->address);
       }
     }
   }
