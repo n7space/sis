@@ -1,5 +1,5 @@
 SIS_NAME = sis
-SIS_VERSION = 2.29.1
+SIS_VERSION = 2.29
 
 CC = gcc
 G++ = g++
