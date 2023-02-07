@@ -1078,6 +1078,10 @@ uart_read (apbuart_type *uart, uint32_t addr, uint32_t *data)
       *data = uart->control_register;
       result = 0;
       break;
+    case APBUART_SCALER_REGISTER_ADDRESS:
+      *data = uart->scaler_register;
+      result = 0;
+      break;
     default:
       if (sis_verbose)
       {
@@ -1181,6 +1185,12 @@ uart_write (apbuart_type *uart, uint32_t addr, uint32_t * data, uint32_t sz)
     case APBUART_CONTROL_REGISTER_ADDRESS:
     {
       uart->control_register = (*data & APBUART_CONTROL_REGISTER_WRITE_MASK);
+      result = 0;
+      break;
+    }
+    case APBUART_SCALER_REGISTER_ADDRESS:
+    {
+      uart->scaler_register = (*data & APBUART_SCALER_REGISTER_WRITE_MASK);
       result = 0;
       break;
     }
