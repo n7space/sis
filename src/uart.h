@@ -18,10 +18,12 @@
 #define APBUART_REGISTER_TYPE_MASK 0xFF
 #define APBUART_ADDR_MASK 0xFFFF
 #define APBUART_CONTROL_REGISTER_WRITE_MASK 0xEBF
+#define APBUART_SCALER_REGISTER_WRITE_MASK 0xFFF
 
 #define APBUART_DATA_REGISTER_ADDRESS 0x00
 #define APBUART_STATUS_REGISTER_ADDRESS 0x04
 #define APBUART_CONTROL_REGISTER_ADDRESS 0x08
+#define APBUART_SCALER_REGISTER_ADDRESS 0x0C
 
 #define APBUART0_START_ADDRESS 0x80000100
 #define APBUART1_START_ADDRESS 0x80100100
@@ -113,6 +115,7 @@ typedef struct
     uart_io uart_io;
     uint32_t status_register;
     uint32_t control_register;
+    uint32_t scaler_register;
 } apbuart_type;
 
 int uart_init (apbuart_type *uart);
