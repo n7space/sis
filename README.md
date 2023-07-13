@@ -7,7 +7,7 @@ Cloned from git://git.rtems.org/sis.git
 
 ## Required software
 
-- CppuTest can be download from http://cpputest.github.io/ 
+- CppuTest - To install please follow the instructions provided in this link: http://cpputest.github.io/
 
 ## Build
 
